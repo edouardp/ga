@@ -87,7 +87,7 @@ def _(Algebra, sym):
     b = sym(e2, "b")
     A = sym(e1 * e2, "A")
     B = sym(e2 * e3, "B")
-    return A, B, R, a, alg, b, e1, e2, v
+    return A, B, R, a, alg, b, e1, e2, e3, v
 
 
 @app.cell
@@ -352,6 +352,31 @@ def _(R, grade, mo, v):
 
 @app.cell
 def _():
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md("""
+    ## Extracting Components
+    Use `.vector_part` and `.scalar_part` to get numpy-friendly data.
+    """)
+    return
+
+
+@app.cell
+def _(alg, e1, e2, e3, mo):
+    _v = 3 * e1 + 4 * e2 + 5 * e3
+    _mv = alg.scalar(7) + _v + (e1 ^ e2)
+    mo.vstack([
+        mo.md(f"`v = 3e₁ + 4e₂ + 5e₃`"),
+        mo.md(f"`v.vector_part` → `{_v.vector_part}`"),
+        mo.md(f"`v.scalar_part` → `{_v.scalar_part}`"),
+        mo.md(f""),
+        mo.md(f"`mv = 7 + v + e₁₂`"),
+        mo.md(f"`mv.vector_part` → `{_mv.vector_part}`"),
+        mo.md(f"`mv.scalar_part` → `{_mv.scalar_part}`"),
+    ])
     return
 
 

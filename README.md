@@ -154,6 +154,20 @@ Convenience properties on multivectors:
 v.inv           # inverse(v)
 v.dag           # reverse(v)  — the "dagger"
 v.sq            # gp(v, v)    — squared
+v.scalar_part   # grade-0 coefficient as float
+v.vector_part   # grade-1 coefficients as np.ndarray
+```
+
+Extract components for use with numpy, matplotlib, etc:
+
+```python
+v = 3*e1 + 4*e2 + 5*e3
+v.vector_part           # np.array([3., 4., 5.])
+v.scalar_part           # 0.0
+
+mv = 7 + v + (e1^e2)
+mv.vector_part          # np.array([3., 4., 5.])
+mv.scalar_part          # 7.0
 ```
 
 ## Dual
@@ -425,6 +439,8 @@ odd_grades   ↔  odd
 | `.inv` | Inverse |
 | `.dag` | Reverse (dagger) |
 | `.sq` | Squared (geometric product with self) |
+| `.scalar_part` | Grade-0 coefficient as `float` |
+| `.vector_part` | Grade-1 coefficients as `np.ndarray` |
 | `.algebra` | Parent algebra |
 | `.data` | NumPy coefficient array |
 
