@@ -36,7 +36,7 @@ def _():
     import numpy as np
     from ga import Algebra
     from ga.symbolic import (
-        sym, gp, op, grade, grades, reverse, involute, conjugate,
+        sym, gp, op, grade, reverse, involute, conjugate,
         dual, undual, norm, unit, inverse, squared,
         left_contraction, right_contraction, hestenes_inner, scalar_product,
         even_grades, odd_grades,
