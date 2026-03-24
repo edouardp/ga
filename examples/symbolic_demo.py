@@ -430,9 +430,8 @@ def _(alg, angle_slider, e1, e2, grade, mo, np, sym):
 
     mo.vstack([
         mo.md(f"$\\theta = {angle_slider.value}°$"),
-        mo.hstack([mo.md("Symbolic:"), _expr]),
-        mo.hstack([mo.md("Result:"), _expr.eval()]),
-    ])
+        mo.hstack([mo.md("Symbolic:"), _expr], justify='start'),
+        mo.hstack([mo.md("Result:"), _expr.eval()], justify='start')])
     return
 
 

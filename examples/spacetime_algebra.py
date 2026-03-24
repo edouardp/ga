@@ -24,7 +24,7 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     # Spacetime Algebra (STA)
 
     The Spacetime Algebra is Cl(1,3) — one timelike dimension ($\gamma_0^2 = +1$)
@@ -56,7 +56,7 @@ def _(Algebra):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Basis Vectors and Signature
     """)
     return
@@ -77,7 +77,7 @@ def _(g0, g1, g2, g3, mo, sta):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Bivectors — Boosts and Rotations
 
     In STA, bivectors split into two types:
@@ -105,7 +105,7 @@ def _(g0, g1, g2, g3, mo):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Interactive Lorentz Boost
 
     A boost in the $\gamma_0 \gamma_1$ plane with rapidity $    arphi$:
@@ -158,7 +158,7 @@ def _(g0, g1, grade, mo, np, rapidity_slider, sta, sym):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ### Boost — Minkowski Diagram
     """)
     return
@@ -217,7 +217,7 @@ def _(g0, g1, np, rapidity_slider, sta):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Interactive Spatial Rotation
 
     Rotations in STA use spacelike bivectors ($\gamma_i \gamma_j$).
@@ -259,7 +259,7 @@ def _(g1, g2, grade, mo, np, rot_slider, sta, sym):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Electromagnetic Field Bivector
 
     In STA, the electromagnetic field is a single bivector $F$:
@@ -295,7 +295,7 @@ def _(g0, g1, g2, g3, mo):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ### Boosting the EM Field
 
     Under a Lorentz boost, $F 	o R F 	ilde{R}$. Drag the rapidity
@@ -340,7 +340,7 @@ def _(em_rapidity, g0, g1, g2, g3, mo, np, sta):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Relative Vectors (Pauli Algebra)
 
     The relative (spatial) vectors are $\sigma_i = \gamma_i \gamma_0$.
@@ -371,7 +371,7 @@ def _(g0, g1, g2, g3, mo):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Symbolic Identities
 
     Verify key STA identities using the symbolic layer.
@@ -396,7 +396,7 @@ def _(g0, g1, g2, g3, mo, np, simplify, sta, sym):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Composition of Boosts
 
     Two successive boosts along different axes don't commute —
@@ -431,7 +431,7 @@ def _(g0, g1, g2, mo, np, sta):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Velocity Addition
 
     Drag two rapidity sliders to compose boosts along the x-axis.
@@ -475,7 +475,7 @@ def _(g0, g1, mo, np, phi1_slider, phi2_slider, sta):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ### Velocity Addition Plot
     """)
     return
