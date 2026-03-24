@@ -377,7 +377,7 @@ class Even(Expr):
         self.x = x
 
     def eval(self):
-        return _alg.even(self.x.eval())
+        return _alg.even_grades(self.x.eval())
 
     def __str__(self):
         return f"⟨{self.x}⟩₊"
@@ -388,7 +388,7 @@ class Odd(Expr):
         self.x = x
 
     def eval(self):
-        return _alg.odd(self.x.eval())
+        return _alg.odd_grades(self.x.eval())
 
     def __str__(self):
         return f"⟨{self.x}⟩₋"
@@ -468,8 +468,12 @@ def conjugate(x):
     return _alg.conjugate(x)
 
 
-def grade(x, k: int):
+def grade(x, k):
     if isinstance(x, Expr):
+        if k == "even":
+            return Even(x)
+        if k == "odd":
+            return Odd(x)
         return Grade(x, k)
     return _alg.grade(x, k)
 
@@ -531,13 +535,17 @@ def squared(x):
     return _alg.squared(x)
 
 
-def even(x):
+def even_grades(x):
     if isinstance(x, Expr):
         return Even(x)
-    return _alg.even(x)
+    return _alg.even_grades(x)
 
 
-def odd(x):
+def odd_grades(x):
     if isinstance(x, Expr):
         return Odd(x)
-    return _alg.odd(x)
+    return _alg.odd_grades(x)
+
+
+even = even_grades
+odd = odd_grades

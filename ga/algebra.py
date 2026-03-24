@@ -502,8 +502,12 @@ def conjugate(x: Multivector) -> Multivector:
     return involute(reverse(x))
 
 
-def grade(x: Multivector, k: int) -> Multivector:
-    """Extract grade-k component."""
+def grade(x: Multivector, k: int | str) -> Multivector:
+    """Extract grade-k component, or 'even'/'odd' for parity selection."""
+    if k == "even":
+        return even_grades(x)
+    if k == "odd":
+        return odd_grades(x)
     alg = x.algebra
     if k < 0 or k > alg.n:
         return Multivector(alg, np.zeros(alg.dim))
@@ -596,13 +600,13 @@ def is_rotor(x: Multivector) -> bool:
     return is_even(x) and np.isclose(scalar(gp(x, reverse(x))), 1.0)
 
 
-def even(x: Multivector) -> Multivector:
+def even_grades(x: Multivector) -> Multivector:
     """Extract even-grade components."""
     alg = x.algebra
     return grades(x, [k for k in range(0, alg.n + 1, 2)])
 
 
-def odd(x: Multivector) -> Multivector:
+def odd_grades(x: Multivector) -> Multivector:
     """Extract odd-grade components."""
     alg = x.algebra
     return grades(x, [k for k in range(1, alg.n + 1, 2)])
@@ -621,6 +625,8 @@ outer_product = op
 rev = reverse
 normalize = unit
 normalise = unit
+even = even_grades
+odd = odd_grades
 
 
 def ip(a: Multivector, b: Multivector, mode: str = "hestenes") -> Multivector:

@@ -9,6 +9,7 @@ from ga import (
     normalize, normalise, grades,
     commutator, anticommutator,
     even, odd, squared,
+    even_grades, odd_grades,
     is_rotor,
 )
 from ga.symbolic import (
@@ -23,6 +24,7 @@ from ga.symbolic import (
     norm as snorm, unit as sunit, inverse as sinverse,
     ip as sip, normalize as snormalize, normalise as snormalise,
     squared as ssq, even as seven, odd as sodd,
+    even_grades as seven_grades, odd_grades as sodd_grades,
 )
 
 
@@ -647,3 +649,49 @@ class TestIsRotor:
         e1, e2, _ = cl3.basis_vectors()
         R = cl3.rotor_from_plane_angle(e1^e2, 0.5)
         assert not is_rotor(2 * R)
+
+
+class TestEvenOddGradesRenamed:
+    def test_even_grades(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        mv = 1 + 2*e1 + 3*(e1^e2)
+        assert even_grades(mv) == even(mv)
+
+    def test_odd_grades(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        mv = 1 + 2*e1 + 3*(e1^e2)
+        assert odd_grades(mv) == odd(mv)
+
+    def test_grade_even_string(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        mv = 1 + 2*e1 + 3*(e1^e2)
+        assert grade(mv, "even") == even_grades(mv)
+
+    def test_grade_odd_string(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        mv = 1 + 2*e1 + 3*(e1^e2)
+        assert grade(mv, "odd") == odd_grades(mv)
+
+
+class TestSymbolicGradeEvenOdd:
+    def test_sym_grade_even(self, cl3):
+        from ga.symbolic import grade as sgrade
+        e1, _, _ = cl3.basis_vectors()
+        v = sym(e1, "v")
+        assert str(sgrade(v, "even")) == "⟨v⟩₊"
+
+    def test_sym_grade_odd(self, cl3):
+        from ga.symbolic import grade as sgrade
+        e1, _, _ = cl3.basis_vectors()
+        v = sym(e1, "v")
+        assert str(sgrade(v, "odd")) == "⟨v⟩₋"
+
+    def test_sym_even_grades(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = sym(e1, "v")
+        assert str(seven_grades(v)) == "⟨v⟩₊"
+
+    def test_sym_odd_grades(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = sym(e1, "v")
+        assert str(sodd_grades(v)) == "⟨v⟩₋"

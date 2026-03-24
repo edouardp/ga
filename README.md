@@ -129,6 +129,13 @@ odd(mv)         # 2e₁      (grades 1, 3, ...)
 scalar(mv)      # 3.0 (float)
 ```
 
+`even_grades` / `odd_grades` are the canonical names; `even` / `odd` are short aliases. You can also use `grade()` directly:
+
+```python
+grade(mv, "even")   # same as even_grades(mv)
+grade(mv, "odd")    # same as odd_grades(mv)
+```
+
 ## Norm, Unit, Inverse
 
 ```python
@@ -355,6 +362,8 @@ op  ↔  wedge  ↔  outer_product
 ip  ↔  inner_product
 reverse  ↔  rev
 unit  ↔  normalize  ↔  normalise
+even_grades  ↔  even
+odd_grades   ↔  odd
 ```
 
 ## API Reference
@@ -432,8 +441,17 @@ uv run pytest tests/ -v                          # run all tests
 uv run pytest tests/ --cov=ga --cov-report=term  # with coverage
 ```
 
-200 tests, 99% coverage. Tests include:
+200+ tests, 99% coverage. Tests include:
 - Algebraic identity property tests (associativity, distributivity, reverse-product)
 - Golden tests for Cl(2,0), Cl(3,0), Cl(1,3)
 - Symbolic rendering and evaluation tests
 - Edge cases and error handling
+
+$$v$$
+
+$v$
+
+$$
+v
+$$
+
