@@ -1,8 +1,51 @@
-"""Symbolic expression tree for pretty-printing GA expressions.
+"""Symbolic expression tree for pretty-printing and algebraic manipulation.
+
+This module provides a lazy expression tree that sits on top of the numeric
+core in ``ga.algebra``. It serves two purposes:
+
+1. **Pretty-printing.** Instead of computing ``R * v * ~R`` immediately and
+   showing the numeric result, you can wrap the operands as symbols
+   (``sym(R, "R")``) and get ``RvR̃`` as output — in Unicode, LaTeX, or
+   Jupyter's ``_repr_latex_``.
+
+2. **Algebraic simplification.** The ``simplify()`` function applies rewrite
+   rules (double-reverse cancellation, rotor normalisation, grade-aware
+   projection, etc.) to expression trees, running to a fixed point.
+
+Architecture
+------------
+Every GA operation has a corresponding ``Expr`` subclass (``Gp``, ``Op``,
+``Grade``, ``Reverse``, etc.) that stores its operands as child nodes.
+The tree is built lazily via operator overloads on ``Expr``:
+
+    R * v * ~R  →  Gp(Gp(Sym("R"), Sym("v")), Reverse(Sym("R")))
+
+Each node implements:
+- ``eval()``    → recursively evaluates to a concrete ``Multivector``
+- ``__str__()`` → Unicode rendering (``RvR̃``)
+- ``_latex()``  → LaTeX rendering (``R v \\tilde{R}``)
+
+Drop-in API
+-----------
+The module re-exports every function from ``ga.algebra`` (``gp``, ``grade``,
+``reverse``, etc.) as a wrapper that detects ``Expr`` arguments:
+
+- If any argument is an ``Expr``, it builds a tree node.
+- If all arguments are plain ``Multivector``s, it delegates directly to the
+  numeric implementation with zero overhead.
+
+This means users can ``from ga.symbolic import gp, grade, reverse`` and use
+the same function names for both symbolic and numeric work.
+
+Grade tracking
+--------------
+``Sym`` nodes auto-detect the homogeneous grade of their wrapped multivector
+(e.g., ``sym(e1, "v")`` knows it's grade-1). This enables ``simplify()`` to
+resolve ``grade(v, 1) → v`` and ``grade(v, 2) → 0`` without evaluation.
 
 Usage:
-    from ga import Algebra, grade, reverse
-    from ga.symbolic import sym
+    from ga import Algebra
+    from ga.symbolic import sym, grade, reverse
 
     alg = Algebra((1,1,1))
     e1, e2, e3 = alg.basis_vectors()
@@ -10,9 +53,10 @@ Usage:
     R = sym(e1 * e2, "R")
     v = sym(e1 + 2*e2, "v")
 
-    expr = grade(R * v * ~R, 0)
-    print(expr)          # ⟨Rv R̃⟩₀
-    result = expr.eval() # concrete Multivector
+    expr = grade(R * v * ~R, 1)
+    print(expr)          # ⟨RvR̃⟩₁
+    print(expr.eval())   # concrete Multivector result
+    print(expr.latex())  # \\langle R v \\tilde{R} \\rangle_{1}
 """
 
 from __future__ import annotations
@@ -21,15 +65,25 @@ from typing import Union
 import ga.algebra as _alg
 
 _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+
+# Unicode combining characters for postfix decorations.
+# These are appended directly after a character to modify its appearance.
+# E.g., "R" + _REVERSE → "R̃" (R with combining tilde above).
 _REVERSE = "\u0303"      # combining tilde: R̃
 _HAT = "\u0302"          # combining circumflex: x̂
-_INVOLUTE = "\u0302"     # same hat for involute
+_INVOLUTE = "\u0302"     # same hat for involute (standard notation)
 _CONJUGATE = "\u0304"    # combining macron: x̄
 _DAGGER = "\u0020\u0334" # †
 
 
 def _needs_parens(node: Expr, parent_op: str) -> bool:
-    """Whether a node needs parentheses in the context of parent_op."""
+    """Determine if a child node needs parentheses in the context of a parent operation.
+
+    Addition and subtraction nodes need wrapping when they appear inside
+    multiplicative operations (gp, op, contractions, etc.) to preserve
+    mathematical precedence in the rendered output.
+    Sym and Neg nodes never need parens — they're atomic or already wrapped.
+    """
     if isinstance(node, (Sym, Neg)):
         return False
     if isinstance(node, (Add, Sub)):
@@ -55,10 +109,23 @@ Numeric = Union[int, float]
 
 
 class Expr:
-    """Base class for symbolic GA expressions."""
+    """Base class for all symbolic GA expression tree nodes.
+
+    Every node in the expression tree inherits from this. The class provides:
+    - Operator overloads that build tree nodes (``__mul__`` → ``Gp``, etc.)
+    - ``eval()`` to recursively compute the concrete ``Multivector`` result
+    - ``latex()`` / ``_latex()`` for LaTeX rendering
+    - ``_repr_latex_()`` for automatic Jupyter/marimo rendering
+    - Convenience properties (``.inv``, ``.dag``, ``.sq``) matching ``Multivector``
+
+    Subclasses must implement ``eval()``, ``__str__()``, and ``_latex()``.
+    """
 
     def eval(self) -> _alg.Multivector:
         raise NotImplementedError
+
+    def __repr__(self) -> str:
+        return str(self)
 
     def latex(self, wrap: str | None = None) -> str:
         """Return LaTeX representation.
@@ -115,7 +182,7 @@ class Expr:
         return Op(self, _ensure_expr(other))
 
     def __or__(self, other):
-        return Lc(self, _ensure_expr(other))
+        return Hi(self, _ensure_expr(other))
 
     def __invert__(self):
         return Reverse(self)
@@ -140,7 +207,18 @@ class Expr:
 
 
 class Sym(Expr):
-    """A named multivector — leaf node."""
+    """A named multivector — leaf node of the expression tree.
+
+    Wraps a concrete ``Multivector`` with a display name. This is the entry
+    point for building symbolic expressions: ``sym(e1, "v")`` creates a
+    ``Sym`` that prints as "v" but evaluates to ``e1``.
+
+    Grade auto-detection: if the wrapped multivector is homogeneous (all
+    nonzero coefficients are the same grade), that grade is recorded in
+    ``_grade``. This enables ``simplify()`` to resolve grade projections
+    without numeric evaluation — e.g., ``grade(v, 1) → v`` when v is
+    known to be grade-1, and ``grade(v, 2) → 0``.
+    """
 
     def __init__(self, mv: _alg.Multivector, name: str, grade: int | None = None):
         self._mv = mv
@@ -164,11 +242,20 @@ class Sym(Expr):
         return self._name
 
     def __repr__(self) -> str:
-        return f"Sym({self._name})"
+        return self._name
 
 
 class Scalar(Expr):
-    """A numeric scalar leaf."""
+    """A numeric scalar leaf — represents a plain number in the expression tree.
+
+    Created automatically by ``_ensure_expr()`` when a Python int/float
+    appears in an expression (e.g., ``3 * sym_v`` creates ``ScalarMul(3, sym_v)``
+    but ``sym_v + 3`` creates ``Add(sym_v, Scalar(3))``).
+
+    Note: ``eval()`` raises TypeError because a bare scalar has no algebra
+    context. Scalars only make sense combined with ``Sym`` nodes that carry
+    an algebra reference.
+    """
 
     def __init__(self, value: Numeric):
         self._value = value
@@ -506,6 +593,15 @@ class Odd(Expr):
 # --- Helper ---
 
 def _ensure_expr(x) -> Expr:
+    """Coerce a value into an Expr node.
+
+    - ``Expr`` → returned as-is
+    - ``int``/``float`` → wrapped in ``Scalar``
+    - ``Multivector`` → wrapped in ``Sym`` with its string representation as name
+
+    This is called by every operator overload to handle mixed-type expressions
+    like ``sym_v + 3`` or ``sym_R * e1`` transparently.
+    """
     if isinstance(x, Expr):
         return x
     if isinstance(x, (int, float)):
@@ -516,7 +612,17 @@ def _ensure_expr(x) -> Expr:
 
 
 def _eq(a: Expr, b: Expr) -> bool:
-    """Structural equality for expression nodes."""
+    """Structural equality for expression nodes (used by simplify).
+
+    This is NOT numeric equality — it checks whether two expression trees
+    have the same structure and leaf values. For example, ``Sym("v")`` equals
+    ``Sym("v")`` but not ``Sym("w")``, even if they wrap the same multivector.
+
+    Why structural and not numeric? Because simplification rules are algebraic
+    identities (``x - x → 0``, ``~~x → x``) that should work regardless of
+    the concrete values. Numeric comparison would require evaluation, which
+    defeats the purpose of symbolic manipulation.
+    """
     if type(a) is not type(b):
         return False
     if isinstance(a, Sym):
@@ -539,8 +645,20 @@ def _eq(a: Expr, b: Expr) -> bool:
 def simplify(expr: Expr) -> Expr:
     """Apply algebraic rewrite rules to simplify an expression tree.
 
-    Rules include identity elimination, double-inverse cancellation,
-    grade-aware projection, wedge self-annihilation, and more.
+    Runs ``_simplify()`` repeatedly until the tree stops changing (fixed-point
+    iteration). This handles cascading rules like ``a - (-a) → a + a → 2a``.
+
+    Current rewrite rules include:
+    - Double involution: ``~~x → x``, ``involute(involute(x)) → x``, etc.
+    - Identity elimination: ``1 * x → x``, ``x + 0 → x``
+    - Self-cancellation: ``x - x → 0``, ``x ^ x → 0``
+    - Scalar collapse: ``k * (j * x) → (k*j) * x``
+    - Collection: ``x + x → 2x``
+    - Rotor normalisation: ``R * ~R → 1`` (evaluated numerically)
+    - Norm of unit: ``‖unit(x)‖ → 1``
+    - Grade-aware projection: ``grade(v, 1) → v`` if v is known grade-1,
+      ``grade(v, 2) → 0`` if v has no grade-2 component
+    - Even/odd projection with known grades
     """
     prev = None
     e = expr
@@ -555,7 +673,19 @@ def _is_scalar(e: Expr, val: float) -> bool:
 
 
 def _known_grade(e: Expr) -> int | None:
-    """Return the known homogeneous grade of an expression, or None."""
+    """Return the known homogeneous grade of an expression, or None if mixed/unknown.
+
+    This propagates grade information through the tree without evaluation:
+    - ``Sym`` nodes carry auto-detected grade from construction
+    - ``Scalar`` is always grade 0
+    - ``Grade(x, k)`` is grade k by definition
+    - ``Reverse``, ``Involute``, ``Conjugate`` preserve grade
+    - ``Neg`` and ``ScalarMul`` preserve grade
+    - ``Unit`` preserves grade (normalising doesn't change grade)
+
+    Returns None for binary operations (products, sums) since the result
+    grade depends on the operands in ways we can't determine statically.
+    """
     if isinstance(e, Sym):
         return e._grade
     if isinstance(e, Scalar):
@@ -574,7 +704,8 @@ def _known_grade(e: Expr) -> int | None:
 
 
 def _simplify(e: Expr) -> Expr:
-    # Recurse first
+    """Single-pass rewrite of an expression tree (called repeatedly by simplify)."""
+    # --- Phase 1: recurse into children first (bottom-up rewriting) ---
     if isinstance(e, (Gp, Op, Lc, Rc, Hi, Sp, Add, Sub)):
         e = type(e)(_simplify(e.a), _simplify(e.b))
     elif isinstance(e, ScalarMul):
@@ -586,6 +717,9 @@ def _simplify(e: Expr) -> Expr:
     elif isinstance(e, Grade):
         e = Grade(_simplify(e.x), e.k)
 
+    # --- Phase 2: apply rewrite rules to the current node ---
+
+    # Double involution cancellations: applying the same involution twice is identity.
     # ~~x → x
     if isinstance(e, Reverse) and isinstance(e.x, Reverse):
         return e.x.x
@@ -606,6 +740,7 @@ def _simplify(e: Expr) -> Expr:
     if isinstance(e, Neg) and isinstance(e.x, Neg):
         return e.x.x
 
+    # Geometric product identities
     # x * 1 → x, 1 * x → x, x * 0 → 0
     if isinstance(e, Gp):
         if _is_scalar(e.a, 1):
@@ -614,7 +749,10 @@ def _simplify(e: Expr) -> Expr:
             return e.a
         if _is_scalar(e.a, 0) or _is_scalar(e.b, 0):
             return Scalar(0)
-        # x * ~x → evaluate numerically
+        # Rotor normalisation: x * ~x → evaluate numerically.
+        # This catches R*~R = 1 for rotors, which is the most common case.
+        # We fall back to numeric evaluation because the algebraic proof
+        # requires knowing the metric, which the symbolic layer doesn't track.
         if isinstance(e.b, Reverse) and _eq(e.a, e.b.x):
             try:
                 val = e.eval()
@@ -622,7 +760,8 @@ def _simplify(e: Expr) -> Expr:
             except Exception:
                 pass
 
-    # k * (j * x) → (k*j) * x
+    # Scalar multiplication identities
+    # k * (j * x) → (k*j) * x  (collapse nested scalar multiplications)
     if isinstance(e, ScalarMul):
         if e.k == 0:
             return Scalar(0)
@@ -631,7 +770,8 @@ def _simplify(e: Expr) -> Expr:
         if isinstance(e.x, ScalarMul):
             return ScalarMul(e.k * e.x.k, e.x.x)
 
-    # x + 0 → x, 0 + x → x, x + x → 2x
+    # Addition identities
+    # x + 0 → x, 0 + x → x, x + x → 2x (term collection)
     if isinstance(e, Add):
         if _is_scalar(e.a, 0):
             return e.b
@@ -640,28 +780,32 @@ def _simplify(e: Expr) -> Expr:
         if _eq(e.a, e.b):
             return ScalarMul(2, e.a)
 
-    # x - x → 0, a - (-b) → a + b
+    # Subtraction identities
+    # x - x → 0, a - (-b) → a + b (double negation in subtraction)
     if isinstance(e, Sub):
         if _eq(e.a, e.b):
             return Scalar(0)
         if isinstance(e.b, Neg):
             return Add(e.a, e.b.x)
 
-    # x + (-x) → 0
+    # Additive cancellation: x + (-x) → 0
     if isinstance(e, Add) and isinstance(e.b, Neg) and _eq(e.a, e.b.x):
         return Scalar(0)
 
-    # x ^ x → 0
+    # Wedge self-annihilation: x ∧ x → 0 (fundamental antisymmetry property)
     if isinstance(e, Op) and _eq(e.a, e.b):
         return Scalar(0)
 
+    # Norm of unit vector is always 1 (by definition of unit)
     # norm(unit(x)) → 1
     if isinstance(e, Norm) and isinstance(e.x, Unit):
         return Scalar(1)
 
-    # --- Grade-aware rules ---
+    # --- Grade-aware rules (use _known_grade to avoid numeric evaluation) ---
 
     # grade(x, k) → x  if x is known to be pure grade k
+    # grade(x, k) → 0  if x is known to have no grade-k component
+    # This avoids numeric evaluation by using the grade metadata from Sym nodes.
     if isinstance(e, Grade) and isinstance(e.k, int):
         g = _known_grade(e.x)
         if g is not None:
@@ -689,8 +833,18 @@ def _simplify(e: Expr) -> Expr:
     return e
 
 
-# --- Public API: drop-in replacements for ga.algebra functions ---
-# These detect Expr arguments and return Expr trees; otherwise delegate to numeric.
+# ============================================================
+# Public API: drop-in replacements for ga.algebra functions
+# ============================================================
+#
+# Each function below checks if any argument is an Expr. If so, it builds
+# the corresponding tree node. If all arguments are plain Multivectors,
+# it delegates directly to ga.algebra with zero overhead.
+#
+# This design means users can import from ga.symbolic instead of ga and
+# get symbolic behaviour automatically when working with Sym-wrapped values,
+# while keeping full numeric performance for unwrapped multivectors.
+# ============================================================
 
 def sym(mv: _alg.Multivector, name: str, grade: int | None = None) -> Sym:
     """Wrap a concrete multivector with a display name.
@@ -846,5 +1000,3 @@ def odd_grades(x):
     return _alg.odd_grades(x)
 
 
-even = even_grades
-odd = odd_grades

@@ -1,4 +1,40 @@
-"""Core algebra and multivector types."""
+"""Core algebra and multivector types.
+
+This module is the numeric engine of the ``ga`` library. It contains:
+
+1. ``Algebra`` — An immutable Clifford algebra factory, parameterised by a
+   metric signature. On construction it precomputes the full multiplication
+   table (sign and index arrays), so that all subsequent products are
+   table lookups, not recomputation.
+
+2. ``Multivector`` — A lightweight value type: just an ``Algebra`` reference
+   and a dense NumPy array of ``2^n`` coefficients (one per basis blade).
+   Operator overloads (``*``, ``^``, ``|``, ``~``) delegate to the named
+   functions below.
+
+3. Named operations — Every GA product and transformation is a module-level
+   function (``gp``, ``op``, ``left_contraction``, ``grade``, ``reverse``,
+   etc.). These are the stable public API; operators are convenience sugar.
+
+Representation choices
+----------------------
+- **Basis blades as bitmasks.** A blade like e₁₃ is the integer ``0b101``
+  (bits 0 and 2 set). This makes the geometric product a XOR of bitmasks
+  (for the resulting blade) plus a sign computation (for reordering).
+
+- **Dense coefficient arrays.** A multivector in Cl(n) stores ``2^n`` floats,
+  one per blade, regardless of sparsity. This is simple and fast for small n
+  (≤8 or so). The index into the array *is* the bitmask.
+
+- **Precomputed multiplication tables.** ``_mul_index[i,j]`` gives the
+  result bitmask and ``_mul_sign[i,j]`` gives the sign+metric factor for
+  the product of basis blades i and j. This turns the geometric product
+  into a sparse scatter-add over nonzero coefficients.
+
+- **Precomputed grade masks.** ``_grade_masks[k]`` is a boolean array that
+  selects all blade indices of grade k. Grade projection is a single
+  masked copy.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +43,20 @@ from functools import cached_property
 
 
 def _sign_of_reorder(a: int, b: int) -> int:
-    """Compute sign from sorting the concatenation of two basis blade bitmasks."""
+    """Compute the sign incurred by concatenating two basis blade bitmasks.
+
+    When we multiply basis blades e_A and e_B, the result blade is e_{A^B}
+    but we need to count how many transpositions are required to move the
+    basis vectors of B past those of A into canonical (sorted) order.
+
+    Algorithm: for each bit in A (from high to low), count how many bits
+    in B are *below* it. Each such pair is one transposition → one sign flip.
+    The total parity (even/odd) gives the sign: +1 or -1.
+
+    This is the standard "canonical reordering sign" from Clifford algebra
+    implementations. It runs in O(n²) where n is the number of basis vectors,
+    which is fine for n ≤ 16.
+    """
     n = 0
     a = a >> 1
     while a:
@@ -20,16 +69,40 @@ _LETTER_SUBSCRIPTS = {"x": "ₓ", "y": "ᵧ"}
 
 
 class Algebra:
-    """Immutable Clifford algebra defined by a metric signature.
+    """Immutable Clifford algebra Cl(p,q,r) defined by a metric signature.
+
+    The signature tuple defines each basis vector's square:
+    - ``+1`` for positive-definite (Euclidean) directions
+    - ``-1`` for negative-definite (e.g. timelike in STA)
+    - ``0``  for degenerate/null directions (e.g. projective GA)
+
+    On construction, the algebra precomputes:
+    - ``_mul_index[i,j]``: the bitmask of the result blade for basis blades i*j
+    - ``_mul_sign[i,j]``:  the scalar factor (reordering sign × metric) for i*j
+    - ``_grade_masks[k]``: boolean mask selecting all grade-k blade indices
+
+    These tables make all subsequent products O(s) where s is the number of
+    nonzero coefficients, with no per-product sign/metric computation.
 
     Args:
         signature: Tuple of +1, -1, or 0 for each basis vector's square.
+                   Length n defines the algebra dimension 2^n.
+        names: Display naming scheme. Can be:
+               - None or "e": default e₁, e₂, ... notation
+               - "gamma": γ₀, γ₁, ... (for spacetime algebra)
+               - "sigma": σ₁, σ₂, ... (for Pauli algebra)
+               - "sigma_xyz": σₓ, σᵧ, σz
+               - (code_names, unicode_names): custom per-vector names
+        repr_unicode: If True, ``repr()`` uses Unicode (same as ``str()``).
+                      If False (default), ``repr()`` uses ASCII for copy-paste.
     """
 
-    __slots__ = ("_sig", "_dim", "_n", "_mul_index", "_mul_sign", "_grade_masks", "_names", "_latex_names")
+    __slots__ = ("_sig", "_dim", "_n", "_mul_index", "_mul_sign", "_grade_masks", "_names", "_latex_names", "_repr_unicode")
 
-    # Built-in naming presets: (code_names, unicode_names)
-    # code_names are used in repr, unicode_names in str
+    # Built-in naming presets: (code_names, unicode_names, latex_names)
+    # code_names  → used in repr() (ASCII-safe)
+    # unicode_names → used in str() (pretty terminal output)
+    # latex_names → used in .latex() (notebook rendering)
     PRESETS = {
         "e": None,  # default: e1, e2, ... / e₁, e₂, ...
         "gamma": lambda n: ([f"g{i}" for i in range(n)],
@@ -45,10 +118,11 @@ class Algebra:
         ),
     }
 
-    def __init__(self, signature: tuple[int, ...], names: str | tuple[list[str], list[str]] | None = None):
+    def __init__(self, signature: tuple[int, ...], names: str | tuple[list[str], list[str]] | None = None, repr_unicode: bool = False):
         self._sig = tuple(signature)
         self._n = len(signature)
         self._dim = 1 << self._n
+        self._repr_unicode = repr_unicode
 
         # Resolve naming scheme
         if names is None or names == "e":
@@ -89,7 +163,20 @@ class Algebra:
             )
 
     def _blade_product(self, a: int, b: int) -> tuple[int, float]:
-        """Compute geometric product of two basis blades (bitmask indices)."""
+        """Compute the geometric product of two basis blades given as bitmask indices.
+
+        The geometric product of e_A * e_B involves three steps:
+        1. Reordering sign: count transpositions to merge the two index sets.
+        2. Result blade: XOR the bitmasks (shared indices cancel out).
+        3. Metric factor: each shared basis vector contributes its signature
+           value (the square of that basis vector: +1, -1, or 0).
+
+        If any shared basis vector is degenerate (signature 0), the entire
+        product vanishes — this is how null/projective dimensions work.
+
+        Returns:
+            (result_bitmask, sign * metric_factor)
+        """
         sign = _sign_of_reorder(a, b)
         result = a ^ b
         # Apply metric: for each shared basis vector, multiply by its signature
@@ -194,12 +281,27 @@ class Algebra:
                 return None
         return bitmask
 
-    def rotor_from_plane_angle(self, B: Multivector, theta: float) -> Multivector:
+    def rotor(self, B: Multivector, radians: float | None = None, degrees: float | None = None) -> Multivector:
         """Create a rotor R = cos(θ/2) - sin(θ/2)B for rotation by θ in plane B.
 
-        B should be a unit bivector.
+        B should be a unit bivector. Specify the angle as ``radians=`` or
+        ``degrees=``. A positional second argument is treated as radians.
+
+        Args:
+            B: Unit bivector defining the rotation plane.
+            radians: Rotation angle in radians.
+            degrees: Rotation angle in degrees (converted internally).
         """
+        if radians is not None and degrees is not None:
+            raise ValueError("Specify radians= or degrees=, not both")
+        if radians is None and degrees is None:
+            raise ValueError("Specify radians= or degrees=")
+        theta = radians if radians is not None else np.radians(degrees)
         return self.scalar(np.cos(theta / 2)) - np.sin(theta / 2) * B
+
+    # Aliases
+    rotor_from_bivector = rotor
+    rotor_from_plane_angle = rotor
 
     _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 
@@ -247,7 +349,27 @@ class Algebra:
 
 
 class Multivector:
-    """A multivector in a Clifford algebra. Lightweight: just algebra ref + dense data."""
+    """A multivector in a Clifford algebra.
+
+    This is a lightweight value type: just an algebra reference plus a dense
+    NumPy array of 2^n float64 coefficients. The array index *is* the blade
+    bitmask, so ``data[0]`` is the scalar part, ``data[0b001]`` is the e₁
+    coefficient, ``data[0b011]`` is the e₁₂ coefficient, etc.
+
+    Operator overloads map to the named functions:
+    - ``a * b``  → ``gp(a, b)``     (geometric product)
+    - ``a ^ b``  → ``op(a, b)``     (outer/wedge product)
+    - ``a | b``  → ``hestenes_inner(a, b)``
+    - ``~a``     → ``reverse(a)``
+    - ``a[k]``   → ``grade(a, k)``  (grade projection)
+
+    Scalar arithmetic (``3 * v``, ``v + 2``, ``v / 5``) is also supported
+    and operates on the coefficient array directly.
+
+    Attributes:
+        algebra: The parent ``Algebra`` instance (shared, not copied).
+        data: Dense NumPy float64 array of length ``algebra.dim``.
+    """
 
     __slots__ = ("algebra", "data")
 
@@ -310,8 +432,8 @@ class Multivector:
         return op(self, other)
 
     def __or__(self, other):
-        """Left contraction (a | b)."""
-        return left_contraction(self, other)
+        """Hestenes inner product (a | b)."""
+        return hestenes_inner(self, other)
 
     def __invert__(self):
         """Reverse (~a)."""
@@ -323,6 +445,15 @@ class Multivector:
         return NotImplemented
 
     def __eq__(self, other):
+        """Approximate equality using ``np.allclose``.
+
+        Supports comparison with other Multivectors (must be from the same
+        algebra) and with scalars (int/float), which are compared against
+        the scalar part with all other components expected to be zero.
+
+        Note: uses ``np.allclose`` (atol=1e-8, rtol=1e-5) rather than exact
+        equality, because floating-point products accumulate rounding errors.
+        """
         if isinstance(other, Multivector):
             self._check_same(other)
             return np.allclose(self.data, other.data)
@@ -331,6 +462,21 @@ class Multivector:
             expected[0] = other
             return np.allclose(self.data, expected)
         return NotImplemented
+
+    def __hash__(self):
+        """Hash based on raw coefficient bytes.
+
+        Required because we define ``__eq__`` — without this, Multivector
+        would be unhashable, which breaks marimo's cell dependency tracking
+        and prevents use in sets/dicts.
+
+        Note: this is consistent with ``__eq__`` for *exact* byte equality,
+        but two multivectors that are ``__eq__`` (via ``allclose``) may have
+        different hashes if their floats differ in the last bits. This is an
+        acceptable trade-off — hash collisions are harmless, and the
+        alternative (quantising floats) adds complexity for little benefit.
+        """
+        return hash(self.data.tobytes())
 
     def __getitem__(self, k: int) -> Multivector:
         """Grade projection: x[k] returns grade-k component."""
@@ -389,13 +535,17 @@ class Multivector:
         return result
 
     def __repr__(self) -> str:
-        return self._format(unicode=False)
+        return self._format(unicode=self.algebra._repr_unicode)
 
     def __str__(self) -> str:
         return self._format(unicode=True)
 
-    def latex(self) -> str:
-        """Return LaTeX representation of this multivector."""
+    def latex(self, wrap: str | None = None) -> str:
+        """Return LaTeX representation of this multivector.
+
+        Args:
+            wrap: Optional delimiter — '$' for inline, '$$' for display block.
+        """
         alg = self.algebra
         terms = []
         for i in range(alg.dim):
@@ -410,24 +560,51 @@ class Multivector:
             else:
                 terms.append(f"{c:g} {name}")
         if not terms:
-            return "0"
-        result = terms[0]
-        for t in terms[1:]:
-            if t.startswith("-"):
-                result += " - " + t[1:]
-            else:
-                result += " + " + t
-        return result
+            raw = "0"
+        else:
+            raw = terms[0]
+            for t in terms[1:]:
+                if t.startswith("-"):
+                    raw += " - " + t[1:]
+                else:
+                    raw += " + " + t
+        if wrap == "$":
+            return f"${raw}$"
+        if wrap == "$$":
+            return f"$$\n{raw}\n$$"
+        return raw
 
     def _repr_latex_(self) -> str:
         """Jupyter/Marimo notebook integration."""
         return f"${self.latex()}$"
-# Phase 3: Core named operations
+# ============================================================
+# Core named operations
+# ============================================================
+#
+# Every GA product is a module-level function. This is the stable public API.
+# Operators on Multivector (*, ^, |, ~) are convenience sugar that delegate here.
+#
+# Implementation pattern: all products iterate over nonzero coefficients of the
+# operands and accumulate into an output array using the precomputed multiplication
+# tables. The differences between products are *which grade combinations survive*:
+#
+#   gp:                all grades (full geometric product)
+#   op:                grade(a) + grade(b) only (wedge)
+#   left_contraction:  grade(b) - grade(a) only, must be ≥ 0
+#   right_contraction: grade(a) - grade(b) only, must be ≥ 0
+#   hestenes_inner:    |grade(a) - grade(b)|, but zero if either is grade-0
+#   scalar_product:    grade-0 only (just the scalar part of gp)
 # ============================================================
 
 
 def gp(a: Multivector, b: Multivector) -> Multivector:
-    """Geometric product."""
+    """Geometric product — the fundamental product of Clifford algebra.
+
+    Computes a*b using the precomputed multiplication tables. For each nonzero
+    coefficient in ``a``, we vectorise the scatter-add across all of ``b``'s
+    coefficients at once (using NumPy fancy indexing), which is significantly
+    faster than a double Python loop for dense multivectors.
+    """
     a._check_same(b)
     alg = a.algebra
     out = np.zeros(alg.dim)
@@ -441,7 +618,15 @@ def gp(a: Multivector, b: Multivector) -> Multivector:
 
 
 def op(a: Multivector, b: Multivector) -> Multivector:
-    """Outer (wedge) product."""
+    """Outer (wedge) product — keeps only the grade-raising part of gp.
+
+    For homogeneous blades of grade r and s, the outer product is the
+    grade-(r+s) part of the geometric product. For mixed-grade multivectors,
+    it's applied component-wise: each (grade_i, grade_j) pair contributes
+    only if the result lands on grade i+j.
+
+    Key property: a ∧ a = 0 for any vector a (antisymmetry).
+    """
     a._check_same(b)
     alg = a.algebra
     out = np.zeros(alg.dim)
@@ -458,7 +643,19 @@ def op(a: Multivector, b: Multivector) -> Multivector:
 
 
 def left_contraction(a: Multivector, b: Multivector) -> Multivector:
-    """Left contraction: a ⌋ b. Grade of result = grade(b) - grade(a)."""
+    """Left contraction: a ⌋ b.
+
+    Keeps only the grade-(s-r) part of gp(a, b), where r = grade(a) and
+    s = grade(b). If r > s, the result is zero — you can't "remove" more
+    grade than is present.
+
+    This is the most common inner product in GA literature. It answers:
+    "project out the part of b that contains a". For example,
+    ``left_contraction(e1, e12)`` = e₂ — the e₁ "factor" is removed.
+
+    Key difference from Hestenes inner: left contraction allows scalars
+    to pass through (scalar ⌋ x = scalar * x), while Hestenes kills them.
+    """
     a._check_same(b)
     alg = a.algebra
     out = np.zeros(alg.dim)
@@ -477,7 +674,13 @@ def left_contraction(a: Multivector, b: Multivector) -> Multivector:
 
 
 def right_contraction(a: Multivector, b: Multivector) -> Multivector:
-    """Right contraction: a ⌊ b. Grade of result = grade(a) - grade(b)."""
+    """Right contraction: a ⌊ b.
+
+    Mirror of left contraction: keeps grade-(r-s) part of gp(a, b).
+    If r < s, the result is zero.
+
+    Satisfies: right_contraction(a, b) = reverse(left_contraction(reverse(b), reverse(a)))
+    """
     a._check_same(b)
     alg = a.algebra
     out = np.zeros(alg.dim)
@@ -496,7 +699,19 @@ def right_contraction(a: Multivector, b: Multivector) -> Multivector:
 
 
 def hestenes_inner(a: Multivector, b: Multivector) -> Multivector:
-    """Hestenes inner product: like left contraction but zero if either is scalar."""
+    """Hestenes inner product.
+
+    Like left contraction but with two key differences:
+    1. Uses |grade(a) - grade(b)| instead of grade(b) - grade(a), so it's
+       nonzero in both directions (e.g. bivector · vector ≠ 0).
+    2. Kills scalars: if either operand is grade-0, the result is zero.
+
+    For vector-on-vector, all three inner products (left, right, Hestenes)
+    agree. The differences only show up with mixed grades — see the README
+    comparison table for concrete examples.
+
+    This is the ``|`` operator on Multivector.
+    """
     a._check_same(b)
     alg = a.algebra
     out = np.zeros(alg.dim)
@@ -535,8 +750,18 @@ def anticommutator(a: Multivector, b: Multivector) -> Multivector:
 
 
 def reverse(x: Multivector) -> Multivector:
-    """Reverse: reverses the order of basis vectors in each blade.
-    Grade-k component is multiplied by (-1)^(k(k-1)/2).
+    """Reverse (†, tilde): reverses the order of basis vectors in each blade.
+
+    The grade-k component is multiplied by (-1)^(k(k-1)/2):
+    - grade 0, 1: unchanged  (sign = +1)
+    - grade 2, 3: negated    (sign = -1)
+    - grade 4, 5: unchanged  (sign = +1)
+    - ...and so on in a period-4 cycle.
+
+    Why this matters: the reverse is the natural "adjoint" in GA. For a
+    versor (product of vectors) V = v₁v₂...vₖ, the reverse is
+    ~V = vₖ...v₂v₁. The sandwich product R x ~R uses the reverse to
+    apply rotations/boosts, and V~V gives the squared norm.
     """
     alg = x.algebra
     out = x.data.copy()
@@ -548,7 +773,11 @@ def reverse(x: Multivector) -> Multivector:
 
 
 def involute(x: Multivector) -> Multivector:
-    """Grade involution: grade-k component is multiplied by (-1)^k."""
+    """Grade involution (hat): grade-k component is multiplied by (-1)^k.
+
+    Even grades are unchanged, odd grades are negated. This is the
+    automorphism that distinguishes the even and odd sub-algebras.
+    """
     alg = x.algebra
     out = x.data.copy()
     for k in range(alg.n + 1):
@@ -558,7 +787,11 @@ def involute(x: Multivector) -> Multivector:
 
 
 def conjugate(x: Multivector) -> Multivector:
-    """Clifford conjugate: reverse composed with involute."""
+    """Clifford conjugate: reverse composed with grade involution.
+
+    Combines both sign-flip patterns. The grade-k component is multiplied
+    by (-1)^(k(k+1)/2). This is the composition ``involute(reverse(x))``.
+    """
     return involute(reverse(x))
 
 
@@ -594,13 +827,24 @@ def scalar(x: Multivector) -> float:
 
 
 def dual(x: Multivector) -> Multivector:
-    """Dual: left contraction with the inverse pseudoscalar."""
+    """Dual: left-contract x into the inverse pseudoscalar.
+
+    Maps a grade-k blade to a grade-(n-k) blade. In 3D Euclidean space,
+    dual(e₁ ∧ e₂) = e₃. This is the standard Hodge-like duality in GA.
+
+    Implementation: ``left_contraction(x, I⁻¹)`` where I is the unit
+    pseudoscalar. We use left contraction (not geometric product with I⁻¹)
+    because it gives the correct grade mapping for all signatures.
+    """
     I_inv = inverse(x.algebra.pseudoscalar())
     return left_contraction(x, I_inv)
 
 
 def undual(x: Multivector) -> Multivector:
-    """Undual: left contraction with the pseudoscalar."""
+    """Undual: left-contract x into the pseudoscalar (inverse of dual).
+
+    ``undual(dual(x)) = x`` for all x.
+    """
     I = x.algebra.pseudoscalar()
     return left_contraction(x, I)
 
@@ -624,7 +868,17 @@ def unit(x: Multivector) -> Multivector:
 
 
 def inverse(x: Multivector) -> Multivector:
-    """Inverse via x_rev / (x * x_rev) for versors."""
+    """Versor inverse: x⁻¹ = ~x / scalar(x * ~x).
+
+    This works for versors (products of non-null vectors), which includes
+    all rotors, vectors, and most objects you'd want to invert in practice.
+    It does NOT work for arbitrary multivectors — a general multivector
+    inverse requires solving a linear system, which this library doesn't
+    implement (by design: if you need it, you probably want a different
+    approach).
+
+    Raises ValueError if the multivector is not invertible (x * ~x ≈ 0).
+    """
     x_rev = reverse(x)
     denom = scalar(gp(x, x_rev))
     if abs(denom) < 1e-15:
@@ -678,14 +932,113 @@ def squared(x: Multivector) -> Multivector:
 
 
 def sandwich(r: Multivector, x: Multivector) -> Multivector:
-    """Sandwich product: r x r̃."""
+    """Sandwich product: r x ~r.
+
+    The fundamental transformation in GA. When r is a rotor (even-graded,
+    r*~r = 1), this applies the rotation/boost encoded by r to x.
+    Grade-preserving: if x is grade-k, the result is also grade-k.
+    """
     return gp(gp(r, x), reverse(r))
 
 
 sw = sandwich
 
 
+def exp(B: Multivector) -> Multivector:
+    """Bivector exponential: exp(B) = cos(|B|) + sin(|B|) * B/|B|.
+
+    For a bivector B in a Euclidean algebra (B² < 0), this produces a rotor.
+    For a timelike bivector (B² > 0), uses hyperbolic functions instead:
+    exp(B) = cosh(|B|) + sinh(|B|) * B/|B|.
+    For a null bivector (B² = 0), exp(B) = 1 + B.
+
+    This is the standard way to build a rotor from a bivector without
+    manually computing cos(θ/2) and sin(θ/2). Note: ``alg.rotor(B, radians=θ)``
+    computes ``exp(-θ/2 * B)`` for a unit bivector B.
+    """
+    B2 = scalar(gp(B, B))
+    if abs(B2) < 1e-15:
+        # Null bivector: exp(B) = 1 + B
+        return B.algebra.scalar(1.0) + B
+    if B2 < 0:
+        # Spacelike bivector (Euclidean rotation): B² < 0
+        mag = np.sqrt(-B2)
+        return B.algebra.scalar(np.cos(mag)) + np.sin(mag) / mag * B
+    else:
+        # Timelike bivector (hyperbolic/boost): B² > 0
+        mag = np.sqrt(B2)
+        return B.algebra.scalar(np.cosh(mag)) + np.sinh(mag) / mag * B
+
+
+def log(R: Multivector) -> Multivector:
+    """Rotor logarithm: extract the bivector B such that exp(B) = R.
+
+    R should be a normalised rotor (even-graded, R*~R = 1). Returns the
+    bivector B. For Euclidean rotors, B encodes the half-angle and plane:
+    the rotation angle is 2*norm(B) and the plane is unit(B).
+
+    Raises ValueError if R is a pure scalar ±1 (log is zero or undefined).
+    """
+    s = R.data[0]  # scalar part
+    B = R - R.algebra.scalar(s)  # bivector part
+    B2 = scalar(gp(B, B))
+
+    if abs(B2) < 1e-15:
+        # Pure scalar rotor: R ≈ ±1, log = 0
+        return R.algebra.scalar(0.0) * R
+
+    if B2 < 0:
+        # Euclidean rotor
+        mag = np.sqrt(-B2)
+        theta = np.arctan2(mag, s)
+        return (theta / mag) * B
+    else:
+        # Hyperbolic rotor
+        mag = np.sqrt(B2)
+        phi = np.arctanh(mag / s) if abs(s) > abs(mag) else np.arctan2(mag, s)
+        return (phi / mag) * B
+
+
+def project(v: Multivector, B: Multivector) -> Multivector:
+    """Project v onto the subspace defined by blade B.
+
+    Computes the component of v that lies within B:
+    project(v, B) = (v ⌋ B) * B⁻¹
+
+    For a vector v and a blade B, this gives the part of v parallel to B.
+    """
+    return gp(left_contraction(v, B), inverse(B))
+
+
+def reject(v: Multivector, B: Multivector) -> Multivector:
+    """Reject v from the subspace defined by blade B.
+
+    Computes the component of v perpendicular to B:
+    reject(v, B) = v - project(v, B)
+
+    For a vector v and a blade B, this gives the part of v orthogonal to B.
+    """
+    return v - project(v, B)
+
+
+def reflect(v: Multivector, n: Multivector) -> Multivector:
+    """Reflect v in the hyperplane orthogonal to vector n.
+
+    Computes -n * v * n⁻¹. The vector n defines the normal to the
+    reflection hyperplane. For a unit vector n, this simplifies to
+    -n * v * n.
+
+    Note: this is a sandwich product with a sign flip. For reflection
+    *through* n (not the hyperplane), use ``sandwich(n, v)`` instead.
+    """
+    return gp(gp(-n, v), inverse(n))
+
+
 # --- Aliases ---
+# These are literally the same functions, not wrappers. They exist so users
+# can write whichever name feels natural: ``wedge(a, b)`` or ``op(a, b)``,
+# ``rev(x)`` or ``reverse(x)``, etc. The short names are the "canonical" ones
+# used throughout the codebase; the long names are for readability.
 
 geometric_product = gp
 wedge = op
@@ -694,18 +1047,23 @@ rev = reverse
 normalize = unit
 normalise = unit
 norm_squared = norm2
-even = even_grades
-odd = odd_grades
 
 
 def ip(a: Multivector, b: Multivector, mode: str = "hestenes") -> Multivector:
-    """Unified inner product dispatcher.
+    """Unified inner product dispatcher — removes ambiguity about which inner product.
+
+    GA has multiple inner products that agree on simple cases (vector·vector)
+    but diverge on mixed grades. Rather than guessing, this function makes
+    the choice explicit.
 
     Modes:
-        "hestenes" — Hestenes inner product (default)
-        "left"     — left contraction (a ⌋ b)
-        "right"    — right contraction (a ⌊ b)
-        "scalar"   — scalar product (grade-0 of gp)
+        "hestenes" — Hestenes inner product (default). Uses |r-s| grade
+                     selection, kills scalars. This is the ``|`` operator.
+        "left"     — Left contraction (a ⌋ b). Grade s-r, zero if r > s.
+                     Most common in GA literature.
+        "right"    — Right contraction (a ⌊ b). Grade r-s, zero if s > r.
+                     Mirror of left contraction.
+        "scalar"   — Scalar product. Grade-0 part of gp(a, b) only.
     """
     match mode:
         case "hestenes":

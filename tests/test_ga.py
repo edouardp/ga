@@ -7,6 +7,7 @@ from ga import (
     scalar_product, reverse, involute, conjugate, grade, grades, scalar,
     dual, undual, norm2, norm, unit, inverse, commutator, anticommutator,
     is_scalar, is_vector, is_bivector, is_even, wedge, geometric_product, rev,
+    exp, log, project, reject, reflect, sandwich,
 )
 
 
@@ -119,6 +120,27 @@ class TestMultivector:
     def test_repr_zero(self, cl3):
         z = cl3.scalar(0)
         assert repr(z) == "0"
+
+    def test_repr_unicode_false_by_default(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        assert repr(e1) == "e1"
+        assert str(e1) != repr(e1)  # str uses unicode subscripts
+
+    def test_repr_unicode_true(self):
+        alg = Algebra((1, 1, 1), repr_unicode=True)
+        e1, e2, _ = alg.basis_vectors()
+        v = 3 * e1 + 4 * e2
+        assert repr(v) == str(v)
+        assert "e₁" in repr(v)
+
+    def test_repr_unicode_pseudoscalar(self):
+        alg = Algebra((1, 1, 1), repr_unicode=True)
+        assert repr(alg.I) == str(alg.I)
+
+    def test_repr_unicode_with_names(self):
+        sta = Algebra((1, -1, -1, -1), names="gamma", repr_unicode=True)
+        g0, g1, _, _ = sta.basis_vectors()
+        assert "γ" in repr(g0 * g1)
 
     def test_algebra_mismatch(self, cl2, cl3):
         e1_2d = cl2.basis_vectors()[0]
@@ -237,8 +259,105 @@ class TestContractions:
     def test_operator_pipe(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         e12 = e1 ^ e2
-        assert (e1 | e12) == left_contraction(e1, e12)
+        assert (e1 | e12) == hestenes_inner(e1, e12)
 
+    # --- Mixed-grade cases where the three inner products diverge ---
+
+    def test_left_contraction_bivector_on_vector_is_zero(self, cl3):
+        """grade(a) > grade(b) → left contraction vanishes."""
+        e1, e2, _ = cl3.basis_vectors()
+        e12 = e1 ^ e2
+        r = left_contraction(e12, e1)
+        assert np.allclose(r.data, 0)
+
+    def test_right_contraction_vector_on_bivector_is_zero(self, cl3):
+        """grade(a) < grade(b) → right contraction vanishes."""
+        e1, e2, _ = cl3.basis_vectors()
+        e12 = e1 ^ e2
+        r = right_contraction(e1, e12)
+        assert np.allclose(r.data, 0)
+
+    def test_hestenes_bivector_on_vector_nonzero(self, cl3):
+        """grade(a) > grade(b) → Hestenes uses |r-s|, so this is nonzero."""
+        e1, e2, _ = cl3.basis_vectors()
+        e12 = e1 ^ e2
+        r = hestenes_inner(e12, e1)
+        # |2-1| = 1, so result is grade-1
+        assert r == -e2
+
+    def test_left_contraction_scalar_passes_through(self, cl3):
+        """Scalar ⌋ x = scalar * x (left contraction allows grade-0 left)."""
+        e1, _, _ = cl3.basis_vectors()
+        s = cl3.scalar(3.0)
+        r = left_contraction(s, e1)
+        assert r == 3 * e1
+
+    def test_hestenes_scalar_is_zero(self, cl3):
+        """Hestenes kills scalar operands on either side."""
+        e1, _, _ = cl3.basis_vectors()
+        s = cl3.scalar(3.0)
+        assert np.allclose(hestenes_inner(s, e1).data, 0)
+        assert np.allclose(hestenes_inner(e1, s).data, 0)
+
+    def test_right_contraction_scalar_right(self, cl3):
+        """x ⌊ scalar = scalar * x (right contraction allows grade-0 right)."""
+        e1, _, _ = cl3.basis_vectors()
+        s = cl3.scalar(3.0)
+        r = right_contraction(e1, s)
+        assert r == 3 * e1
+
+    def test_left_contraction_bivector_on_bivector(self, cl3):
+        """Bivector ⌋ bivector → scalar (grade 2-2=0)."""
+        e1, e2, e3 = cl3.basis_vectors()
+        e12 = e1 ^ e2
+        e13 = e1 ^ e3
+        # e12 ⌋ e12 = -1 (scalar)
+        r = left_contraction(e12, e12)
+        assert np.isclose(scalar(r), -1.0)
+        # e12 ⌋ e13 = 0 (gp gives grade-2, not grade-0)
+        r = left_contraction(e12, e13)
+        assert np.allclose(r.data, 0)
+
+    def test_hestenes_bivector_on_bivector(self, cl3):
+        """Hestenes bivector·bivector → scalar (|2-2|=0), same as left."""
+        e1, e2, e3 = cl3.basis_vectors()
+        e12 = e1 ^ e2
+        r = hestenes_inner(e12, e12)
+        assert np.isclose(scalar(r), -1.0)
+
+    def test_left_contraction_vector_on_trivector(self, cl3):
+        """Vector ⌋ trivector → bivector (grade 3-1=2)."""
+        e1, e2, e3 = cl3.basis_vectors()
+        e123 = e1 ^ e2 ^ e3
+        r = left_contraction(e1, e123)
+        assert r == e2 ^ e3
+
+    def test_right_contraction_trivector_on_vector(self, cl3):
+        """Trivector ⌊ vector → bivector (grade 3-1=2)."""
+        e1, e2, e3 = cl3.basis_vectors()
+        e123 = e1 ^ e2 ^ e3
+        r = right_contraction(e123, e1)
+        assert r == e2 ^ e3
+
+    def test_contractions_asymmetry(self, cl3):
+        """Left and right contraction are NOT symmetric — key difference."""
+        e1, e2, _ = cl3.basis_vectors()
+        e12 = e1 ^ e2
+        lc = left_contraction(e1, e12)   # grade 2-1=1 → e2
+        rc = right_contraction(e1, e12)   # grade 1-2<0 → 0
+        assert lc == e2
+        assert np.allclose(rc.data, 0)
+
+    def test_hestenes_vs_left_contraction_mixed_grade(self, cl3):
+        """On mixed-grade multivectors, Hestenes and left contraction differ."""
+        e1, e2, e3 = cl3.basis_vectors()
+        # a = scalar + bivector, b = vector
+        a = cl3.scalar(2.0) + (e1 ^ e2)
+        b = e1
+        lc = left_contraction(a, b)   # scalar⌋vector = 2*e1, bivector⌋vector = 0
+        hi = hestenes_inner(a, b)      # scalar·anything = 0 in Hestenes, bivector·vector = -e2
+        assert lc == 2 * e1
+        assert hi == -e2
 
 class TestUnaryOps:
     def test_reverse_vector(self, cl3):
@@ -408,3 +527,107 @@ class TestGoldenSTA:
         """I^2 = -1 in Cl(1,3) with standard blade ordering."""
         I = sta.pseudoscalar()
         assert np.isclose(scalar(I * I), -1.0)
+
+
+class TestExpLog:
+    def test_exp_euclidean_bivector(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        B = (np.pi / 4) * (e1 ^ e2)
+        R = exp(B)
+        assert np.isclose(scalar(R * ~R), 1.0)
+
+    def test_exp_matches_rotor(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        theta = np.pi / 3
+        R1 = cl3.rotor(e1 ^ e2, radians=theta)
+        R2 = exp(-theta / 2 * (e1 ^ e2))
+        assert np.allclose(R1.data, R2.data)
+
+    def test_exp_null_bivector(self):
+        pga = Algebra((1, 1, 1, 0))
+        e1, e2, e3, e4 = pga.basis_vectors()
+        B = e1 ^ e4  # degenerate direction, B² = 0
+        R = exp(B)
+        expected = pga.scalar(1.0) + B
+        assert np.allclose(R.data, expected.data)
+
+    def test_exp_timelike_bivector(self):
+        sta = Algebra((1, -1, -1, -1))
+        g0, g1, _, _ = sta.basis_vectors()
+        B = 0.5 * (g0 * g1)  # timelike bivector, B² > 0
+        R = exp(B)
+        assert np.isclose(scalar(R * ~R), 1.0)
+
+    def test_log_roundtrip(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        B = 0.7 * (e1 ^ e2)
+        R = exp(B)
+        B_back = log(R)
+        assert np.allclose(B.data, B_back.data, atol=1e-12)
+
+    def test_exp_log_roundtrip(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = cl3.rotor(e1 ^ e2, radians=1.2)
+        R_back = exp(log(R))
+        assert np.allclose(R.data, R_back.data, atol=1e-12)
+
+    def test_log_identity(self, cl3):
+        R = cl3.scalar(1.0)
+        B = log(R)
+        assert np.allclose(B.data, 0, atol=1e-12)
+
+
+class TestProjectReject:
+    def test_project_vector_onto_vector(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        v = 3 * e1 + 4 * e2
+        p = project(v, e1)
+        assert np.allclose(p.data, (3 * e1).data)
+
+    def test_project_vector_onto_bivector(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors()
+        v = 3 * e1 + 4 * e2 + 5 * e3
+        p = project(v, e1 ^ e2)
+        assert np.allclose(p.data, (3 * e1 + 4 * e2).data)
+
+    def test_reject_is_complement(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors()
+        v = 3 * e1 + 4 * e2 + 5 * e3
+        B = e1 ^ e2
+        p = project(v, B)
+        r = reject(v, B)
+        assert np.allclose((p + r).data, v.data)
+
+    def test_reject_perpendicular(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors()
+        v = 3 * e1 + 4 * e2 + 5 * e3
+        r = reject(v, e1 ^ e2)
+        assert np.allclose(r.data, (5 * e3).data)
+
+
+class TestReflect:
+    def test_reflect_parallel(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        # Reflecting e1 in hyperplane orthogonal to e1 → -e1
+        r = reflect(e1, e1)
+        assert np.allclose(r.data, (-e1).data)
+
+    def test_reflect_perpendicular(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        # Reflecting e2 in hyperplane orthogonal to e1 → e2 (unchanged)
+        r = reflect(e2, e1)
+        assert np.allclose(r.data, e2.data)
+
+    def test_reflect_mixed(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        v = e1 + e2
+        r = reflect(v, e1)
+        assert np.allclose(r.data, (-e1 + e2).data)
+
+    def test_reflect_involutory(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors()
+        v = 2 * e1 + 3 * e2 + e3
+        n = unit(e1 + e2)
+        # Double reflection is identity
+        r = reflect(reflect(v, n), n)
+        assert np.allclose(r.data, v.data, atol=1e-12)

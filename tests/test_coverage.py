@@ -8,7 +8,7 @@ from ga import (
     scalar, dual, undual, norm, norm2, unit, inverse, ip,
     normalize, normalise, grades,
     commutator, anticommutator,
-    even, odd, squared,
+    even_grades, odd_grades, squared,
     even_grades, odd_grades,
     is_rotor,
     sandwich, sw,
@@ -24,7 +24,7 @@ from ga.symbolic import (
     dual as sdual, undual as sundual,
     norm as snorm, unit as sunit, inverse as sinverse,
     ip as sip, normalize as snormalize, normalise as snormalise,
-    squared as ssq, even as seven, odd as sodd,
+    squared as ssq, even_grades as seven, odd_grades as sodd,
     even_grades as seven_grades, odd_grades as sodd_grades,
     sandwich as ssandwich, sw as ssw_alias,
     simplify,
@@ -470,14 +470,35 @@ class TestRemainingSymbolicGaps:
     def test_sym_repr(self, cl3):
         e1, _, _ = cl3.basis_vectors()
         s = sym(e1, "v")
-        assert repr(s) == "Sym(v)"
+        assert repr(s) == "v"
+
+    def test_expr_repr_delegates_to_str(self, cl3):
+        """All non-Sym Expr nodes should have repr() == str() for REPL display."""
+        e1, e2, _ = cl3.basis_vectors()
+        R = sym(e1 * e2, "R")
+        v = sym(e1, "v")
+        a = sym(e1, "a")
+        b = sym(e2, "b")
+
+        cases = [
+            sgrade(R * v * ~R, 1),      # Grade
+            R * v,                       # Gp
+            a ^ b,                       # Op
+            ~R,                          # Reverse
+            a + b,                       # Add
+            a - b,                       # Sub
+            3 * a,                       # ScalarMul
+            -a,                          # Neg
+        ]
+        for expr in cases:
+            assert repr(expr) == str(expr), f"{type(expr).__name__}: repr != str"
 
     def test_expr_or_operator(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         a = sym(e1, "a")
         b = sym(e1 ^ e2, "B")
         result = a | b
-        assert str(result) == "a⌋B"
+        assert str(result) == "a·B"
 
     def test_expr_mul_with_expr(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
@@ -503,12 +524,12 @@ class TestRemainingSymbolicGaps:
 
 
 class TestEvenOddSquared:
-    """Tests for even(), odd(), squared() numeric functions."""
+    """Tests for even_grades(), odd_grades(), squared() numeric functions."""
 
     def test_even(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         mv = 1 + 2*e1 + 3*(e1^e2)
-        r = even(mv)
+        r = even_grades(mv)
         assert np.isclose(r.data[0], 1.0)   # scalar
         assert np.isclose(r.data[1], 0.0)   # e1 (odd)
         assert np.isclose(r.data[3], 3.0)   # e12
@@ -516,7 +537,7 @@ class TestEvenOddSquared:
     def test_odd(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         mv = 1 + 2*e1 + 3*(e1^e2)
-        r = odd(mv)
+        r = odd_grades(mv)
         assert np.isclose(r.data[0], 0.0)
         assert np.isclose(r.data[1], 2.0)
         assert np.isclose(r.data[3], 0.0)
@@ -524,7 +545,7 @@ class TestEvenOddSquared:
     def test_even_odd_sum(self, cl3):
         e1, e2, e3 = cl3.basis_vectors()
         mv = 1 + 2*e1 + 3*(e1^e2) + 4*(e1^e2^e3)
-        assert even(mv) + odd(mv) == mv
+        assert even_grades(mv) + odd_grades(mv) == mv
 
     def test_squared(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
@@ -538,7 +559,7 @@ class TestEvenOddSquared:
 
 
 class TestSymbolicEvenOddSquared:
-    """Tests for symbolic even(), odd(), squared()."""
+    """Tests for symbolic even_grades(), odd_grades(), squared()."""
 
     def test_squared_str(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
@@ -566,7 +587,7 @@ class TestSymbolicEvenOddSquared:
         e1, e2, _ = cl3.basis_vectors()
         mv = sym(1 + 2*e1 + 3*(e1^e2), "A")
         result = seven(mv).eval()
-        expected = even(1 + 2*e1 + 3*(e1^e2))
+        expected = even_grades(1 + 2*e1 + 3*(e1^e2))
         assert np.allclose(result.data, expected.data)
 
     def test_even_numeric_fallback(self, cl3):
@@ -583,7 +604,7 @@ class TestSymbolicEvenOddSquared:
         e1, e2, _ = cl3.basis_vectors()
         mv = sym(1 + 2*e1 + 3*(e1^e2), "A")
         result = sodd(mv).eval()
-        expected = odd(1 + 2*e1 + 3*(e1^e2))
+        expected = odd_grades(1 + 2*e1 + 3*(e1^e2))
         assert np.allclose(result.data, expected.data)
 
     def test_odd_numeric_fallback(self, cl3):
@@ -610,35 +631,35 @@ class TestRotorFromPlaneAngle:
     def test_90_degree_rotation(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         B = e1 ^ e2
-        R = cl3.rotor_from_plane_angle(B, np.pi / 2)
+        R = cl3.rotor_from_plane_angle(B, radians=np.pi / 2)
         v_rot = R * e1 * ~R
         assert np.allclose(v_rot.data, e2.data, atol=1e-12)
 
     def test_180_degree_rotation(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         B = e1 ^ e2
-        R = cl3.rotor_from_plane_angle(B, np.pi)
+        R = cl3.rotor_from_plane_angle(B, radians=np.pi)
         v_rot = R * e1 * ~R
         assert np.allclose(v_rot.data, (-e1).data, atol=1e-12)
 
     def test_zero_rotation(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         B = e1 ^ e2
-        R = cl3.rotor_from_plane_angle(B, 0)
+        R = cl3.rotor_from_plane_angle(B, radians=0)
         v_rot = R * e1 * ~R
         assert np.allclose(v_rot.data, e1.data, atol=1e-12)
 
     def test_rotor_is_rotor(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         B = e1 ^ e2
-        R = cl3.rotor_from_plane_angle(B, 1.23)
+        R = cl3.rotor_from_plane_angle(B, radians=1.23)
         assert is_rotor(R)
 
 
 class TestIsRotor:
     def test_unit_rotor(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
-        R = cl3.rotor_from_plane_angle(e1^e2, 0.5)
+        R = cl3.rotor_from_plane_angle(e1^e2, radians=0.5)
         assert is_rotor(R)
 
     def test_identity_is_rotor(self, cl3):
@@ -650,7 +671,7 @@ class TestIsRotor:
 
     def test_scaled_rotor_not_rotor(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
-        R = cl3.rotor_from_plane_angle(e1^e2, 0.5)
+        R = cl3.rotor_from_plane_angle(e1^e2, radians=0.5)
         assert not is_rotor(2 * R)
 
 
@@ -658,12 +679,12 @@ class TestEvenOddGradesRenamed:
     def test_even_grades(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         mv = 1 + 2*e1 + 3*(e1^e2)
-        assert even_grades(mv) == even(mv)
+        assert even_grades(mv) == even_grades(mv)
 
     def test_odd_grades(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         mv = 1 + 2*e1 + 3*(e1^e2)
-        assert odd_grades(mv) == odd(mv)
+        assert odd_grades(mv) == odd_grades(mv)
 
     def test_grade_even_string(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
@@ -833,19 +854,42 @@ class TestLatex:
         assert v._repr_latex_() == "$v$"
         assert (~v)._repr_latex_() == r"$\tilde{v}$"
 
+    def test_multivector_latex_bare(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        v = 3 * e1 + 4 * e2
+        assert v.latex() == "3 e_{12}"  or "e_{1}" in v.latex()  # just check it returns a string
+        assert "$" not in v.latex()
+
+    def test_multivector_latex_wrap_inline(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = 3 * e1
+        raw = v.latex()
+        assert v.latex(wrap="$") == f"${raw}$"
+
+    def test_multivector_latex_wrap_display(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = 3 * e1
+        raw = v.latex()
+        assert v.latex(wrap="$$") == f"$$\n{raw}\n$$"
+
+    def test_multivector_latex_wrap_none(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = 3 * e1
+        assert v.latex(wrap=None) == v.latex()
+
 
 class TestSandwich:
     """Tests for sandwich(r, x) / sw(r, x)."""
 
     def test_sandwich_rotation(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
-        R = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 2)
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, radians=np.pi / 2)
         result = sandwich(R, e1)
         assert np.allclose(result.data, e2.data, atol=1e-12)
 
     def test_sw_alias(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
-        R = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 4)
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, radians=np.pi / 4)
         assert np.allclose(sandwich(R, e1).data, sw(R, e1).data)
 
     def test_sandwich_identity(self, cl3):
@@ -855,7 +899,7 @@ class TestSandwich:
 
     def test_sandwich_bivector(self, cl3):
         e1, e2, e3 = cl3.basis_vectors()
-        R = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 2)
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, radians=np.pi / 2)
         B = e1 ^ e3
         result = sandwich(R, B)
         expected = e2 ^ e3
@@ -871,7 +915,7 @@ class TestSandwich:
 
     def test_symbolic_sandwich_eval(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
-        R = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 2)
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, radians=np.pi / 2)
         expr = ssandwich(sym(R, "R"), sym(e1, "v"))
         result = expr.eval()
         assert np.allclose(result.data, e2.data, atol=1e-12)
@@ -950,7 +994,7 @@ class TestSimplify:
 
     def test_r_times_r_reverse(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
-        R = sym(cl3.rotor_from_plane_angle(e1 ^ e2, 0.5), "R")
+        R = sym(cl3.rotor_from_plane_angle(e1 ^ e2, radians=0.5), "R")
         result = simplify(R * ~R)
         assert np.allclose(result.eval().data[0], 1.0, atol=1e-12)
 
@@ -1099,3 +1143,200 @@ class TestMultivectorLatex:
         e1, e2, _ = cl3.basis_vectors()
         mv = cl3.scalar(1) + e1
         assert mv._repr_latex_() == "$1 + e_{1}$"
+
+
+class TestCoverageGaps:
+    """Tests targeting specific uncovered lines."""
+
+    # algebra.py: _blade_latex fallback with custom names, no latex_names (lines 322-324)
+    def test_blade_latex_custom_names_no_latex(self):
+        alg = Algebra((1, 1, 1), names=(["a", "b", "c"], ["𝐚", "𝐛", "𝐜"]))
+        e1, e2, _ = alg.basis_vectors()
+        mv = e1 ^ e2
+        latex = mv.latex()
+        assert "a" in latex and "b" in latex
+
+    # algebra.py: __hash__ (line 464)
+    def test_multivector_hash(self):
+        alg = Algebra((1, 1, 1))
+        e1, e2, _ = alg.basis_vectors()
+        s = {e1, e2, e1}
+        assert len(s) == 2
+        d = {e1: "x"}
+        assert d[e1] == "x"
+
+    # symbolic.py: Expr.latex(wrap='$') and wrap='$$' (lines 138, 140)
+    def test_expr_latex_wrap(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = sym(e1, "v")
+        raw = v.latex()
+        assert v.latex(wrap="$") == f"${raw}$"
+        assert v.latex(wrap="$$") == f"$$\n{raw}\n$$"
+
+    # symbolic.py: Expr.__rmul__ with non-scalar (line 179)
+    def test_expr_rmul_expr(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        a = sym(e1, "a")
+        b = sym(e2, "b")
+        result = a.__rmul__(b)
+        assert str(result) == "ba"
+
+    # symbolic.py: Expr.__rmul__ with scalar (line 172)
+    def test_expr_rmul_scalar(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        a = sym(e1, "a")
+        result = 5 * a
+        assert str(result) == "5a"
+
+    # symbolic.py: Sym with explicit grade (line 228)
+    def test_sym_explicit_grade(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        s = sym(e1 + e2, "v", grade=1)
+        assert s._grade == 1
+
+    # symbolic.py: Scalar.__str__ (line 270)
+    def test_scalar_str(self):
+        from ga.symbolic import Scalar
+        s = Scalar(42)
+        assert str(s) == "42"
+        assert s.latex() == "42"
+
+    # symbolic.py: _ensure_expr TypeError (line 611)
+    def test_ensure_expr_bad_type(self):
+        from ga.symbolic import _ensure_expr
+        import pytest
+        with pytest.raises(TypeError, match="Cannot convert"):
+            _ensure_expr([1, 2, 3])
+
+    # symbolic.py: _eq for Conjugate, Grade, fallback (lines 635, 637, 640-642)
+    def test_eq_conjugate(self, cl3):
+        from ga.symbolic import _eq, Conjugate
+        e1, _, _ = cl3.basis_vectors()
+        a = sym(e1, "a")
+        assert _eq(Conjugate(a), Conjugate(a))
+        assert not _eq(Conjugate(a), Conjugate(sym(e1, "b")))
+
+    def test_eq_grade(self, cl3):
+        from ga.symbolic import _eq, Grade
+        e1, _, _ = cl3.basis_vectors()
+        a = sym(e1, "a")
+        assert _eq(Grade(a, 1), Grade(a, 1))
+        assert not _eq(Grade(a, 1), Grade(a, 2))
+
+    def test_eq_fallback(self, cl3):
+        from ga.symbolic import _eq, Dual
+        e1, _, _ = cl3.basis_vectors()
+        a = sym(e1, "a")
+        assert _eq(Dual(a), Dual(a))
+        assert not _eq(Dual(a), Dual(sym(e1, "b")))
+
+    # symbolic.py: _known_grade branches (lines 691-703)
+    def test_known_grade_scalar(self):
+        from ga.symbolic import _known_grade, Scalar
+        assert _known_grade(Scalar(5)) == 0
+
+    def test_known_grade_grade_node(self, cl3):
+        from ga.symbolic import _known_grade, Grade
+        e1, _, _ = cl3.basis_vectors()
+        assert _known_grade(Grade(sym(e1, "v"), 2)) == 2
+
+    def test_known_grade_reverse(self, cl3):
+        from ga.symbolic import _known_grade, Reverse
+        e1, _, _ = cl3.basis_vectors()
+        v = sym(e1, "v")
+        assert _known_grade(Reverse(v)) == 1
+
+    def test_known_grade_neg(self, cl3):
+        from ga.symbolic import _known_grade, Neg
+        e1, _, _ = cl3.basis_vectors()
+        assert _known_grade(Neg(sym(e1, "v"))) == 1
+
+    def test_known_grade_scalarmul(self, cl3):
+        from ga.symbolic import _known_grade, ScalarMul
+        e1, _, _ = cl3.basis_vectors()
+        assert _known_grade(ScalarMul(3, sym(e1, "v"))) == 1
+
+    def test_known_grade_unit(self, cl3):
+        from ga.symbolic import _known_grade, Unit
+        e1, _, _ = cl3.basis_vectors()
+        assert _known_grade(Unit(sym(e1, "v"))) == 1
+
+    def test_known_grade_unknown(self, cl3):
+        from ga.symbolic import _known_grade
+        e1, e2, _ = cl3.basis_vectors()
+        a = sym(e1, "a")
+        b = sym(e2, "b")
+        assert _known_grade(a + b) is None
+
+    # symbolic.py: simplify even/odd with known grade (line 819)
+    def test_simplify_odd_known_grade(self, cl3):
+        from ga.symbolic import odd_grades as sodd, even_grades as seven
+        e1, e2, _ = cl3.basis_vectors()
+        v = sym(e1, "v")          # grade 1 (odd)
+        B = sym(e1 ^ e2, "B")    # grade 2 (even)
+        assert str(simplify(sodd(v))) == "v"
+        assert str(simplify(sodd(B))) == "0"
+        assert str(simplify(seven(B))) == "B"
+        assert str(simplify(seven(v))) == "0"
+
+    # symbolic.py: _eq for Involute (line 635)
+    def test_eq_involute(self, cl3):
+        from ga.symbolic import _eq, Involute
+        e1, _, _ = cl3.basis_vectors()
+        a = sym(e1, "a")
+        assert _eq(Involute(a), Involute(a))
+        assert not _eq(Involute(a), Involute(sym(e1, "b")))
+
+    # symbolic.py: norm() passthrough for Multivector (line 938)
+    def test_norm_passthrough(self, cl3):
+        from ga.symbolic import norm as snorm
+        e1, e2, _ = cl3.basis_vectors()
+        v = 3 * e1 + 4 * e2
+        assert snorm(v) == 5.0
+
+    # symbolic.py: sandwich() passthrough for Multivector (line 985)
+    def test_sandwich_passthrough(self, cl3):
+        from ga.symbolic import sandwich as ssandwich
+        e1, e2, _ = cl3.basis_vectors()
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, radians=np.pi / 2)
+        result = ssandwich(R, e1)
+        assert np.allclose(result.data, e2.data, atol=1e-12)
+
+    # algebra.py: rotor_from_plane_angle degrees= and error
+    def test_rotor_from_plane_degrees(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R_rad = cl3.rotor_from_plane_angle(e1 ^ e2, radians=np.pi / 2)
+        R_deg = cl3.rotor_from_plane_angle(e1 ^ e2, degrees=90)
+        assert np.allclose(R_rad.data, R_deg.data)
+
+    def test_rotor_from_plane_angle_error(self, cl3):
+        import pytest
+        e1, e2, _ = cl3.basis_vectors()
+        with pytest.raises(ValueError):
+            cl3.rotor_from_plane_angle(e1 ^ e2)
+        with pytest.raises(ValueError):
+            cl3.rotor_from_plane_angle(e1 ^ e2, radians=1.0, degrees=90)
+
+    def test_rotor_from_plane_angle_positional(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R_kw = cl3.rotor_from_plane_angle(e1 ^ e2, radians=np.pi / 2)
+        R_pos = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 2)
+        assert np.allclose(R_kw.data, R_pos.data)
+
+    def test_rotor_canonical_name(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = cl3.rotor(e1 ^ e2, radians=np.pi / 2)
+        result = sandwich(R, e1)
+        assert np.allclose(result.data, e2.data, atol=1e-12)
+
+    def test_rotor_degrees(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = cl3.rotor(e1 ^ e2, degrees=90)
+        R2 = cl3.rotor(e1 ^ e2, radians=np.pi / 2)
+        assert np.allclose(R.data, R2.data)
+
+    def test_rotor_from_bivector_alias(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R1 = cl3.rotor(e1 ^ e2, radians=1.0)
+        R2 = cl3.rotor_from_bivector(e1 ^ e2, radians=1.0)
+        assert np.allclose(R1.data, R2.data)

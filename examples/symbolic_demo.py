@@ -135,6 +135,24 @@ def _(A, B, scalar_product):
     return
 
 
+@app.cell
+def _(a, b):
+    B1 = a ^ b
+    return (B1,)
+
+
+@app.cell
+def _(B1):
+    B1
+    return
+
+
+@app.cell
+def _(B1):
+    B1.eval()
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md("""
@@ -153,7 +171,11 @@ def _(R, grade, v):
 
 @app.cell
 def _(mo, sandwich_expr):
-    mo.hstack([mo.md("Evaluating:"), sandwich_expr, mo.md("="), sandwich_expr.eval()], justify="start")
+    mo.hstack([mo.md("Evaluating:"), 
+               sandwich_expr, 
+               mo.md("="), 
+               sandwich_expr.eval()], 
+              justify="start")
     return
 
 
@@ -315,7 +337,7 @@ def _(mo):
 def _(alg, e1, e2, grade, mo, np, sym):
     theta = np.pi / 2
     Bplane = e1 ^ e2
-    Rot = alg.rotor_from_plane_angle(Bplane, theta)
+    Rot = alg.rotor_from_plane_angle(Bplane, radians=theta)
 
     R_sym = sym(Rot, "R")
     v_sym = sym(e1, "v")
@@ -422,7 +444,7 @@ def _(mo):
 @app.cell
 def _(alg, angle_slider, e1, e2, grade, mo, np, sym):
     _theta = np.radians(angle_slider.value)
-    _R = alg.rotor_from_plane_angle(e1 ^ e2, _theta)
+    _R = alg.rotor_from_plane_angle(e1 ^ e2, radians=_theta)
 
     _R_s = sym(_R, "R")
     _v_s = sym(e1, "v")
@@ -460,7 +482,7 @@ def _(alg, e1, e2, grade, np, plot_angle, sym):
     matplotlib.rcParams.update({"figure.facecolor": "white"})
 
     _theta = np.radians(plot_angle.value)
-    _R = alg.rotor_from_plane_angle(e1 ^ e2, _theta)
+    _R = alg.rotor_from_plane_angle(e1 ^ e2, radians=_theta)
     _v_rot = _R * e1 * ~_R
 
     # Extract x,y components

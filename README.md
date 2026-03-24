@@ -52,6 +52,7 @@ alg.identity            # scalar 1 (𝟙)
 alg.scalar(5.0)         # 5
 alg.vector([1, 2, 3])   # e₁ + 2e₂ + 3e₃
 alg.blade("e12")        # e₁₂
+alg.rotor(B, radians=θ) # rotor for rotation by θ in plane B
 ```
 
 ## Products
@@ -62,9 +63,9 @@ Every product has a definitive named function. Operators are optional shorthand.
 |---|---|---|---|
 | Geometric product | `gp(a, b)` | `a * b` | juxtaposition |
 | Outer (wedge) product | `op(a, b)` | `a ^ b` | `∧` |
-| Left contraction | `left_contraction(a, b)` | `a \| b` | `⌋` |
+| Left contraction | `left_contraction(a, b)` | | `⌋` |
 | Right contraction | `right_contraction(a, b)` | | `⌊` |
-| Hestenes inner | `hestenes_inner(a, b)` | | `·` |
+| Hestenes inner | `hestenes_inner(a, b)` | `a \| b` | `·` |
 | Scalar product | `scalar_product(a, b)` | | `∗` |
 | Commutator | `commutator(a, b)` | | |
 | Anticommutator | `anticommutator(a, b)` | | |
@@ -80,7 +81,7 @@ scalar_product(e1, e1)      # 1
 # Operator shorthand
 e1 * e2     # geometric product
 e1 ^ e2     # outer product
-e1 | (e1^e2)  # left contraction
+e1 | (e1^e2)  # Hestenes inner product
 ```
 
 ### Unified Inner Product
@@ -93,6 +94,34 @@ ip(e1, e1 ^ e2, mode="left")     # left contraction
 ip(e1 ^ e2, e2, mode="right")    # right contraction
 ip(e1, e2, mode="scalar")        # scalar product
 ```
+
+### When Do the Inner Products Differ?
+
+For vector-on-vector they all agree. The differences show up with mixed grades:
+
+| Expression | Left contraction | Right contraction | Hestenes |
+|---|---|---|---|
+| `vector, bivector` | `e₂` (grade 2−1=1) | `0` (1−2 < 0) | `e₂` (\|1−2\|=1) |
+| `bivector, vector` | `0` (1−2 < 0) | `e₂` (grade 2−1=1) | `-e₂` (\|2−1\|=1) |
+| `scalar, vector` | `3e₁` (passes through) | `0` (0−1 < 0) | `0` (kills scalars) |
+| `vector, scalar` | `0` (1−0 < 0) | `3e₁` (passes through) | `0` (kills scalars) |
+
+```python
+e12 = e1 ^ e2
+
+left_contraction(e1, e12)      # e₂  — vector "removes" from bivector
+left_contraction(e12, e1)      # 0   — can't remove higher from lower
+
+right_contraction(e12, e1)     # e₂  — mirror of left contraction
+right_contraction(e1, e12)     # 0
+
+hestenes_inner(e1, e12)        # e₂  — uses |grade difference|
+hestenes_inner(e12, e1)        # -e₂ — nonzero both ways (unlike left/right)
+hestenes_inner(cl3.scalar(3), e1)  # 0 — always zero if either is scalar
+```
+
+**Rule of thumb:** left contraction is the most common in GA literature.
+Hestenes inner is symmetric in grade but kills scalars. Right contraction is the mirror of left.
 
 ## Unary Operations
 
@@ -123,13 +152,13 @@ mv[1]           # 2e₁
 mv[2]           # e₁₂
 grades(mv, [0, 2])  # 3 + e₁₂
 
-even(mv)        # 3 + e₁₂  (grades 0, 2, ...)
-odd(mv)         # 2e₁      (grades 1, 3, ...)
+even_grades(mv)     # 3 + e₁₂  (grades 0, 2, ...)
+odd_grades(mv)      # 2e₁      (grades 1, 3, ...)
 
 scalar(mv)      # 3.0 (float)
 ```
 
-`even_grades` / `odd_grades` are the canonical names; `even` / `odd` are short aliases. You can also use `grade()` directly:
+You can also use `grade()` directly:
 
 ```python
 grade(mv, "even")   # same as even_grades(mv)
@@ -196,7 +225,7 @@ import numpy as np
 
 theta = np.pi / 2
 B = e1 ^ e2
-R = alg.rotor_from_plane_angle(B, theta)
+R = alg.rotor(B, radians=theta)
 
 v_rotated = R * e1 * ~R    # sandwich product
 print(v_rotated)            # e₂
@@ -207,6 +236,56 @@ Or manually:
 ```python
 R = alg.scalar(np.cos(theta/2)) - np.sin(theta/2) * B
 ```
+
+## Exponential & Logarithm
+
+`exp(B)` builds a rotor from a bivector directly — no manual cos/sin:
+
+```python
+B = (np.pi / 4) * (e1 ^ e2)
+R = exp(B)                      # cos(π/4) + sin(π/4) e₁₂
+print(R * e1 * ~R)              # e₂ (90° rotation)
+```
+
+`exp` handles all signatures automatically:
+- Euclidean bivector (B² < 0): uses cos/sin
+- Timelike bivector (B² > 0): uses cosh/sinh (Lorentz boosts)
+- Null bivector (B² = 0): returns 1 + B (translations in PGA)
+
+`log(R)` is the inverse — extract the bivector from a rotor:
+
+```python
+B_back = log(R)                 # recovers the bivector
+R_back = exp(log(R))            # roundtrip: R_back == R
+```
+
+Note: `alg.rotor(B, radians=θ)` computes `exp(-θ/2 * B)` for a unit bivector B.
+
+## Projection, Rejection, Reflection
+
+```python
+v = 3*e1 + 4*e2 + 5*e3
+plane = e1 ^ e2
+
+project(v, plane)    # 3e₁ + 4e₂  (component in the plane)
+reject(v, plane)     # 5e₃         (component perpendicular)
+```
+
+Projection and rejection always sum back to the original:
+
+```python
+project(v, plane) + reject(v, plane) == v   # True
+```
+
+Reflection flips the component parallel to a normal vector:
+
+```python
+reflect(e1 + e2, e1)   # -e₁ + e₂  (flip the e₁ part)
+reflect(e2, e1)         #  e₂        (perpendicular: unchanged)
+reflect(e1, e1)         # -e₁        (parallel: negated)
+```
+
+Double reflection is always identity: `reflect(reflect(v, n), n) == v`.
 
 ## Cross Product (3D)
 
@@ -272,7 +351,7 @@ sta.blade("g0g1")        # γ₀γ₁
 
 ## Display
 
-`str()` uses unicode, `repr()` uses ASCII:
+`str()` uses unicode, `repr()` uses ASCII by default:
 
 ```python
 mv = 3 + 2*e1 - e3
@@ -281,11 +360,20 @@ str(mv)     # '3 + 2e₁ - e₃'
 repr(mv)    # '3 + 2e1 - e3'
 ```
 
+To make `repr()` use unicode too (nicer in IPython/REPL), pass `repr_unicode=True`:
+
+```python
+alg = Algebra((1, 1, 1), repr_unicode=True)
+e1, e2, e3 = alg.basis_vectors()
+
+repr(3*e1 + 4*e2)  # '3e₁ + 4e₂'
+```
+
 The pseudoscalar always displays as `I` / `𝑰`:
 
 ```python
 print(alg.I)        # 𝑰
-print(repr(alg.I))  # I
+print(repr(alg.I))  # I  (or 𝑰 with repr_unicode=True)
 ```
 
 Coefficients of ±1 are suppressed: `e₁₂` not `1e₁₂`, `-e₃` not `-1e₃`.
@@ -336,8 +424,8 @@ Full rendering table:
 | Unit | `unit(v)` | `v̂` |
 | Inverse | `v.inv` | `v⁻¹` |
 | Grade projection | `grade(A * B, 2)` | `⟨AB⟩₂` |
-| Even grades | `even(A)` | `⟨A⟩₊` |
-| Odd grades | `odd(A)` | `⟨A⟩₋` |
+| Even grades | `even_grades(A)` | `⟨A⟩₊` |
+| Odd grades | `odd_grades(A)` | `⟨A⟩₋` |
 | Squared | `squared(R)` or `R.sq` | `R²` |
 | Addition | `a + b` | `a + b` |
 | Scalar multiply | `3 * a` | `3a` |
@@ -358,10 +446,25 @@ Every expression has a `.latex()` method for use in documents, notebooks, and ma
 
 ```python
 expr = grade(R * v * ~R, 1)
-print(expr.latex())  # \langle R v \tilde{R} \rangle_{1}
+expr.latex()            # \langle R v \tilde{R} \rangle_{1}
+expr.latex(wrap='$')    # $\langle R v \tilde{R} \rangle_{1}$
+expr.latex(wrap='$$')   # $$\n...\n$$  (display block)
+```
+
+The `wrap` parameter is handy in f-strings for marimo/Jupyter markdown cells:
+
+```python
+mo.md(f"{expr.latex(wrap='$')} = {expr.eval().latex(wrap='$')}")
 ```
 
 In Jupyter notebooks, expressions render automatically via `_repr_latex_()`.
+
+Concrete `Multivector` objects also have `.latex()`:
+
+```python
+v = 3*e1 + 4*e2
+v.latex()  # 3 e_{12}
+```
 
 Full LaTeX rendering table:
 
@@ -382,8 +485,8 @@ Full LaTeX rendering table:
 | Unit | `unit(v)` | `v̂` | `\hat{v}` |
 | Inverse | `v.inv` | `v⁻¹` | `v^{-1}` |
 | Grade projection | `grade(A * B, 2)` | `⟨AB⟩₂` | `\langle A B \rangle_{2}` |
-| Even grades | `even(A)` | `⟨A⟩₊` | `\langle A \rangle_{\text{even}}` |
-| Odd grades | `odd(A)` | `⟨A⟩₋` | `\langle A \rangle_{\text{odd}}` |
+| Even grades | `even_grades(A)` | `⟨A⟩₊` | `\langle A \rangle_{\text{even}}` |
+| Odd grades | `odd_grades(A)` | `⟨A⟩₋` | `\langle A \rangle_{\text{odd}}` |
 | Squared | `squared(R)` or `R.sq` | `R²` | `R^2` |
 | Addition | `a + b` | `a + b` | `a + b` |
 | Scalar multiply | `3 * a` | `3a` | `3 a` |
@@ -413,7 +516,7 @@ alg = Algebra((1, 1, 1))
 e1, e2, e3 = alg.basis_vectors()
 
 v = sym(e1, "v")
-R = sym(alg.rotor_from_plane_angle(e1^e2, 0.5), "R")
+R = sym(alg.rotor(e1^e2, radians=0.5), "R")
 a = sym(e1, "a")
 B = sym(e1^e2, "B")
 
@@ -444,7 +547,7 @@ Works in the symbolic layer too:
 ```python
 from ga.symbolic import sym, sandwich
 
-R = sym(alg.rotor_from_plane_angle(e1^e2, np.pi/2), "R")
+R = sym(alg.rotor(e1^e2, radians=np.pi/2), "R")
 v = sym(e1, "v")
 print(sandwich(R, v))        # RvR̃
 print(sandwich(R, v).eval()) # e₂
@@ -460,9 +563,8 @@ op  ↔  wedge  ↔  outer_product
 ip  ↔  inner_product
 reverse  ↔  rev
 unit  ↔  normalize  ↔  normalise
-even_grades  ↔  even
-odd_grades   ↔  odd
 sandwich  ↔  sw
+alg.rotor  ↔  alg.rotor_from_bivector  ↔  alg.rotor_from_plane_angle
 ```
 
 ## API Reference
@@ -478,7 +580,7 @@ sandwich  ↔  sw
 | `scalar(value)` | Scalar multivector |
 | `vector(coeffs)` | 1-vector from list |
 | `blade(name)` | Basis blade by name |
-| `rotor_from_plane_angle(B, θ)` | Rotor for rotation by θ in plane B |
+| `rotor(B, radians=, degrees=)` | Rotor for rotation in plane B |
 
 ### `Multivector`
 
@@ -520,8 +622,13 @@ sandwich  ↔  sw
 | `inverse(x)` | Versor inverse |
 | `squared(x)` | `x²` — geometric product with self |
 | `sandwich(r, x)` | Sandwich product `r x r̃` |
-| `even(x)` | Even-grade components |
-| `odd(x)` | Odd-grade components |
+| `exp(B)` | Bivector exponential → rotor |
+| `log(R)` | Rotor logarithm → bivector |
+| `project(v, B)` | Component of v in subspace B |
+| `reject(v, B)` | Component of v perpendicular to B |
+| `reflect(v, n)` | Reflect v in hyperplane orthogonal to n |
+| `even_grades(x)` | Even-grade components |
+| `odd_grades(x)` | Odd-grade components |
 | `is_scalar(x)` | True if pure scalar |
 | `is_vector(x)` | True if pure 1-vector |
 | `is_bivector(x)` | True if pure 2-vector |
