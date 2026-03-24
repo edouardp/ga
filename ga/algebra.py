@@ -419,8 +419,9 @@ class Multivector:
                 result += " + " + t
         return result
 
-
-# ============================================================
+    def _repr_latex_(self) -> str:
+        """Jupyter/Marimo notebook integration."""
+        return f"${self.latex()}$"
 # Phase 3: Core named operations
 # ============================================================
 

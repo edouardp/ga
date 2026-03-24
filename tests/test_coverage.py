@@ -1043,3 +1043,59 @@ class TestSimplify:
         assert v._grade == 1
         assert B._grade == 2
         assert s._grade == 0
+
+
+class TestMultivectorLatex:
+    """Tests for Multivector.latex() and _repr_latex_()."""
+
+    def test_scalar(self, cl3):
+        assert cl3.scalar(5).latex() == "5"
+
+    def test_zero(self, cl3):
+        assert cl3.scalar(0).latex() == "0"
+
+    def test_vector(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors()
+        assert (3 * e1 + 4 * e2).latex() == "3 e_{1} + 4 e_{2}"
+
+    def test_coeff_one_suppressed(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        assert e1.latex() == "e_{1}"
+        assert (-e2).latex() == "-e_{2}"
+
+    def test_bivector(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        assert (e1 ^ e2).latex() == "e_{12}"
+
+    def test_pseudoscalar(self, cl3):
+        assert cl3.I.latex() == "I"
+
+    def test_mixed(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        mv = cl3.scalar(1) + 2 * e1 + 3 * (e1 ^ e2)
+        assert mv.latex() == "1 + 2 e_{1} + 3 e_{12}"
+
+    def test_negative_terms(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        assert (e1 - e2).latex() == "e_{1} - e_{2}"
+
+    def test_gamma_names(self):
+        sta = Algebra((1, -1, -1, -1), names="gamma")
+        g0, g1, _, _ = sta.basis_vectors()
+        assert g0.latex() == "\\gamma_0"
+        assert (g0 * g1).latex() == "\\gamma_0 \\gamma_1"
+
+    def test_sigma_names(self):
+        pauli = Algebra((1, 1, 1), names="sigma")
+        s1, s2, _ = pauli.basis_vectors()
+        assert s1.latex() == "\\sigma_1"
+        assert (s1 * s2).latex() == "\\sigma_1 \\sigma_2"
+
+    def test_repr_latex(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        assert e1._repr_latex_() == "$e_{1}$"
+
+    def test_repr_latex_mixed(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        mv = cl3.scalar(1) + e1
+        assert mv._repr_latex_() == "$1 + e_{1}$"
