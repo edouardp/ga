@@ -540,14 +540,40 @@
     },
     {
       "id": "SdmI",
-      "code_hash": null,
-      "outputs": [],
+      "code_hash": "5ca8768ec969ef2ea4e9c1e7da3bef64",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"simplification\">Simplification</h2>\n<span class=\"paragraph\"><code>simplify()</code> applies algebraic rewrite rules to expression trees.</span></span>"
+          }
+        }
+      ],
       "console": []
     },
     {
       "id": "YWSi",
-      "code_hash": null,
-      "outputs": [],
+      "code_hash": "2658ef883b9c4ac1c3984ede87cf0255",
+      "outputs": [
+        {
+          "type": "error",
+          "ename": "multiple-defs",
+          "evalue": "The variable 'inverse' was defined by another cell",
+          "traceback": []
+        },
+        {
+          "type": "error",
+          "ename": "multiple-defs",
+          "evalue": "The variable 'norm' was defined by another cell",
+          "traceback": []
+        },
+        {
+          "type": "error",
+          "ename": "multiple-defs",
+          "evalue": "The variable 'unit' was defined by another cell",
+          "traceback": []
+        }
+      ],
       "console": []
     },
     {

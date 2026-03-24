@@ -350,7 +350,7 @@ def _(R, grade, mo, v):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     ## Simplification
@@ -360,8 +360,8 @@ def _(mo):
 
 
 @app.cell
-def _(R, a, mo, v):
-    from ga.symbolic import simplify, norm, unit, inverse, grade as sgrade
+def _(R, a, grade, inverse, mo, norm, unit, v):
+    from ga.symbolic import simplify
 
     _rules = [
         ("~~v", simplify(~~v)),
@@ -371,15 +371,15 @@ def _(R, a, mo, v):
         ("3(2v)", simplify(3 * (2 * v))),
         ("R~R", simplify(R * ~R)),
         ("‖unit(v)‖", simplify(norm(unit(v)))),
-        ("⟨v⟩₁ (v is grade-1)", simplify(sgrade(v, 1))),
-        ("⟨v⟩₂ (v is grade-1)", simplify(sgrade(v, 2))),
+        ("⟨v⟩₁ (v is grade-1)", simplify(grade(v, 1))),
+        ("⟨v⟩₂ (v is grade-1)", simplify(grade(v, 2))),
         ("a − (−a)", simplify(a - (-a))),
     ]
     mo.vstack([
         mo.md(f"- `{name}` → {result.latex(wrap='$')}")
         for name, result in _rules
     ])
-    return inverse, norm, unit
+    return
 
 
 @app.cell
