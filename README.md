@@ -89,7 +89,7 @@ e1 | (e1^e2)  # Hestenes inner product
 The `ip` function dispatches to the specific inner product you want — no ambiguity.
 
 ```python
-ip(e1, e1)                        # Hestenes (default)
+ip(e1, e1)                       # Hestenes (default)
 ip(e1, e1 ^ e2, mode="left")     # left contraction
 ip(e1 ^ e2, e2, mode="right")    # right contraction
 ip(e1, e2, mode="scalar")        # scalar product
@@ -267,7 +267,7 @@ Note: `alg.rotor(B, radians=θ)` computes `exp(-θ/2 * B)` for a unit bivector B
 v = 3*e1 + 4*e2 + 5*e3
 plane = e1 ^ e2
 
-project(v, plane)    # 3e₁ + 4e₂  (component in the plane)
+project(v, plane)    # 3e₁ + 4e₂   (component in the plane)
 reject(v, plane)     # 5e₃         (component perpendicular)
 ```
 
@@ -280,22 +280,12 @@ project(v, plane) + reject(v, plane) == v   # True
 Reflection flips the component parallel to a normal vector:
 
 ```python
-reflect(e1 + e2, e1)   # -e₁ + e₂  (flip the e₁ part)
+reflect(e1 + e2, e1)    # -e₁ + e₂   (flip the e₁ part)
 reflect(e2, e1)         #  e₂        (perpendicular: unchanged)
 reflect(e1, e1)         # -e₁        (parallel: negated)
 ```
 
 Double reflection is always identity: `reflect(reflect(v, n), n) == v`.
-
-## Cross Product (3D)
-
-In 3D Euclidean space, the cross product is the dual of the wedge:
-
-```python
-# e₁ × e₂ = dual(e₁ ∧ e₂) = e₃
-cross = dual(e1 ^ e2)
-print(cross)    # e₃
-```
 
 ## Spacetime Algebra
 
@@ -306,7 +296,7 @@ g0, g1, g2, g3 = sta.basis_vectors()
 print(g0 * g0)      #  1   (timelike)
 print(g1 * g1)      # -1   (spacelike)
 print(g0 * g1)      # γ₀γ₁ (bivector)
-print(sta.I)         # 𝑰
+print(sta.I)        # 𝑰
 ```
 
 ## Basis Naming
@@ -395,14 +385,14 @@ v = sym(e1 + 2*e2, "v")
 ### Rendering
 
 ```python
-print(R * v * ~R)                    # RvR̃
-print(grade(R * v * ~R, 1))          # ⟨RvR̃⟩₁
+print(R * v * ~R)                     # RvR̃
+print(grade(R * v * ~R, 1))           # ⟨RvR̃⟩₁
 print(op(sym(e1, "a"), sym(e2, "b"))) # a∧b
-print(dual(sym(e1, "v")))            # v⋆
-print(norm(sym(e1, "v")))            # ‖v‖
-print(unit(sym(e1, "v")))            # v̂
-print(inverse(sym(e1, "v")))         # v⁻¹
-print(reverse(sym(e1*e2, "R")))      # R̃
+print(dual(sym(e1, "v")))             # v⋆
+print(norm(sym(e1, "v")))             # ‖v‖
+print(unit(sym(e1, "v")))             # v̂
+print(inverse(sym(e1, "v")))          # v⁻¹
+print(reverse(sym(e1*e2, "R")))       # R̃
 ```
 
 Full rendering table:
@@ -567,6 +557,100 @@ sandwich  ↔  sw
 alg.rotor  ↔  alg.rotor_from_bivector  ↔  alg.rotor_from_plane_angle
 ```
 
+## Recipes
+
+Things you can build from the primitives — no extra functions needed.
+
+### Angle Between Vectors
+
+```python
+angle = np.arctan2(norm(a ^ b), scalar(a | b))
+```
+
+Uses `atan2` for numerical stability (works even when vectors are nearly parallel or perpendicular). The wedge magnitude is `|a||b|sin θ`, the inner product is `|a||b|cos θ`.
+
+### Check Parallel / Perpendicular
+
+```python
+parallel      = np.isclose(norm(a ^ b), 0)    # wedge vanishes
+perpendicular = np.isclose(scalar(a | b), 0)  # inner product vanishes
+```
+
+### Compose Rotations
+
+Rotors compose by geometric product — apply `R1` first, then `R2`:
+
+```python
+R_total = R2 * R1
+v_rotated = R_total * v * ~R_total
+```
+
+Order matters: `R2 * R1` means "do R1, then R2" (right-to-left, like matrix multiplication).
+
+### Interpolate a Rotation (SLERP)
+
+```python
+R_half = exp(0.5 * log(R))       # 50% of the rotation
+R_t    = exp(t * log(R))         # fraction t ∈ [0, 1]
+```
+
+`log` extracts the bivector, scaling it interpolates the angle, `exp` rebuilds the rotor.
+
+### Gram–Schmidt (Orthogonalize)
+
+Make `b` orthogonal to `a` by removing the parallel component:
+
+```python
+b_orth = reject(b, a)            # component of b perpendicular to a
+```
+
+For a full basis, chain rejections:
+
+```python
+u1 = unit(a)
+u2 = unit(reject(b, a))
+u3 = unit(reject(reject(c, a), u2))
+```
+
+### Rotate 90° Within a Plane
+
+```python
+B = e1 ^ e2
+R90 = alg.rotor(B, degrees=90)
+perp = R90 * v * ~R90            # v rotated 90° in the e₁e₂ plane
+```
+
+Useful for finding the perpendicular direction within a subspace.
+
+### Area and Volume
+
+The wedge product directly gives oriented area and volume:
+
+```python
+area = norm(u ^ v)               # parallelogram area
+vol  = norm(u ^ v ^ w)           # parallelepiped volume
+```
+
+These work in any dimension — `norm(a ^ b)` is the area of the parallelogram spanned by `a` and `b`, regardless of the ambient space.
+
+### Cross Product (3D Only)
+
+```python
+cross = dual(a ^ b)              # a × b as a vector
+```
+
+The wedge gives a bivector (oriented plane); the dual converts it to the normal vector. Only meaningful in 3D where bivectors and vectors are dual.
+
+### Bivector Commutator Algebra
+
+Bivectors form a Lie algebra under the commutator product:
+
+```python
+commutator(e1^e2, e2^e3)         # e₁₃ — the "cross product" of bivectors
+```
+
+In 3D Euclidean space, this is isomorphic to the vector cross product. In Cl(1,3), it gives the Lorentz algebra.
+
 ## API Reference
 
 ### `Algebra(signature, names=None)`
@@ -650,9 +734,13 @@ uv run pytest tests/ -v                          # run all tests
 uv run pytest tests/ --cov=ga --cov-report=term  # with coverage
 ```
 
-200+ tests, 99% coverage. Tests include:
-- Algebraic identity property tests (associativity, distributivity, reverse-product)
+349 tests, 99% coverage. Tests include:
+- Algebraic identities (associativity, distributivity, reverse-of-product)
 - Golden tests for Cl(2,0), Cl(3,0), Cl(1,3)
-- Symbolic rendering and evaluation tests
+- All five inner products with mixed-grade cases where they diverge
+- Exponential/logarithm roundtrips (Euclidean, hyperbolic, null)
+- Projection/rejection complement property, reflection involution
+- Symbolic rendering, evaluation, simplification rules
+- LaTeX output for both `Multivector` and `Expr`
 - Edge cases and error handling
 

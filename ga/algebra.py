@@ -119,6 +119,17 @@ class Algebra:
     }
 
     def __init__(self, signature: tuple[int, ...], names: str | tuple[list[str], list[str]] | None = None, repr_unicode: bool = False):
+        """Create a Clifford algebra from a metric signature.
+
+        Args:
+            signature: Tuple of +1, -1, or 0 for each basis vector's square.
+                ``(1,1,1)`` → Cl(3,0), ``(1,-1,-1,-1)`` → Cl(1,3), ``(1,1,1,0)`` → PGA.
+            names: Basis vector naming scheme. ``None`` or ``"e"`` for default
+                (e1, e2, …). Presets: ``"gamma"``, ``"sigma"``, ``"sigma_xyz"``.
+                Or a ``(code_names, unicode_names)`` tuple for custom names.
+            repr_unicode: If True, ``repr()`` on multivectors uses Unicode
+                (matching ``str()``). Useful in IPython/REPL.
+        """
         self._sig = tuple(signature)
         self._n = len(signature)
         self._dim = 1 << self._n
@@ -227,6 +238,7 @@ class Algebra:
         return self.scalar(1.0)
 
     def scalar(self, value: float) -> Multivector:
+        """Create a scalar multivector (grade-0) with the given value."""
         data = np.zeros(self._dim)
         data[0] = value
         return Multivector(self, data)
@@ -339,6 +351,7 @@ class Algebra:
         return " ".join(parts)
 
     def __repr__(self) -> str:
+        """Short signature notation, e.g. ``Cl(3,0)`` or ``Cl(1,3)``."""
         pos = self._sig.count(1)
         neg = self._sig.count(-1)
         zero = self._sig.count(0)
@@ -374,6 +387,12 @@ class Multivector:
     __slots__ = ("algebra", "data")
 
     def __init__(self, algebra: Algebra, data: np.ndarray):
+        """Wrap a coefficient array as a multivector in the given algebra.
+
+        Users should not call this directly — use ``Algebra.scalar()``,
+        ``Algebra.vector()``, ``Algebra.blade()``, or arithmetic on
+        basis vectors instead.
+        """
         self.algebra = algebra
         self.data = np.array(data, dtype=np.float64)
 
@@ -535,9 +554,11 @@ class Multivector:
         return result
 
     def __repr__(self) -> str:
+        """ASCII representation (or Unicode if ``repr_unicode=True`` on the algebra)."""
         return self._format(unicode=self.algebra._repr_unicode)
 
     def __str__(self) -> str:
+        """Unicode representation, e.g. ``3 + 2e₁ - e₃``."""
         return self._format(unicode=True)
 
     def latex(self, wrap: str | None = None) -> str:
@@ -890,18 +911,22 @@ def inverse(x: Multivector) -> Multivector:
 
 
 def is_scalar(x: Multivector) -> bool:
+    """True if x is a pure scalar (all non-grade-0 components are zero)."""
     return np.allclose(x.data[1:], 0)
 
 
 def is_vector(x: Multivector) -> bool:
+    """True if x is a pure 1-vector."""
     return x == grade(x, 1)
 
 
 def is_bivector(x: Multivector) -> bool:
+    """True if x is a pure 2-vector."""
     return x == grade(x, 2)
 
 
 def is_even(x: Multivector) -> bool:
+    """True if x contains only even-grade components (grades 0, 2, 4, …)."""
     alg = x.algebra
     for k in range(alg.n + 1):
         if k % 2 == 1 and np.any(np.abs(x.data[alg._grade_masks[k]]) > 1e-12):
