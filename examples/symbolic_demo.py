@@ -153,9 +153,7 @@ def _(R, grade, v):
 
 @app.cell
 def _(mo, sandwich_expr):
-    mo.md(f"""
-    Evaluating: {sandwich_expr.latex(wrap='$')} = `{sandwich_expr.eval()}`
-    """)
+    mo.hstack([mo.md("Evaluating:"), sandwich_expr, mo.md("="), sandwich_expr.eval()])
     return
 
 
@@ -299,7 +297,7 @@ def _(R, a, b, grade, inverse, mo, norm, op, v):
         ("Sandwich", grade(R * v * ~R, 1)),
     ]
     mo.vstack([
-        mo.md(f"**{name}:** {e.latex(wrap='$')} = `{e.eval()}`")
+        mo.hstack([mo.md(f"**{name}:**"), e, mo.md("="), e.eval()])
         for name, e in exprs
     ])
     return
@@ -324,9 +322,8 @@ def _(alg, e1, e2, grade, mo, np, sym):
     rotated = grade(R_sym * v_sym * ~R_sym, 1)
 
     mo.vstack([
-        mo.md(f"Rotate $v = e_1$ by $90°$ in the $e_1 e_2$ plane:"),
-        rotated,
-        mo.md(f"Result: `{rotated.eval()}`"),
+        mo.md(r"Rotate $v = e_1$ by $90°$ in the $e_1 e_2$ plane:"),
+        mo.hstack([rotated, mo.md("="), rotated.eval()]),
     ])
     return
 
@@ -428,19 +425,16 @@ def _(mo):
 @app.cell
 def _(alg, angle_slider, e1, e2, grade, mo, np, sym):
     _theta = np.radians(angle_slider.value)
-    _B = e1 ^ e2
-    _R = alg.rotor_from_plane_angle(_B, _theta)
-    _v = e1
+    _R = alg.rotor_from_plane_angle(e1 ^ e2, _theta)
 
-    R_s = sym(_R, "R")
-    v_s = sym(_v, "v")
-    _expr = grade(R_s * v_s * ~R_s, 1)
-    _result = _expr.eval()
+    _R_s = sym(_R, "R")
+    _v_s = sym(e1, "v")
+    _expr = grade(_R_s * _v_s * ~_R_s, 1)
 
     mo.vstack([
         mo.md(f"$\\theta = {angle_slider.value}°$"),
-        mo.md(f"Symbolic: {_expr.latex(wrap='$')}"),
-        mo.md(f"Result: $\\;$ `{_result}`"),
+        mo.hstack([mo.md("Symbolic:"), _expr]),
+        mo.hstack([mo.md("Result:"), _expr.eval()]),
     ])
     return
 
