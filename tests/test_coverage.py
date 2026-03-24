@@ -11,6 +11,7 @@ from ga import (
     even, odd, squared,
     even_grades, odd_grades,
     is_rotor,
+    sandwich, sw,
 )
 from ga.symbolic import (
     sym, Expr, Scalar, Gp, Op, Lc, Rc, Hi, Sp, Grade, Reverse,
@@ -25,6 +26,7 @@ from ga.symbolic import (
     ip as sip, normalize as snormalize, normalise as snormalise,
     squared as ssq, even as seven, odd as sodd,
     even_grades as seven_grades, odd_grades as sodd_grades,
+    sandwich as ssandwich, sw as ssw_alias,
 )
 
 
@@ -829,3 +831,76 @@ class TestLatex:
         v = sym(e1, "v")
         assert v._repr_latex_() == "$v$"
         assert (~v)._repr_latex_() == r"$\tilde{v}$"
+
+
+class TestSandwich:
+    """Tests for sandwich(r, x) / sw(r, x)."""
+
+    def test_sandwich_rotation(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 2)
+        result = sandwich(R, e1)
+        assert np.allclose(result.data, e2.data, atol=1e-12)
+
+    def test_sw_alias(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 4)
+        assert np.allclose(sandwich(R, e1).data, sw(R, e1).data)
+
+    def test_sandwich_identity(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        one = cl3.scalar(1.0)
+        assert np.allclose(sandwich(one, e1).data, e1.data)
+
+    def test_sandwich_bivector(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors()
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 2)
+        B = e1 ^ e3
+        result = sandwich(R, B)
+        expected = e2 ^ e3
+        assert np.allclose(result.data, expected.data, atol=1e-12)
+
+    def test_symbolic_sandwich(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = sym(e1 * e2, "R")
+        v = sym(e1, "v")
+        expr = ssandwich(R, v)
+        assert str(expr) == "RvR̃"
+        assert expr.latex() == r"R v \tilde{R}"
+
+    def test_symbolic_sandwich_eval(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = cl3.rotor_from_plane_angle(e1 ^ e2, np.pi / 2)
+        expr = ssandwich(sym(R, "R"), sym(e1, "v"))
+        result = expr.eval()
+        assert np.allclose(result.data, e2.data, atol=1e-12)
+
+    def test_symbolic_sw_alias(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = sym(e1 * e2, "R")
+        v = sym(e1, "v")
+        assert str(ssw_alias(R, v)) == "RvR̃"
+
+
+class TestScalarVectorPart:
+    """Tests for .scalar_part and .vector_part properties."""
+
+    def test_vector_part(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors()
+        v = 3 * e1 + 4 * e2 + 5 * e3
+        assert np.allclose(v.vector_part, [3, 4, 5])
+
+    def test_scalar_part(self, cl3):
+        mv = cl3.scalar(7.0)
+        assert mv.scalar_part == 7.0
+
+    def test_mixed_grade(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors()
+        mv = cl3.scalar(7.0) + 3 * e1 + 4 * e2 + (e1 ^ e2)
+        assert mv.scalar_part == 7.0
+        assert np.allclose(mv.vector_part, [3, 4, 0])
+
+    def test_zero(self, cl3):
+        z = cl3.scalar(0.0)
+        assert z.scalar_part == 0.0
+        assert np.allclose(z.vector_part, [0, 0, 0])
