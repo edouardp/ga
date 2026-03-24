@@ -58,7 +58,7 @@ def _(mo):
     mo.md("""
     # Spacetime Algebra (STA)
 
-    The **Spacetime Algebra** is the Clifford algebra $\mathrm{Cl}(1,3)$: one timelike basis vector ($\gamma_0^2 = +1$) and three spacelike ($\gamma_i^2 = -1$).
+    The **Spacetime Algebra** is the Clifford algebra $\\mathrm{{Cl}}(1,3)$: one timelike basis vector ($\\gamma_0^2 = +1$) and three spacelike ($\\gamma_i^2 = -1$).
 
     STA unifies rotations, Lorentz boosts, and electromagnetism in a single algebraic framework — no matrices, no index gymnastics.
     """)

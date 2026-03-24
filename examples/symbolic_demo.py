@@ -10,8 +10,10 @@ def _():
     from pathlib import Path
 
     _root = str(Path(__file__).resolve().parent.parent)
-    if _root not in sys.path:
-        sys.path.insert(0, _root)
+    _gamo = str(Path(__file__).resolve().parent.parent / "packages" / "gamo")
+    for p in [_root, _gamo]:
+        if p not in sys.path:
+            sys.path.insert(0, p)
     return
 
 
@@ -23,8 +25,8 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     # Geometric Algebra — Symbolic Expressions
     This notebook demonstrates the symbolic layer of the `ga` library.
     """)
@@ -41,12 +43,14 @@ def _():
         left_contraction, right_contraction, hestenes_inner, scalar_product,
         even_grades, odd_grades,
     )
+    import galaga_marimo as gm
 
     return (
         Algebra,
         conjugate,
         dual,
         even_grades,
+        gm,
         gp,
         grade,
         hestenes_inner,
@@ -68,8 +72,8 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Setup — 3D Euclidean Algebra
     """)
     return
@@ -91,8 +95,8 @@ def _(Algebra, sym):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Products
     """)
     return
@@ -154,8 +158,8 @@ def _(B1):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Sandwich Product & Grade Projection
     """)
     return
@@ -170,18 +174,14 @@ def _(R, grade, v):
 
 
 @app.cell
-def _(mo, sandwich_expr):
-    mo.hstack([mo.md("Evaluating:"), 
-               sandwich_expr, 
-               mo.md("="), 
-               sandwich_expr.eval()], 
-              justify="start")
+def _(gm, sandwich_expr):
+    gm.md(t"Evaluating: {sandwich_expr} = {sandwich_expr.eval()}")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Unary Operations
     """)
     return
@@ -206,8 +206,8 @@ def _(conjugate, v):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Dual, Norm, Unit, Inverse
     """)
     return
@@ -244,8 +244,8 @@ def _(inverse, v):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Even / Odd Grades, Squared
     """)
     return
@@ -270,8 +270,8 @@ def _(R, squared):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Arithmetic & Operator Sugar
     """)
     return
@@ -303,15 +303,15 @@ def _(R, a, b):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Evaluating Expressions
     """)
     return
 
 
 @app.cell
-def _(R, a, b, grade, inverse, mo, norm, op, v):
+def _(R, a, b, gm, grade, inverse, mo, norm, op, v):
     exprs = [
         ("Wedge", op(a, b)),
         ("Norm", norm(v)),
@@ -319,22 +319,22 @@ def _(R, a, b, grade, inverse, mo, norm, op, v):
         ("Sandwich", grade(R * v * ~R, 1)),
     ]
     mo.vstack([
-        mo.hstack([mo.md(f"**{name}:**"), e, mo.md("="), e.eval()], justify="start")
+        gm.md(t"**{name}:** {e} = {e.eval()}")
         for name, e in exprs
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Rotation Demo
     """)
     return
 
 
 @app.cell
-def _(alg, e1, e2, grade, mo, np, sym):
+def _(alg, e1, e2, gm, grade, mo, np, sym):
     theta = np.pi / 2
     Bplane = e1 ^ e2
     Rot = alg.rotor_from_plane_angle(Bplane, radians=theta)
@@ -344,15 +344,15 @@ def _(alg, e1, e2, grade, mo, np, sym):
     rotated = grade(R_sym * v_sym * ~R_sym, 1)
 
     mo.vstack([
-        mo.md(r"Rotate $v = e_1$ by $90°$ in the $e_1 e_2$ plane:"),
-        mo.hstack([rotated, mo.md("="), rotated.eval()], justify="start"),
+        gm.md(t"Rotate $v = e_1$ by $90°$ in the $e_1 e_2$ plane:"),
+        gm.md(t"{rotated} = {rotated.eval()}"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## LaTeX Output
     Every expression has `.latex()` for raw LaTeX and `.latex(wrap='$')` for inline math.
     """)
@@ -360,18 +360,18 @@ def _(mo):
 
 
 @app.cell
-def _(R, grade, mo, v):
+def _(R, gm, grade, mo, v):
     sandwich = grade(R * v * ~R, 1)
     mo.vstack([
-        mo.md(f"`.latex()` → `{sandwich.latex()}`"),
-        mo.md(f"`.latex(wrap='$')` → {sandwich.latex(wrap='$')}"),
+        gm.md(t"`.latex()` → `{sandwich.latex():text}`"),
+        gm.md(t"`.latex(wrap='$')` → {sandwich}"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Simplification
     `simplify()` applies algebraic rewrite rules to expression trees.
     """)
@@ -379,7 +379,7 @@ def _(mo):
 
 
 @app.cell
-def _(R, a, grade, inverse, mo, norm, unit, v):
+def _(R, a, gm, grade, inverse, mo, norm, unit, v):
     from ga.symbolic import simplify
 
     _rules = [
@@ -394,13 +394,16 @@ def _(R, a, grade, inverse, mo, norm, unit, v):
         ("⟨v⟩₂ (v is grade-1)", simplify(grade(v, 2))),
         ("a − (−a)", simplify(a - (-a))),
     ]
-    mo.md("\n".join(f"- `{name}` → ${result.latex()}$" for name, result in _rules))
+    mo.vstack([
+        gm.md(t"`{name}` → {result}")
+        for name, result in _rules
+    ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Extracting Components
     Use `.vector_part` and `.scalar_part` to get numpy-friendly data.
     """)
@@ -408,24 +411,22 @@ def _(mo):
 
 
 @app.cell
-def _(alg, e1, e2, e3, mo):
+def _(alg, e1, e2, e3, gm):
     _v = 3 * e1 + 4 * e2 + 5 * e3
     _mv = alg.scalar(7) + _v + (e1 ^ e2)
-    mo.vstack([
-        mo.md(f"`v = 3e₁ + 4e₂ + 5e₃`"),
-        mo.md(f"`v.vector_part` → `{_v.vector_part}`"),
-        mo.md(f"`v.scalar_part` → `{_v.scalar_part}`"),
-        mo.md(f""),
-        mo.md(f"`mv = 7 + v + e₁₂`"),
-        mo.md(f"`mv.vector_part` → `{_mv.vector_part}`"),
-        mo.md(f"`mv.scalar_part` → `{_mv.scalar_part}`"),
-    ])
+    gm.md(t"""`v = 3e₁ + 4e₂ + 5e₃`
+    `v.vector_part` → `{_v.vector_part!s}`
+    `v.scalar_part` → `{_v.scalar_part!s}`
+
+    `mv = 7 + v + e₁₂`
+    `mv.vector_part` → `{_mv.vector_part!s}`
+    `mv.scalar_part` → `{_mv.scalar_part!s}`""")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## Interactive Rotor
     Drag the slider to rotate $e_1$ in the $e_1 e_2$ plane.
     """)
@@ -442,7 +443,7 @@ def _(mo):
 
 
 @app.cell
-def _(alg, angle_slider, e1, e2, grade, mo, np, sym):
+def _(alg, angle_slider, e1, e2, gm, grade, mo, np, sym):
     _theta = np.radians(angle_slider.value)
     _R = alg.rotor_from_plane_angle(e1 ^ e2, radians=_theta)
 
@@ -451,15 +452,15 @@ def _(alg, angle_slider, e1, e2, grade, mo, np, sym):
     _expr = grade(_R_s * _v_s * ~_R_s, 1)
 
     mo.vstack([
-        mo.md(f"$\\theta = {angle_slider.value}°$"),
-        mo.hstack([mo.md("Symbolic:"), _expr], justify='start'),
-        mo.hstack([mo.md("Result:"), _expr.eval()], justify='start')])
+        gm.md(t"$\\theta = {angle_slider.value}°$"),
+        gm.md(t"Symbolic: {_expr}"),
+        gm.md(t"Result: {_expr.eval()}")])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md("""
+def _(gm):
+    gm.md(t"""
     ## 2D Rotation Visualizer
     Drag the slider to rotate $e_1$ (blue) → rotated vector (red) in the $e_1 e_2$ plane.
     """)

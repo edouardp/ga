@@ -10,8 +10,10 @@ def _():
     from pathlib import Path
 
     _root = str(Path(__file__).resolve().parent.parent)
-    if _root not in sys.path:
-        sys.path.insert(0, _root)
+    _gamo = str(Path(__file__).resolve().parent.parent / "packages" / "gamo")
+    for p in [_root, _gamo]:
+        if p not in sys.path:
+            sys.path.insert(0, p)
     return
 
 
@@ -35,11 +37,13 @@ def _():
         even_grades, exp, log,
     )
     from ga.symbolic import sym, grade as sym_grade, simplify, norm as sym_norm
+    import galaga_marimo as gm
 
     return (
         Algebra,
         commutator,
         exp,
+        gm,
         log,
         np,
         plt,
@@ -52,9 +56,8 @@ def _():
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    # Quantum Spin in Geometric Algebra
+def _(gm):
+    gm.md(t"""
 
     In the GA approach to quantum mechanics, **pure spin-½ states can be represented
     as rotors** — normalized even-grade elements of Cl(3,0). This is an alternative to
@@ -68,11 +71,11 @@ def _(mo):
 
     | Conventional QM | Geometric Algebra |
     |---|---|
-    | Spin state $\vert\psi\rangle$ | Rotor $\psi$ (even multivector) |
-    | Pauli matrix $\sigma_k$ | Basis vector $e_k$ |
-    | Spin operator $\hat{S}_k = \frac{\hbar}{2}\sigma_k$ | Bivector $\frac{\hbar}{2}Ie_k$ |
-    | Expectation $\langle\psi\vert\sigma_k\vert\psi\rangle$ | Scalar $(\psi\, e_3\, \tilde\psi) \cdot e_k$ |
-    | Time evolution $e^{-iHt/\hbar}$ | Rotor $e^{-Bt}$ |
+    | Spin state $\\vert\\psi\\rangle$ | Rotor $\\psi$ (even multivector) |
+    | Pauli matrix $\\sigma_k$ | Basis vector $e_k$ |
+    | Spin operator $\\hat{{S}}_k = \\frac{{\\hbar}}{{2}}\\sigma_k$ | Bivector $\\frac{{\\hbar}}{{2}}Ie_k$ |
+    | Expectation $\\langle\\psi\\vert\\sigma_k\\vert\\psi\\rangle$ | Scalar $(\\psi\\, e_3\\, \\tilde\\psi) \\cdot e_k$ |
+    | Time evolution $e^{{-iHt/\\hbar}}$ | Rotor $e^{{-Bt}}$ |
 
     *Note:* this correspondence is for pure states of a single spin-½ particle.
     Mixed states, entanglement, and many-particle systems require additional structure
@@ -82,21 +85,21 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## The Algebra of Spin
 
     We work in Cl(3,0) — three Euclidean basis vectors. The pseudoscalar $I = e_1 e_2 e_3$
     plays the role of the imaginary unit $i$ (it squares to $-1$ and commutes with even elements).
 
     The three bivectors $e_{12}$, $e_{23}$, $e_{31}$ each square to $-1$ and form a
-    Lie algebra under the commutator — isomorphic to $\mathfrak{su}(2)$.
+    Lie algebra under the commutator — isomorphic to $\\mathfrak{{su}}(2)$.
     """)
     return
 
 
 @app.cell
-def _(Algebra, commutator, mo, scalar):
+def _(Algebra, commutator, gm, scalar):
     alg = Algebra((1, 1, 1), repr_unicode=True)
     e1, e2, e3 = alg.basis_vectors()
     I = alg.I
@@ -106,48 +109,53 @@ def _(Algebra, commutator, mo, scalar):
     B23 = e2 ^ e3
     B31 = e3 ^ e1
 
-    mo.md("\n".join([
-        "**Bivector basis** (each squares to $-1$, like $i$):",
-        f"- {B12.latex(wrap='$')}, $\\quad e_{{12}}^2 = {scalar(B12 * B12):+.0f}$",
-        f"- {B23.latex(wrap='$')}, $\\quad e_{{23}}^2 = {scalar(B23 * B23):+.0f}$",
-        f"- {B31.latex(wrap='$')}, $\\quad e_{{31}}^2 = {scalar(B31 * B31):+.0f}$",
-        "",
-        "**Commutation relations** — bivectors form a Lie algebra (isomorphic to $\\mathfrak{su}(2)$):",
-        f"- $[e_{{12}},\\, e_{{23}}] = {commutator(B12, B23).latex()}$",
-        f"- $[e_{{23}},\\, e_{{31}}] = {commutator(B23, B31).latex()}$",
-        f"- $[e_{{31}},\\, e_{{12}}] = {commutator(B31, B12).latex()}$",
-        "",
-        f"**Pseudoscalar** {I.latex(wrap='$')}, $\\quad I^2 = {scalar(I * I):+.0f}$",
-        "",
-        "$I$ commutes with all even elements and plays the role of $i$ in the Pauli algebra.",
-    ]))
+    _c12 = commutator(B12, B23)
+    _c23 = commutator(B23, B31)
+    _c31 = commutator(B31, B12)
+    _s12 = scalar(B12 * B12)
+    _s23 = scalar(B23 * B23)
+    _s31 = scalar(B31 * B31)
+    _sI = scalar(I * I)
+    gm.md(t"""**Bivector basis** (each squares to $-1$, like $i$):
+    - {B12}, $\\quad e_{{12}}^2 = {_s12:text}$
+    - {B23}, $\\quad e_{{23}}^2 = {_s23:text}$
+    - {B31}, $\\quad e_{{31}}^2 = {_s31:text}$
+
+    **Commutation relations** — bivectors form a Lie algebra (isomorphic to $\\mathfrak{{su}}(2)$):
+    - $[e_{{12}},\\, e_{{23}}]$ = {_c12}
+    - $[e_{{23}},\\, e_{{31}}]$ = {_c23}
+    - $[e_{{31}},\\, e_{{12}}]$ = {_c31}
+
+    **Pseudoscalar** {I}, $\\quad I^2 = {_sI:text}$
+
+    $I$ commutes with all even elements and plays the role of $i$ in the Pauli algebra.""")
     return alg, e1, e2, e3
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Spin States as Rotors
 
-    A pure spin state is represented by a rotor $\psi$ — a normalized even-grade
-    element with $\psi\tilde\psi = 1$.
+    A pure spin state is represented by a rotor $\\psi$ — a normalized even-grade
+    element with $\\psi\\tilde\\psi = 1$.
 
-    The **spin vector** (Bloch vector) is $\mathbf{s} = \psi\, e_3\, \tilde\psi$: the image
-    of the reference direction $e_3$ under the rotation $\psi$. This is the direction the
+    The **spin vector** (Bloch vector) is $\\mathbf{{s}} = \\psi\\, e_3\\, \\tilde\\psi$: the image
+    of the reference direction $e_3$ under the rotation $\\psi$. This is the direction the
     spin "points".
 
-    | State | Rotor $\psi$ | Spin vector $\mathbf{s}$ |
+    | State | Rotor $\\psi$ | Spin vector $\\mathbf{{s}}$ |
     |---|---|---|
     | Spin-up ($+z$) | $1$ | $e_3$ |
     | Spin-down ($-z$) | $e_1 e_3$ | $-e_3$ |
-    | Spin $+x$ | $\cos 45° + \sin 45°\, e_3 e_1$ | $e_1$ |
-    | Spin $+y$ | $\cos 45° + \sin 45°\, e_3 e_2$ | $e_2$ |
+    | Spin $+x$ | $\\cos 45° + \\sin 45°\\, e_3 e_1$ | $e_1$ |
+    | Spin $+y$ | $\\cos 45° + \\sin 45°\\, e_3 e_2$ | $e_2$ |
     """)
     return
 
 
 @app.cell
-def _(alg, e1, e2, e3, mo, np):
+def _(alg, e1, e2, e3, gm, np):
     _states = [
         ("Spin ↑z", alg.identity),
         ("Spin ↓z", alg.rotor(e3 ^ e1, radians=np.pi)),
@@ -164,21 +172,20 @@ def _(alg, e1, e2, e3, mo, np):
             f"| {name} | {psi.latex(wrap='$')} | ({sx:+.0f}, {sy:+.0f}, {sz:+.0f}) |"
         )
 
-    mo.md("\n".join([
-        "| State | Rotor $\\psi$ | Spin vector $(s_x, s_y, s_z)$ |",
-        "|---|---|---|",
-    ] + _rows))
+    gm.md(t"""| State | Rotor $\\psi$ | Spin vector $(s_x, s_y, s_z)$ |
+    |---|---|---|
+    {"\n".join(_rows):text}""")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## The Bloch Sphere
 
     Every pure spin state maps to a point on the unit sphere via its spin vector.
-    The rotor $\psi(\theta, \varphi) = R_\varphi\, R_\theta$ tilts $e_3$ to the direction
-    $(\sin\theta\cos\varphi,\; \sin\theta\sin\varphi,\; \cos\theta)$.
+    The rotor $\\psi(\\theta, \\varphi) = R_\\varphi\\, R_\\theta$ tilts $e_3$ to the direction
+    $(\\sin\\theta\\cos\\varphi,\\; \\sin\\theta\\sin\\varphi,\\; \\cos\\theta)$.
 
     Drag the sliders to move the spin state on the Bloch sphere.
     """)
@@ -198,7 +205,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, e1, e2, e3, mo, np, phi_slider, plt, theta_slider):
+def _(alg, e1, e2, e3, gm, mo, np, phi_slider, plt, theta_slider):
     _theta = np.radians(theta_slider.value)
     _phi = np.radians(phi_slider.value)
 
@@ -252,23 +259,23 @@ def _(alg, e1, e2, e3, mo, np, phi_slider, plt, theta_slider):
 
     mo.vstack([
         _fig,
-        mo.md(f"Rotor: $\\psi = {_psi.latex()}$"),
-        mo.md(f"Spin vector: $\\mathbf{{s}} = ({_sx:+.4f},\\; {_sy:+.4f},\\; {_sz:+.4f})$"),
+        gm.md(t"Rotor: $\\psi$ = {_psi}"),
+        gm.md(t"Spin vector: $\\mathbf{{s}} = ({_sx:+.4f},\\; {_sy:+.4f},\\; {_sz:+.4f})$"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Measurement Probabilities
 
-    For a spin state with spin vector $\mathbf{s}$, the probability of measuring
-    spin-up along direction $\hat{n}$ is:
+    For a spin state with spin vector $\\mathbf{{s}}$, the probability of measuring
+    spin-up along direction $\\hat{{n}}$ is:
 
-    $$P(+\hat{n}) = \frac{1 + \hat{n} \cdot \mathbf{s}}{2} = \cos^2\!\frac{\alpha}{2}$$
+    $$P(+\\hat{{n}}) = \\frac{{1 + \\hat{{n}} \\cdot \\mathbf{{s}}}}{{2}} = \\cos^2\\!\\frac{{\\alpha}}{{2}}$$
 
-    where $\alpha$ is the angle between $\mathbf{s}$ and $\hat{n}$. This is the
+    where $\\alpha$ is the angle between $\\mathbf{{s}}$ and $\\hat{{n}}$. This is the
     **Malus's law** of quantum spin — identical to the classical law for polarized light.
     """)
     return
@@ -318,19 +325,19 @@ def _(alg, e1, e3, meas_theta, np, plt, scalar):
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Sequential Stern–Gerlach
 
     A classic thought experiment: pass a beam through three Stern–Gerlach devices.
 
-    1. **First device** (along $z$): select spin-up → state $|\!\uparrow_z\rangle$
-    2. **Second device** (at angle $\alpha$): select spin-up → state $|\!\uparrow_\alpha\rangle$
+    1. **First device** (along $z$): select spin-up → state $|\\!\\uparrow_z\\rangle$
+    2. **Second device** (at angle $\\alpha$): select spin-up → state $|\\!\\uparrow_\\alpha\\rangle$
     3. **Third device** (along $z$): measure spin-up
 
-    The total transmission probability is $\cos^2(\alpha/2) \times \cos^2(\alpha/2) = \cos^4(\alpha/2)$.
+    The total transmission probability is $\\cos^2(\\alpha/2) \\times \\cos^2(\\alpha/2) = \\cos^4(\\alpha/2)$.
 
-    At $\alpha = 90°$ this is $1/4$ — the intermediate measurement "restores" some
+    At $\\alpha = 90°$ this is $1/4$ — the intermediate measurement "restores" some
     spin-up that the first device would have blocked completely.
     """)
     return
@@ -347,7 +354,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, e1, e3, mo, np, plt, scalar, sg_slider):
+def _(alg, e1, e3, gm, mo, np, plt, scalar, sg_slider):
     _alpha = np.radians(sg_slider.value)
 
     # After first device: spin-up along z
@@ -389,27 +396,25 @@ def _(alg, e1, e3, mo, np, plt, scalar, sg_slider):
 
     mo.vstack([
         _fig,
-        mo.md("\n".join([
-            f"- $\\alpha = {sg_slider.value}°$",
-            f"- $P$(pass 2nd) $= \\cos^2(\\alpha/2) = {_P_2:.4f}$",
-            f"- $P$(pass 3rd | passed 2nd) $= \\cos^2(\\alpha/2) = {_P_3:.4f}$",
-            f"- **Total: $P = {_P_total:.4f}$**",
-        ])),
+        gm.md(t"""- $\\alpha = {sg_slider.value:.0f}°$
+    - $P$(pass 2nd) $= \\cos^2(\\alpha/2) = {_P_2:.4f}$
+    - $P$(pass 3rd | passed 2nd) $= \\cos^2(\\alpha/2) = {_P_3:.4f}$
+    - **Total: $P = {_P_total:.4f}$**"""),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Larmor Precession
 
-    A spin in a magnetic field $\mathbf{B} = B\,e_3$ precesses about the field axis.
+    A spin in a magnetic field $\\mathbf{{B}} = B\\,e_3$ precesses about the field axis.
 
-    The Hamiltonian bivector is $\Omega = -\frac{\omega}{2}\,e_1 e_2$ (where $\omega = \gamma B$
+    The Hamiltonian bivector is $\\Omega = -\\frac{{\\omega}}{{2}}\\,e_1 e_2$ (where $\\omega = \\gamma B$
     is the Larmor frequency). Time evolution is a rotor:
 
-    $$U(t) = e^{-\Omega t} = e^{\omega t/2\; e_1 e_2}$$
+    $$U(t) = e^{{-\\Omega t}} = e^{{\\omega t/2\\; e_1 e_2}}$$
 
     This is just a rotation about $e_3$ — the spin vector traces a cone, with $s_z$ constant.
     """)
@@ -427,7 +432,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, e1, e2, e3, mo, np, plt, precess_theta):
+def _(alg, e1, e2, e3, gm, mo, np, plt, precess_theta):
     _theta = np.radians(precess_theta.value)
     _psi_0 = alg.rotor(e3 ^ e1, radians=_theta)
 
@@ -475,18 +480,18 @@ def _(alg, e1, e2, e3, mo, np, plt, precess_theta):
 
     mo.vstack([
         _fig,
-        mo.md(f"$s_z = \\cos\\theta = {np.cos(_theta):.4f}$ (constant — precession preserves $z$-component)"),
+        gm.md(t"$s_z = \\cos\\theta = {np.cos(_theta):.4f}$ (constant — precession preserves $z$-component)"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Spin Rotations and SU(2) Double Cover
 
     A $360°$ rotation returns a vector to itself, but the **rotor** picks up a sign:
-    $\psi \to -\psi$. You need $720°$ to get back to $+\psi$.
+    $\\psi \\to -\\psi$. You need $720°$ to get back to $+\\psi$.
 
     This is the famous **spinor sign flip** — a manifestation of the SU(2) double cover of SO(3).
     """)
@@ -494,7 +499,7 @@ def _(mo):
 
 
 @app.cell
-def _(alg, e1, e2, e3, mo, np, scalar):
+def _(alg, e1, e2, e3, gm, np, scalar):
     _B = e1 ^ e2
     _angles = [0, 90, 180, 270, 360, 450, 540, 630, 720]
 
@@ -508,27 +513,25 @@ def _(alg, e1, e2, e3, mo, np, scalar):
             f"| {deg:3d}° | {_sc:+.4f} | {_R.latex(wrap='$')} | {_sz:+.4f} |"
         )
 
-    mo.md("\n".join([
-        "| Angle | Scalar part | Rotor $\\psi$ | $s_z$ |",
-        "|---|---|---|---|",
-    ] + _rows + [
-        "",
-        "At 360°: the rotor is $-1$ (not $+1$!). The spin vector returns to $e_3$,",
-        "but the rotor has flipped sign. Only at 720° does $\\psi$ return to $+1$.",
-    ]))
+    gm.md(t"""| Angle | Scalar part | Rotor $\\psi$ | $s_z$ |
+    |---|---|---|---|
+    {"\n".join(_rows):text}
+
+    At 360°: the rotor is $-1$ (not $+1$!). The spin vector returns to $e_3$,
+    but the rotor has flipped sign. Only at 720° does $\\psi$ return to $+1$.""")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Rotor Interpolation (SLERP)
 
     Because spin states are rotors, interpolation is natural. The relative rotor
-    $\Delta = \psi_1 \tilde\psi_0$ connects two states, and scaling its logarithm
+    $\\Delta = \\psi_1 \\tilde\\psi_0$ connects two states, and scaling its logarithm
     gives the geodesic:
 
-    $$\psi(t) = \exp\!\big(t \cdot \log(\psi_1 \tilde\psi_0)\big)\,\psi_0, \qquad t \in [0, 1]$$
+    $$\\psi(t) = \\exp\\!\\big(t \\cdot \\log(\\psi_1 \\tilde\\psi_0)\\big)\\,\\psi_0, \\qquad t \\in [0, 1]$$
 
     This traces the shortest path between two spin states on the Bloch sphere.
     """)
@@ -545,7 +548,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, e1, e3, exp, log, mo, np, plt, slerp_slider):
+def _(alg, e1, e3, exp, gm, log, mo, np, plt, slerp_slider):
     # Interpolate from spin +z (tilted 30°) to spin +x
     _psi_0 = alg.rotor(e3 ^ e1, radians=np.pi / 6)
     _psi_1 = alg.rotor(e3 ^ e1, radians=np.pi / 2)
@@ -591,15 +594,15 @@ def _(alg, e1, e3, exp, log, mo, np, plt, slerp_slider):
 
     mo.vstack([
         _fig,
-        mo.md(f"$\\psi(t) = {_psi_t.latex()}$"),
-        mo.md(f"Spin vector: $\\mathbf{{s}} = ({_sx_t:+.4f},\\; 0,\\; {_sz_t:+.4f})$"),
+        gm.md(t"$\\psi(t)$ = {_psi_t}"),
+        gm.md(t"Spin vector: $\\mathbf{{s}} = ({_sx_t:+.4f},\\; 0,\\; {_sz_t:+.4f})$"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Symbolic Identities
 
     The symbolic layer verifies algebraic identities as expression trees.
@@ -608,7 +611,7 @@ def _(mo):
 
 
 @app.cell
-def _(alg, e1, e2, e3, mo, simplify, sym, sym_grade, sym_norm):
+def _(alg, e1, e2, e3, gm, simplify, sym, sym_grade, sym_norm):
     _R = sym(alg.rotor(e1 ^ e2, radians=0.5), "ψ")
     _v = sym(e3, "e₃")
 
@@ -619,10 +622,8 @@ def _(alg, e1, e2, e3, mo, simplify, sym, sym_grade, sym_norm):
         ("Norm of unit: ‖unit(e₃)‖", simplify(sym_norm(sym(e3 / 1.0, "n̂")))),
     ]
 
-    mo.md("\n".join(
-        f"- {name} $\\;\\to\\;$ ${result.latex()}$"
-        for name, result in _rules
-    ))
+    _lines = "\n".join(f"- {name} $\\;\\to\\;$ ${result.latex()}$" for name, result in _rules)
+    gm.md(t"{_lines:text}")
     return
 
 

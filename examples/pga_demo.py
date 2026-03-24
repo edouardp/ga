@@ -10,8 +10,10 @@ def _():
     from pathlib import Path
 
     _root = str(Path(__file__).resolve().parent.parent)
-    if _root not in sys.path:
-        sys.path.insert(0, _root)
+    _gamo = str(Path(__file__).resolve().parent.parent / "packages" / "gamo")
+    for p in [_root, _gamo]:
+        if p not in sys.path:
+            sys.path.insert(0, p)
     return
 
 
@@ -31,13 +33,14 @@ def _():
     matplotlib.rcParams.update({"figure.facecolor": "white"})
 
     from ga import Algebra, scalar, grade, exp, log, reverse, norm
+    import galaga_marimo as gm
 
-    return Algebra, exp, grade, log, norm, np, plt, reverse, scalar
+    return Algebra, exp, gm, grade, log, norm, np, plt, reverse, scalar
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     # Projective Geometric Algebra (PGA)
 
     **PGA** is Cl(3,0,1) — three Euclidean basis vectors plus one **degenerate** vector
@@ -48,35 +51,33 @@ def _(mo):
     |---|---|
     | Rotations only | Rotations + translations + screws |
     | Vectors are directions | Points, lines, and planes are all elements |
-    | No translation rotors | $T = 1 + \frac{d}{2}\,e_0\,\hat{n}$ translates by $d$ |
+    | No translation rotors | $T = 1 + \\frac{{d}}{{2}}\\,e_0\\,\\hat{{n}}$ translates by $d$ |
     | Compose rotations | Compose any rigid motions |
     """)
     return
 
 
 @app.cell
-def _(Algebra, mo, scalar):
+def _(Algebra, gm, scalar):
     alg = Algebra((1, 1, 1, 0), repr_unicode=True)
     e1, e2, e3, e0 = alg.basis_vectors()
 
-    mo.md("\n".join([
-        "**Basis vectors:**",
-        f"- $e_1^2 = {scalar(e1*e1):+.0f}$, $e_2^2 = {scalar(e2*e2):+.0f}$, $e_3^2 = {scalar(e3*e3):+.0f}$ (Euclidean)",
-        f"- $e_0^2 = {scalar(e0*e0):.0f}$ (degenerate — this is what makes PGA projective)",
-    ]))
+    gm.md(t"""**Basis vectors:**
+- $e_1^2 = {scalar(e1*e1):text}$, $e_2^2 = {scalar(e2*e2):text}$, $e_3^2 = {scalar(e3*e3):text}$ (Euclidean)
+- $e_0^2 = {scalar(e0*e0):text}$ (degenerate — this is what makes PGA projective)""")
     return alg, e0, e1, e2, e3
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Points, Planes, and the Degenerate Dimension
 
     In PGA, geometric objects are multivector elements:
 
     - **Planes** are 1-vectors: $p = ae_1 + be_2 + ce_3 + de_0$ represents $ax + by + cz + d = 0$
       (with the convention that $d$ has opposite sign)
-    - **Points** are trivectors: $P = e_{123} + x\,E_1 + y\,E_2 + z\,E_3$
+    - **Points** are trivectors: $P = e_{{123}} + x\\,E_1 + y\\,E_2 + z\\,E_3$
       where $E_i$ are the "dual basis" trivectors
 
     The degenerate dimension $e_0$ encodes position — it's what lets PGA distinguish
@@ -86,7 +87,7 @@ def _(mo):
 
 
 @app.cell
-def _(alg, e0, e1, e2, e3, mo, np):
+def _(alg, e0, e1, e2, e3, gm, np):
     e123 = e1 ^ e2 ^ e3
 
     # Dual basis trivectors (encode position components)
@@ -106,24 +107,22 @@ def _(alg, e0, e1, e2, e3, mo, np):
     _P = point(3, 4, 5)
     _c = coords(_P)
 
-    mo.md("\n".join([
-        f"Point at $(3, 4, 5)$: {_P.latex(wrap='$')}",
-        f"",
-        f"Extracted coordinates: $({_c[0]:.0f},\\; {_c[1]:.0f},\\; {_c[2]:.0f})$ ✓",
-    ]))
+    gm.md(t"""Point at $(3, 4, 5)$: {_P}
+
+Extracted coordinates: $({_c[0]:.0f},\\; {_c[1]:.0f},\\; {_c[2]:.0f})$ ✓""")
     return E1, E2, E3, coords, e123, point
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Translations
 
-    A translation by distance $d$ along direction $\hat{n}$ is the rotor:
+    A translation by distance $d$ along direction $\\hat{{n}}$ is the rotor:
 
-    $$T = 1 + \frac{d}{2}\,e_0\,\hat{n}$$
+    $$T = 1 + \\frac{{d}}{{2}}\\,e_0\\,\\hat{{n}}$$
 
-    This is a **null rotor** — $e_0^2 = 0$ means $T\tilde{T} = 1$ automatically.
+    This is a **null rotor** — $e_0^2 = 0$ means $T\\tilde{{T}} = 1$ automatically.
     No trigonometry, no exponentials. Translation is the simplest operation in PGA.
     """)
     return
@@ -138,7 +137,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, coords, e0, e1, e2, mo, np, plt, point, tx_slider, ty_slider):
+def _(alg, coords, e0, e1, e2, gm, mo, np, plt, point, tx_slider, ty_slider):
     _dx = tx_slider.value
     _dy = ty_slider.value
     _T = alg.identity + (_dx / 2) * e0 * e1 + (_dy / 2) * e0 * e2
@@ -164,23 +163,24 @@ def _(alg, coords, e0, e1, e2, mo, np, plt, point, tx_slider, ty_slider):
     _ax.set_title(f"Translation: Δx={_dx:.1f}, Δy={_dy:.1f}", fontsize=13)
     plt.tight_layout()
 
+    _TT = _T * ~_T
     mo.vstack([
         _fig,
-        mo.md(f"Translator: $T = {_T.latex()}$"),
-        mo.md(f"$T\\tilde{{T}} = {(_T * ~_T).latex()}$ (always 1 — null rotor)"),
+        gm.md(t"Translator: {_T}"),
+        gm.md(t"$T\\tilde{{T}}$ = {_TT} (always 1 — null rotor)"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Rotations
 
     Rotations work exactly as in Euclidean GA — the rotor lives in the $e_1 e_2 e_3$
     subspace. The degenerate dimension $e_0$ comes along for the ride.
 
-    $$R = \cos\frac{\theta}{2} - \sin\frac{\theta}{2}\,(e_1 \wedge e_2)$$
+    $$R = \\cos\\frac{{\\theta}}{{2}} - \\sin\\frac{{\\theta}}{{2}}\\,(e_1 \\wedge e_2)$$
     """)
     return
 
@@ -193,7 +193,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, coords, e1, e2, mo, np, plt, point, rot_slider):
+def _(alg, coords, e1, e2, gm, mo, np, plt, point, rot_slider):
     _theta = np.radians(rot_slider.value)
     _R = alg.rotor(e1 ^ e2, radians=_theta)
 
@@ -220,20 +220,20 @@ def _(alg, coords, e1, e2, mo, np, plt, point, rot_slider):
 
     mo.vstack([
         _fig,
-        mo.md(f"Rotor: $R = {_R.latex()}$"),
+        gm.md(t"Rotor: {_R}"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Reflections in Planes
 
     A plane $p = ae_1 + be_2 + ce_3 + de_0$ reflects points via the sandwich $P' = pPp$.
 
     The Euclidean part $(a, b, c)$ is the normal; $d$ controls the offset.
-    To build an offset plane, translate the origin plane: $p' = T\,p\,\tilde{T}$.
+    To build an offset plane, translate the origin plane: $p' = T\\,p\\,\\tilde{{T}}$.
     """)
     return
 
@@ -246,7 +246,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, coords, e0, e1, e2, mo, np, plt, point, ref_d):
+def _(alg, coords, e0, e1, gm, mo, np, plt, point, ref_d):
     _d = ref_d.value
     # Plane x = d: translate e1 by d along x
     _T = alg.identity + (_d / 2) * e0 * e1
@@ -272,22 +272,22 @@ def _(alg, coords, e0, e1, e2, mo, np, plt, point, ref_d):
 
     mo.vstack([
         _fig,
-        mo.md(f"Plane: $p = {_p.latex()}$"),
+        gm.md(t"Plane: {_p}"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Motors: Unified Rigid Motions
 
     The real power of PGA: **any rigid motion** (rotation, translation, or both) is a
     single even-grade element called a **motor**:
 
-    $$M = T \cdot R$$
+    $$M = T \\cdot R$$
 
-    Apply it the same way as always: $P' = M\,P\,\tilde{M}$.
+    Apply it the same way as always: $P' = M\\,P\\,\\tilde{{M}}$.
 
     Motors compose by geometric product — just like rotors. The entire group of
     rigid motions (SE(3)) is captured by the even subalgebra of Cl(3,0,1).
@@ -305,7 +305,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, coords, e0, e1, e2, mo, motor_angle, motor_tx, motor_ty, np, plt, point):
+def _(alg, coords, e0, e1, e2, gm, mo, motor_angle, motor_tx, motor_ty, np, plt, point):
     _theta = np.radians(motor_angle.value)
     _R = alg.rotor(e1 ^ e2, radians=_theta)
     _T = alg.identity + (motor_tx.value / 2) * e0 * e1 + (motor_ty.value / 2) * e0 * e2
@@ -329,22 +329,23 @@ def _(alg, coords, e0, e1, e2, mo, motor_angle, motor_tx, motor_ty, np, plt, poi
     _ax.set_title(f"Motor: rotate {motor_angle.value}° then translate ({motor_tx.value:.1f}, {motor_ty.value:.1f})", fontsize=13)
     plt.tight_layout()
 
+    _MM = _M * ~_M
     mo.vstack([
         _fig,
-        mo.md(f"Motor: $M = {_M.latex()}$"),
-        mo.md(f"$M\\tilde{{M}} = {(_M * ~_M).latex()}$"),
+        gm.md(t"Motor: {_M}"),
+        gm.md(t"$M\\tilde{{M}}$ = {_MM}"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Motor Interpolation
 
-    Just like rotor SLERP, motor interpolation uses $\exp$ and $\log$:
+    Just like rotor SLERP, motor interpolation uses $\\exp$ and $\\log$:
 
-    $$M(t) = \exp\!\big(t \cdot \log M\big), \qquad t \in [0, 1]$$
+    $$M(t) = \\exp\\!\\big(t \\cdot \\log M\\big), \\qquad t \\in [0, 1]$$
 
     This traces the **screw motion** — the unique helical path connecting the start
     and end poses. Every rigid motion in 3D is a screw (Chasles' theorem).
@@ -360,7 +361,7 @@ def _(mo):
 
 
 @app.cell(hide_code=True)
-def _(alg, coords, e0, e1, e2, exp, interp_slider, log, mo, np, plt, point):
+def _(alg, coords, e0, e1, e2, exp, gm, interp_slider, log, mo, np, plt, point):
     # Motor: 90° rotation + translation
     _R = alg.rotor(e1 ^ e2, radians=np.pi / 2)
     _T = alg.identity + (3 / 2) * e0 * e1 + (2 / 2) * e0 * e2
@@ -400,28 +401,28 @@ def _(alg, coords, e0, e1, e2, exp, interp_slider, log, mo, np, plt, point):
 
     mo.vstack([
         _fig,
-        mo.md(f"$M(t) = {_M_t.latex()}$"),
+        gm.md(t"$M(t)$ = {_M_t}"),
     ])
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Ideal Points (Points at Infinity)
 
-    An **ideal point** is a trivector with no $e_{123}$ component — it represents a
+    An **ideal point** is a trivector with no $e_{{123}}$ component — it represents a
     direction, not a position. Translations leave ideal points unchanged (directions
     don't move), but rotations rotate them.
 
-    This is the projective geometry at work: the "point at infinity" along $\hat{x}$
-    is where all lines parallel to $\hat{x}$ meet.
+    This is the projective geometry at work: the "point at infinity" along $\\hat{{x}}$
+    is where all lines parallel to $\\hat{{x}}$ meet.
     """)
     return
 
 
 @app.cell
-def _(E1, alg, e0, e1, e2, mo, np):
+def _(E1, alg, e0, e1, e2, gm, np):
     _d = E1  # ideal point along x
 
     # Translation does nothing
@@ -432,21 +433,19 @@ def _(E1, alg, e0, e1, e2, mo, np):
     _R = alg.rotor(e1 ^ e2, radians=np.pi / 2)
     _d_rot = _R * _d * ~_R
 
-    mo.md("\n".join([
-        f"Ideal point (direction $+x$): {_d.latex(wrap='$')}",
-        f"",
-        f"After translating by 100 along $x$: {_d_trans.latex(wrap='$')} (unchanged ✓)",
-        f"",
-        f"After rotating 90° in $xy$: {_d_rot.latex(wrap='$')} (now points along $+y$ ✓)",
-        f"",
-        f"Translation-invariance is automatic — $e_0^2 = 0$ kills the translation terms.",
-    ]))
+    gm.md(t"""Ideal point (direction $+x$): {_d}
+
+After translating by 100 along $x$: {_d_trans} (unchanged ✓)
+
+After rotating 90° in $xy$: {_d_rot} (now points along $+y$ ✓)
+
+Translation-invariance is automatic — $e_0^2 = 0$ kills the translation terms.""")
     return
 
 
 @app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
+def _(gm):
+    gm.md(t"""
     ## Why PGA?
 
     The key insight: **every rigid motion is a sandwich product**. No special cases,
@@ -454,15 +453,15 @@ def _(mo):
 
     | Operation | PGA element | Formula |
     |---|---|---|
-    | Translation | $T = 1 + \frac{d}{2}\,e_0\hat{n}$ | $P' = TP\tilde{T}$ |
-    | Rotation (origin) | $R = \cos\frac{\theta}{2} - \sin\frac{\theta}{2}\,B$ | $P' = RP\tilde{R}$ |
-    | Rotation (offset) | $M = T_{\text{back}}\,R\,T_{\text{to}}$ | $P' = MP\tilde{M}$ |
+    | Translation | $T = 1 + \\frac{{d}}{{2}}\\,e_0\\hat{{n}}$ | $P' = TP\\tilde{{T}}$ |
+    | Rotation (origin) | $R = \\cos\\frac{{\\theta}}{{2}} - \\sin\\frac{{\\theta}}{{2}}\\,B$ | $P' = RP\\tilde{{R}}$ |
+    | Rotation (offset) | $M = T_{{\\text{{back}}}}\\,R\\,T_{{\\text{{to}}}}$ | $P' = MP\\tilde{{M}}$ |
     | Reflection | plane $p$ | $P' = pPp$ |
-    | Screw motion | $M = \exp(-\frac{\theta}{2}\,L)$ | $P' = MP\tilde{M}$ |
-    | Any rigid motion | motor $M$ (even grade) | $P' = MP\tilde{M}$ |
-    | Interpolation | $M(t) = \exp(t\,\log M)$ | smooth screw path |
+    | Screw motion | $M = \\exp(-\\frac{{\\theta}}{{2}}\\,L)$ | $P' = MP\\tilde{{M}}$ |
+    | Any rigid motion | motor $M$ (even grade) | $P' = MP\\tilde{{M}}$ |
+    | Interpolation | $M(t) = \\exp(t\\,\\log M)$ | smooth screw path |
 
-    Motors compose by geometric product: $M_{\text{total}} = M_2 M_1$ (right-to-left,
+    Motors compose by geometric product: $M_{{\\text{{total}}}} = M_2 M_1$ (right-to-left,
     like rotors). The entire Euclidean group SE(3) lives in the even subalgebra.
     """)
     return
