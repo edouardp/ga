@@ -330,6 +330,17 @@ class Multivector:
         """Squared: x²"""
         return gp(self, self)
 
+    @property
+    def scalar_part(self) -> float:
+        """Extract grade-0 coefficient as a float."""
+        return float(self.data[0])
+
+    @property
+    def vector_part(self) -> np.ndarray:
+        """Extract grade-1 coefficients as a numpy array."""
+        n = self.algebra._n
+        return np.array([self.data[1 << i] for i in range(n)])
+
     def _format(self, unicode: bool = False) -> str:
         alg = self.algebra
         terms = []

@@ -393,7 +393,7 @@ def _(alg, angle_slider, e1, e2, grade, mo, np, sym):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     ## 2D Rotation Visualizer
@@ -411,7 +411,7 @@ def _(mo):
     return (plot_angle,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(alg, e1, e2, grade, np, plot_angle, sym):
     import matplotlib.pyplot as plt
     import matplotlib
@@ -422,8 +422,7 @@ def _(alg, e1, e2, grade, np, plot_angle, sym):
     _v_rot = _R * e1 * ~_R
 
     # Extract x,y components
-    _vx = grade(_v_rot, 1).data[1]
-    _vy = grade(_v_rot, 1).data[2]
+    _vx, _vy, _ = _v_rot.vector_part
 
     fig, ax = plt.subplots(figsize=(5, 5))
     ax.set_xlim(-1.4, 1.4)
