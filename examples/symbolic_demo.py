@@ -351,6 +351,38 @@ def _(R, grade, mo, v):
 
 
 @app.cell
+def _(mo):
+    mo.md("""
+    ## Simplification
+    `simplify()` applies algebraic rewrite rules to expression trees.
+    """)
+    return
+
+
+@app.cell
+def _(R, a, mo, v):
+    from ga.symbolic import simplify, norm, unit, inverse, grade as sgrade
+
+    _rules = [
+        ("~~v", simplify(~~v)),
+        ("inverse(inverse(v))", simplify(inverse(inverse(v)))),
+        ("a ∧ a", simplify(a ^ a)),
+        ("a + a", simplify(a + a)),
+        ("3(2v)", simplify(3 * (2 * v))),
+        ("R~R", simplify(R * ~R)),
+        ("‖unit(v)‖", simplify(norm(unit(v)))),
+        ("⟨v⟩₁ (v is grade-1)", simplify(sgrade(v, 1))),
+        ("⟨v⟩₂ (v is grade-1)", simplify(sgrade(v, 2))),
+        ("a − (−a)", simplify(a - (-a))),
+    ]
+    mo.vstack([
+        mo.md(f"- `{name}` → {result.latex(wrap='$')}")
+        for name, result in _rules
+    ])
+    return inverse, norm, unit
+
+
+@app.cell
 def _():
     return
 

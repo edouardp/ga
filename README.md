@@ -402,6 +402,54 @@ grade(R * v * ~R, 1)   # returns Expr
 grade(e1 + e2, 1)      # returns Multivector
 ```
 
+### Simplification
+
+`simplify()` applies algebraic rewrite rules to expression trees:
+
+```python
+from ga.symbolic import sym, simplify, grade, norm, unit, inverse, op
+
+alg = Algebra((1, 1, 1))
+e1, e2, e3 = alg.basis_vectors()
+
+v = sym(e1, "v")
+R = sym(alg.rotor_from_plane_angle(e1^e2, 0.5), "R")
+a = sym(e1, "a")
+B = sym(e1^e2, "B")
+
+simplify(~~v)              # v         (double reverse)
+simplify(inverse(inverse(v)))  # v     (double inverse)
+simplify(a ^ a)            # 0         (wedge self = 0)
+simplify(a + a)            # 2a        (collection)
+simplify(3 * (2 * v))      # 6v        (scalar collapse)
+simplify(R * ~R)           # 1         (rotor normalization)
+simplify(norm(unit(v)))    # 1         (unit has norm 1)
+simplify(grade(v, 1))      # v         (v is known grade-1)
+simplify(grade(v, 2))      # 0         (v has no grade-2)
+```
+
+Grade is auto-detected from the multivector data, so `sym(e1, "v")` knows it's grade-1 and `sym(e1^e2, "B")` knows it's grade-2. Simplification runs to a fixed point, so cascading rules like `a - (-a) → a + a → 2a` resolve fully.
+
+## Sandwich Product
+
+The sandwich product `R x R̃` is common enough to deserve a shortcut:
+
+```python
+sandwich(R, e1)     # R * e1 * ~R
+sw(R, e1)           # same thing, short alias
+```
+
+Works in the symbolic layer too:
+
+```python
+from ga.symbolic import sym, sandwich
+
+R = sym(alg.rotor_from_plane_angle(e1^e2, np.pi/2), "R")
+v = sym(e1, "v")
+print(sandwich(R, v))        # RvR̃
+print(sandwich(R, v).eval()) # e₂
+```
+
 ## Aliases
 
 Short names for experienced users, long names for readability:
@@ -414,6 +462,7 @@ reverse  ↔  rev
 unit  ↔  normalize  ↔  normalise
 even_grades  ↔  even
 odd_grades   ↔  odd
+sandwich  ↔  sw
 ```
 
 ## API Reference
@@ -470,6 +519,7 @@ odd_grades   ↔  odd
 | `unit(x)` | Normalize to unit |
 | `inverse(x)` | Versor inverse |
 | `squared(x)` | `x²` — geometric product with self |
+| `sandwich(r, x)` | Sandwich product `r x r̃` |
 | `even(x)` | Even-grade components |
 | `odd(x)` | Odd-grade components |
 | `is_scalar(x)` | True if pure scalar |
