@@ -719,6 +719,18 @@ In 3D Euclidean space, this is isomorphic to the vector cross product. In Cl(1,3
 | `is_even(x)` | True if even-graded |
 | `is_rotor(x)` | True if even and `x*~x = 1` |
 
+## Examples
+
+Interactive [marimo](https://marimo.io) notebooks in `examples/`:
+
+- **`symbolic_demo.py`** — Symbolic expression trees, rendering, simplification, LaTeX output
+- **`spacetime_algebra.py`** — Spacetime Algebra Cl(1,3): boosts, rotations, EM field, Thomas–Wigner rotation
+- **`quantum_physics.py`** — Quantum spin-½: Bloch sphere, measurement, Stern–Gerlach, Larmor precession
+
+```bash
+uv run marimo edit examples/quantum_physics.py
+```
+
 ## Internals
 
 - Basis blades are represented as **bitmasks** — `e₁ = 0b001`, `e₂ = 0b010`, `e₁₂ = 0b011`
