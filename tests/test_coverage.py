@@ -956,9 +956,90 @@ class TestSimplify:
 
     def test_grade_idempotent(self, cl3):
         v = sym(cl3.basis_vectors()[0], "v")
-        assert str(simplify(sgrade(sgrade(v, 1), 1))) == "⟨v⟩₁"
+        # grade(grade(v,1),1) → v (v is known grade-1)
+        assert str(simplify(sgrade(sgrade(v, 1), 1))) == "v"
 
     def test_nested(self, cl3):
         v = sym(cl3.basis_vectors()[0], "v")
         # ~~v + 0 → v
         assert str(simplify(~~v + Scalar(0))) == "v"
+
+    # --- New rules ---
+
+    def test_double_involute(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(sinvolute(sinvolute(v)))) == "v"
+
+    def test_double_conjugate(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(sconjugate(sconjugate(v)))) == "v"
+
+    def test_double_inverse(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(sinverse(sinverse(v)))) == "v"
+
+    def test_wedge_self(self, cl3):
+        a = sym(cl3.basis_vectors()[0], "a")
+        assert str(simplify(a ^ a)) == "0"
+
+    def test_norm_unit(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(snorm(sunit(v)))) == "1"
+
+    def test_add_self(self, cl3):
+        a = sym(cl3.basis_vectors()[0], "a")
+        assert str(simplify(a + a)) == "2a"
+
+    def test_sub_neg(self, cl3):
+        a = sym(cl3.basis_vectors()[0], "a")
+        b = sym(cl3.basis_vectors()[1], "b")
+        result = simplify(a - (-b))
+        assert str(result) == "a + b"
+
+    def test_add_neg_self(self, cl3):
+        a = sym(cl3.basis_vectors()[0], "a")
+        assert str(simplify(a + (-a))) == "0"
+
+    def test_scalar_mul_collapse(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(3 * (2 * v))) == "6v"
+
+    def test_grade_known_match(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")  # grade 1
+        assert str(simplify(sgrade(v, 1))) == "v"
+
+    def test_grade_known_mismatch(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")  # grade 1
+        assert str(simplify(sgrade(v, 2))) == "0"
+
+    def test_even_bivector(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        B = sym(e1 ^ e2, "B")  # grade 2
+        assert str(simplify(seven(B))) == "B"
+
+    def test_odd_bivector(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        B = sym(e1 ^ e2, "B")
+        assert str(simplify(sodd(B))) == "0"
+
+    def test_even_vector(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(seven(v))) == "0"
+
+    def test_odd_vector(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(sodd(v))) == "v"
+
+    def test_cascade(self, cl3):
+        a = sym(cl3.basis_vectors()[0], "a")
+        # a - (-a) → a + a → 2a (requires two passes)
+        assert str(simplify(a - (-a))) == "2a"
+
+    def test_auto_grade_detection(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        v = sym(e1, "v")
+        B = sym(e1 ^ e2, "B")
+        s = sym(cl3.scalar(5.0), "s")
+        assert v._grade == 1
+        assert B._grade == 2
+        assert s._grade == 0

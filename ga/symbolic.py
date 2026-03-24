@@ -142,9 +142,17 @@ class Expr:
 class Sym(Expr):
     """A named multivector — leaf node."""
 
-    def __init__(self, mv: _alg.Multivector, name: str):
+    def __init__(self, mv: _alg.Multivector, name: str, grade: int | None = None):
         self._mv = mv
         self._name = name
+        # Auto-detect grade if not provided
+        if grade is not None:
+            self._grade = grade
+        else:
+            nonzero = [k for k in range(mv.algebra._n + 1)
+                       if any(abs(c) > 1e-12 for i, c in enumerate(mv.data)
+                              if bin(i).count('1') == k)]
+            self._grade = nonzero[0] if len(nonzero) == 1 else None
 
     def eval(self) -> _alg.Multivector:
         return self._mv
@@ -531,21 +539,38 @@ def _eq(a: Expr, b: Expr) -> bool:
 def simplify(expr: Expr) -> Expr:
     """Apply algebraic rewrite rules to simplify an expression tree.
 
-    Rules applied:
-    - ~~x → x  (double reverse)
-    - x * 1 → x, 1 * x → x  (multiplicative identity)
-    - x + 0 → x, 0 + x → x  (additive identity)
-    - x * 0 → 0, 0 * x → 0
-    - x - x → 0
-    - -(-x) → x
-    - grade(grade(x, k), k) → grade(x, k)
-    - x * ~x → scalar (evaluated numerically when possible)
+    Rules include identity elimination, double-inverse cancellation,
+    grade-aware projection, wedge self-annihilation, and more.
     """
-    return _simplify(expr)
+    prev = None
+    e = expr
+    while not (prev is not None and _eq(prev, e)):
+        prev = e
+        e = _simplify(e)
+    return e
 
 
 def _is_scalar(e: Expr, val: float) -> bool:
     return isinstance(e, Scalar) and e._value == val
+
+
+def _known_grade(e: Expr) -> int | None:
+    """Return the known homogeneous grade of an expression, or None."""
+    if isinstance(e, Sym):
+        return e._grade
+    if isinstance(e, Scalar):
+        return 0
+    if isinstance(e, Grade):
+        return e.k if isinstance(e.k, int) else None
+    if isinstance(e, (Reverse, Involute, Conjugate)):
+        return _known_grade(e.x)
+    if isinstance(e, Neg):
+        return _known_grade(e.x)
+    if isinstance(e, ScalarMul):
+        return _known_grade(e.x)
+    if isinstance(e, Unit):
+        return _known_grade(e.x)
+    return None
 
 
 def _simplify(e: Expr) -> Expr:
@@ -565,11 +590,23 @@ def _simplify(e: Expr) -> Expr:
     if isinstance(e, Reverse) and isinstance(e.x, Reverse):
         return e.x.x
 
+    # involute(involute(x)) → x
+    if isinstance(e, Involute) and isinstance(e.x, Involute):
+        return e.x.x
+
+    # conjugate(conjugate(x)) → x
+    if isinstance(e, Conjugate) and isinstance(e.x, Conjugate):
+        return e.x.x
+
+    # inverse(inverse(x)) → x
+    if isinstance(e, Inverse) and isinstance(e.x, Inverse):
+        return e.x.x
+
     # -(-x) → x
     if isinstance(e, Neg) and isinstance(e.x, Neg):
         return e.x.x
 
-    # x * 1 → x, 1 * x → x
+    # x * 1 → x, 1 * x → x, x * 0 → 0
     if isinstance(e, Gp):
         if _is_scalar(e.a, 1):
             return e.b
@@ -585,27 +622,69 @@ def _simplify(e: Expr) -> Expr:
             except Exception:
                 pass
 
-    # 0 * x → 0
+    # k * (j * x) → (k*j) * x
     if isinstance(e, ScalarMul):
         if e.k == 0:
             return Scalar(0)
         if e.k == 1:
             return e.x
+        if isinstance(e.x, ScalarMul):
+            return ScalarMul(e.k * e.x.k, e.x.x)
 
-    # x + 0 → x, 0 + x → x
+    # x + 0 → x, 0 + x → x, x + x → 2x
     if isinstance(e, Add):
         if _is_scalar(e.a, 0):
             return e.b
         if _is_scalar(e.b, 0):
             return e.a
+        if _eq(e.a, e.b):
+            return ScalarMul(2, e.a)
 
-    # x - x → 0
-    if isinstance(e, Sub) and _eq(e.a, e.b):
+    # x - x → 0, a - (-b) → a + b
+    if isinstance(e, Sub):
+        if _eq(e.a, e.b):
+            return Scalar(0)
+        if isinstance(e.b, Neg):
+            return Add(e.a, e.b.x)
+
+    # x + (-x) → 0
+    if isinstance(e, Add) and isinstance(e.b, Neg) and _eq(e.a, e.b.x):
         return Scalar(0)
+
+    # x ^ x → 0
+    if isinstance(e, Op) and _eq(e.a, e.b):
+        return Scalar(0)
+
+    # norm(unit(x)) → 1
+    if isinstance(e, Norm) and isinstance(e.x, Unit):
+        return Scalar(1)
+
+    # --- Grade-aware rules ---
+
+    # grade(x, k) → x  if x is known to be pure grade k
+    if isinstance(e, Grade) and isinstance(e.k, int):
+        g = _known_grade(e.x)
+        if g is not None:
+            if g == e.k:
+                return e.x
+            else:
+                return Scalar(0)
 
     # grade(grade(x, k), k) → grade(x, k)
     if isinstance(e, Grade) and isinstance(e.x, Grade) and e.k == e.x.k:
         return e.x
+
+    # even(x) → x if x is known grade 0 or 2 or 4...
+    if isinstance(e, Even):
+        g = _known_grade(e.x)
+        if g is not None:
+            return e.x if g % 2 == 0 else Scalar(0)
+
+    # odd(x) → x if x is known grade 1 or 3 or 5...
+    if isinstance(e, Odd):
+        g = _known_grade(e.x)
+        if g is not None:
+            return e.x if g % 2 == 1 else Scalar(0)
 
     return e
 
@@ -613,9 +692,14 @@ def _simplify(e: Expr) -> Expr:
 # --- Public API: drop-in replacements for ga.algebra functions ---
 # These detect Expr arguments and return Expr trees; otherwise delegate to numeric.
 
-def sym(mv: _alg.Multivector, name: str) -> Sym:
-    """Wrap a concrete multivector with a display name."""
-    return Sym(mv, name)
+def sym(mv: _alg.Multivector, name: str, grade: int | None = None) -> Sym:
+    """Wrap a concrete multivector with a display name.
+
+    Args:
+        grade: If provided, asserts the homogeneous grade for simplification.
+               If omitted, auto-detected from the multivector data.
+    """
+    return Sym(mv, name, grade=grade)
 
 
 def gp(a, b):
