@@ -26,19 +26,22 @@ class Algebra:
         signature: Tuple of +1, -1, or 0 for each basis vector's square.
     """
 
-    __slots__ = ("_sig", "_dim", "_n", "_mul_index", "_mul_sign", "_grade_masks", "_names")
+    __slots__ = ("_sig", "_dim", "_n", "_mul_index", "_mul_sign", "_grade_masks", "_names", "_latex_names")
 
     # Built-in naming presets: (code_names, unicode_names)
     # code_names are used in repr, unicode_names in str
     PRESETS = {
         "e": None,  # default: e1, e2, ... / e₁, e₂, ...
         "gamma": lambda n: ([f"g{i}" for i in range(n)],
-                            [f"γ{str(i).translate(str.maketrans('0123456789', '₀₁₂₃₄₅₆₇₈₉'))}" for i in range(n)]),
+                            [f"γ{str(i).translate(str.maketrans('0123456789', '₀₁₂₃₄₅₆₇₈₉'))}" for i in range(n)],
+                            [f"\\gamma_{i}" for i in range(n)]),
         "sigma": lambda n: ([f"s{i+1}" for i in range(n)],
-                            [f"σ{str(i+1).translate(str.maketrans('0123456789', '₀₁₂₃₄₅₆₇₈₉'))}" for i in range(n)]),
+                            [f"σ{str(i+1).translate(str.maketrans('0123456789', '₀₁₂₃₄₅₆₇₈₉'))}" for i in range(n)],
+                            [f"\\sigma_{i+1}" for i in range(n)]),
         "sigma_xyz": lambda n: (
             [c for c in "xyzwvu"[:n]],
             [f"σ{_LETTER_SUBSCRIPTS.get(c, c)}" for c in "xyzwvu"[:n]],
+            [f"\\sigma_{c}" for c in "xyzwvu"[:n]],
         ),
     }
 
@@ -50,16 +53,20 @@ class Algebra:
         # Resolve naming scheme
         if names is None or names == "e":
             self._names = None  # default e1/e₁ scheme
+            self._latex_names = None
         elif isinstance(names, str):
             preset = self.PRESETS.get(names)
             if preset is None:
                 raise ValueError(f"Unknown naming preset: {names!r}")
-            self._names = preset(self._n)
+            result = preset(self._n)
+            self._names = (result[0], result[1])
+            self._latex_names = result[2] if len(result) > 2 else None
         else:
             code, uni = names
             if len(code) != self._n or len(uni) != self._n:
                 raise ValueError(f"Names must have {self._n} entries, got {len(code)}/{len(uni)}")
             self._names = (list(code), list(uni))
+            self._latex_names = None
 
         # Precompute multiplication tables
         mul_index = np.empty((self._dim, self._dim), dtype=np.intp)
@@ -212,6 +219,22 @@ class Algebra:
         src = self._names[1] if unicode else self._names[0]
         parts = [src[k] for k in range(self._n) if index & (1 << k)]
         return "".join(parts)
+
+    def _blade_latex(self, index: int) -> str:
+        if index == 0:
+            return ""
+        if index == self._dim - 1:
+            return "I"
+        if self._names is None:
+            digits = "".join(str(k + 1) for k in range(self._n) if index & (1 << k))
+            return f"e_{{{digits}}}"
+        if self._latex_names is not None:
+            parts = [self._latex_names[k] for k in range(self._n) if index & (1 << k)]
+            return " ".join(parts)
+        # Fallback: use code names
+        src = self._names[0]
+        parts = [src[k] for k in range(self._n) if index & (1 << k)]
+        return " ".join(parts)
 
     def __repr__(self) -> str:
         pos = self._sig.count(1)
@@ -370,6 +393,31 @@ class Multivector:
 
     def __str__(self) -> str:
         return self._format(unicode=True)
+
+    def latex(self) -> str:
+        """Return LaTeX representation of this multivector."""
+        alg = self.algebra
+        terms = []
+        for i in range(alg.dim):
+            c = self.data[i]
+            if abs(c) < 1e-12:
+                continue
+            name = alg._blade_latex(i)
+            if name == "":
+                terms.append(f"{c:g}")
+            elif abs(c) == 1.0:
+                terms.append(name if c > 0 else f"-{name}")
+            else:
+                terms.append(f"{c:g} {name}")
+        if not terms:
+            return "0"
+        result = terms[0]
+        for t in terms[1:]:
+            if t.startswith("-"):
+                result += " - " + t[1:]
+            else:
+                result += " + " + t
+        return result
 
 
 # ============================================================

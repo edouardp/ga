@@ -24,7 +24,7 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     # Spacetime Algebra (STA)
 
     The Spacetime Algebra is Cl(1,3) — one timelike dimension ($\gamma_0^2 = +1$)
@@ -56,7 +56,7 @@ def _(Algebra):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Basis Vectors and Signature
     """)
     return
@@ -65,19 +65,18 @@ def _(mo):
 @app.cell
 def _(g0, g1, g2, g3, mo, sta):
     mo.vstack([
-        mo.md(f"γ₀² = `{g0 * g0}` (timelike)"),
-        mo.md(f"γ₁² = `{g1 * g1}` (spacelike)"),
-        mo.md(f"γ₂² = `{g2 * g2}` (spacelike)"),
-        mo.md(f"γ₃² = `{g3 * g3}` (spacelike)"),
-        mo.md(f"Pseudoscalar I = `{sta.I}`"),
-        mo.md(f"I² = `{sta.I * sta.I}`"),
+        mo.md(f"${g0.latex()}^2 = {(g0*g0).latex()}$ (timelike)"),
+        mo.md(f"${g1.latex()}^2 = {(g1*g1).latex()}$ (spacelike)"),
+        mo.md(f"${g2.latex()}^2 = {(g2*g2).latex()}$ (spacelike)"),
+        mo.md(f"${g3.latex()}^2 = {(g3*g3).latex()}$ (spacelike)"),
+        mo.md(f"Pseudoscalar $I$, $I^2 = {(sta.I*sta.I).latex()}$"),
     ])
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Bivectors — Boosts and Rotations
 
     In STA, bivectors split into two types:
@@ -90,22 +89,22 @@ def _(mo):
 @app.cell
 def _(g0, g1, g2, g3, mo):
     mo.vstack([
-        mo.md("**Boost generators** (square to $+1$):"),
-        mo.md(f"- $(\\gamma_0 \\gamma_1)^2 = $ `{(g0*g1)*(g0*g1)}`"),
-        mo.md(f"- $(\\gamma_0 \\gamma_2)^2 = $ `{(g0*g2)*(g0*g2)}`"),
-        mo.md(f"- $(\\gamma_0 \\gamma_3)^2 = $ `{(g0*g3)*(g0*g3)}`"),
+        mo.md("**Boost generators** (square to +1):"),
+        mo.md(f"- $({(g0*g1).latex()})^2 = {((g0*g1)*(g0*g1)).latex()}$"),
+        mo.md(f"- $({(g0*g2).latex()})^2 = {((g0*g2)*(g0*g2)).latex()}$"),
+        mo.md(f"- $({(g0*g3).latex()})^2 = {((g0*g3)*(g0*g3)).latex()}$"),
         mo.md(""),
-        mo.md("**Rotation generators** (square to $-1$):"),
-        mo.md(f"- $(\\gamma_1 \\gamma_2)^2 = $ `{(g1*g2)*(g1*g2)}`"),
-        mo.md(f"- $(\\gamma_1 \\gamma_3)^2 = $ `{(g1*g3)*(g1*g3)}`"),
-        mo.md(f"- $(\\gamma_2 \\gamma_3)^2 = $ `{(g2*g3)*(g2*g3)}`"),
+        mo.md("**Rotation generators** (square to -1):"),
+        mo.md(f"- $({(g1*g2).latex()})^2 = {((g1*g2)*(g1*g2)).latex()}$"),
+        mo.md(f"- $({(g1*g3).latex()})^2 = {((g1*g3)*(g1*g3)).latex()}$"),
+        mo.md(f"- $({(g2*g3).latex()})^2 = {((g2*g3)*(g2*g3)).latex()}$"),
     ])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Interactive Lorentz Boost
 
     A boost in the $\gamma_0 \gamma_1$ plane with rapidity $    arphi$:
@@ -146,19 +145,19 @@ def _(g0, g1, grade, mo, np, rapidity_slider, sta, sym):
     _expr = grade(_R_s * _g0_s * ~_R_s, 1)
 
     mo.vstack([
-        mo.md(f"φ = {_phi:.2f}"),
-        mo.md(f"β = v/c = tanh(φ) = {_beta:.4f}"),
-        mo.md(f"γ = cosh(φ) = {_gamma_factor:.4f}"),
+        mo.md(f"$\\varphi = {_phi:.2f}$"),
+        mo.md(f"$\\beta = v/c = \\tanh(\\varphi) = {_beta:.4f}$"),
+        mo.md(f"$\\gamma = \\cosh(\\varphi) = {_gamma_factor:.4f}$"),
         mo.md(f"Symbolic: {_expr.latex(wrap='$')}"),
-        mo.md(f"Result: `{_boosted}`"),
-        mo.md(f"Components: t' = {_t:.4f} γ₀, x' = {_x:.4f} γ₁"),
+        mo.md(f"Result: ${_boosted.latex()}$"),
+        mo.md(f"Components: $t' = {_t:.4f} {g0.latex()},\\; x' = {_x:.4f} {g1.latex()}$"),
     ])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ### Boost — Minkowski Diagram
     """)
     return
@@ -217,7 +216,7 @@ def _(g0, g1, np, rapidity_slider, sta):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Interactive Spatial Rotation
 
     Rotations in STA use spacelike bivectors ($\gamma_i \gamma_j$).
@@ -249,17 +248,17 @@ def _(g1, g2, grade, mo, np, rot_slider, sta, sym):
     _vy, _vz = _rotated.vector_part[1], _rotated.vector_part[2]
 
     mo.vstack([
-        mo.md(f"θ = {rot_slider.value}°"),
+        mo.md(f"$\\theta = {rot_slider.value}°$"),
         mo.md(f"Symbolic: {_expr.latex(wrap='$')}"),
-        mo.md(f"Result: `{_rotated}`"),
-        mo.md(f"γ₁' = {_vy:.4f} γ₁ + {_vz:.4f} γ₂"),
+        mo.md(f"Result: ${_rotated.latex()}$"),
+        mo.md(f"${g1.latex()}' = {_vy:.4f} {g1.latex()} + {_vz:.4f} {g2.latex()}$"),
     ])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Electromagnetic Field Bivector
 
     In STA, the electromagnetic field is a single bivector $F$:
@@ -283,19 +282,19 @@ def _(g0, g1, g2, g3, mo):
     _F2 = _F * _F
 
     mo.vstack([
-        mo.md(f"Electric field: E = 2γ₁γ₀ → `{_E}`"),
-        mo.md(f"Magnetic field: IB = 3γ₂γ₃ → `{_B_mag}`"),
-        mo.md(f"EM bivector: F = E + IB → `{_F}`"),
-        mo.md(f"F² = `{_F2}`"),
-        mo.md(f"Scalar part (E² − B²): `{_F2.scalar_part}`"),
-        mo.md(f"Pseudoscalar part (2E·B): grade-4 of F²"),
+        mo.md(f"Electric field: $E = {_E.latex()}$"),
+        mo.md(f"Magnetic field: $IB = {_B_mag.latex()}$"),
+        mo.md(f"EM bivector: $F = {_F.latex()}$"),
+        mo.md(f"$F^2 = {_F2.latex()}$"),
+        mo.md(f"Scalar part ($E^2 - B^2$): ${_F2.scalar_part:g}$"),
+        mo.md("Pseudoscalar part ($2 E \\cdot B$): grade-4 of $F^2$"),
     ])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ### Boosting the EM Field
 
     Under a Lorentz boost, $F 	o R F 	ilde{R}$. Drag the rapidity
@@ -330,17 +329,17 @@ def _(em_rapidity, g0, g1, g2, g3, mo, np, sta):
     _F2 = _F_prime * _F_prime
 
     mo.vstack([
-        mo.md(f"φ = {_phi:.2f}"),
-        mo.md(f"Original: F = `{_F}`"),
-        mo.md(f"Boosted: F' = RFR̃ = `{_F_prime}`"),
-        mo.md(f"F'² = `{_F2}` (Lorentz invariant — should not change!)"),
+        mo.md(f"$\\varphi = {_phi:.2f}$"),
+        mo.md(f"Original: $F = {_F.latex()}$"),
+        mo.md(f"Boosted: $F' = {_F_prime.latex()}$"),
+        mo.md(f"$F'^2 = {_F2.latex()}$ (Lorentz invariant — should not change!)"),
     ])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Relative Vectors (Pauli Algebra)
 
     The relative (spatial) vectors are $\sigma_i = \gamma_i \gamma_0$.
@@ -358,20 +357,20 @@ def _(g0, g1, g2, g3, mo):
     _s3 = g3 * g0
 
     mo.vstack([
-        mo.md(f"σ₁ = γ₁γ₀ = `{_s1}`"),
-        mo.md(f"σ₂ = γ₂γ₀ = `{_s2}`"),
-        mo.md(f"σ₃ = γ₃γ₀ = `{_s3}`"),
+        mo.md(f"$\\sigma_1 = {_s1.latex()}$"),
+        mo.md(f"$\\sigma_2 = {_s2.latex()}$"),
+        mo.md(f"$\\sigma_3 = {_s3.latex()}$"),
         mo.md(""),
-        mo.md(f"σ₁² = `{_s1 * _s1}`"),
-        mo.md(f"σ₁σ₂ = `{_s1 * _s2}` (bivector in spatial plane)"),
-        mo.md(f"σ₁σ₂σ₃ = `{_s1 * _s2 * _s3}` (= I, the pseudoscalar)"),
+        mo.md(f"$\\sigma_1^2 = {(_s1 * _s1).latex()}$"),
+        mo.md(f"$\\sigma_1 \\sigma_2 = {(_s1 * _s2).latex()}$ (bivector in spatial plane)"),
+        mo.md(f"$\\sigma_1 \\sigma_2 \\sigma_3 = {(_s1 * _s2 * _s3).latex()}$ (= pseudoscalar)"),
     ])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Symbolic Identities
 
     Verify key STA identities using the symbolic layer.
@@ -399,7 +398,7 @@ def _(g0, g1, g2, g3, mo, np, simplify, sta, sym):
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Composition of Boosts
 
     Two successive boosts along different axes don't commute —
@@ -422,19 +421,19 @@ def _(g0, g1, g2, mo, np, sta):
     _diff = _R12 * ~_R21
 
     mo.vstack([
-        mo.md(f"Boost x (φ={_phi1}), then boost y (φ={_phi2}):"),
-        mo.md(f"R₁R₂ = `{_R12}`"),
-        mo.md(f"R₂R₁ = `{_R21}`"),
-        mo.md(f"(R₁R₂)(R₂R₁)~ = `{_diff}`"),
+        mo.md(f"Boost x ($\\varphi={_phi1}$), then boost y ($\\varphi={_phi2}$):"),
+        mo.md(f"$R_1 R_2 = {_R12.latex()}$"),
+        mo.md(f"$R_2 R_1 = {_R21.latex()}$"),
+        mo.md(f"$(R_1 R_2)(R_2 R_1)^{{\\sim}} = {_diff.latex()}$"),
         mo.md("This residual rotor is the **Thomas-Wigner rotation**."),
-        mo.md("It has a spatial bivector component (γ₁γ₂), confirming it's a pure rotation."),
+        mo.md("It has a spatial bivector component ($\\gamma_1 \\gamma_2$), confirming it's a pure rotation."),
     ])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ## Velocity Addition
 
     Drag two rapidity sliders to compose boosts along the x-axis.
@@ -467,18 +466,18 @@ def _(g0, g1, mo, np, phi1_slider, phi2_slider, sta):
     _boosted = _R_total * g0 * ~_R_total
 
     mo.vstack([
-        mo.md(f"φ₁ = {_p1:.2f} → v₁/c = {_v1:.4f}"),
-        mo.md(f"φ₂ = {_p2:.2f} → v₂/c = {_v2:.4f}"),
-        mo.md(f"Einstein addition: (v₁ + v₂)/(1 + v₁v₂) = {_v_einstein:.4f}"),
-        mo.md(f"Rapidity addition: tanh(φ₁ + φ₂) = {_v_total:.4f}"),
-        mo.md(f"Composed rotor applied to γ₀: `{_boosted}`"),
+        mo.md(f"$\\varphi_1 = {_p1:.2f}$ → $v_1/c = {_v1:.4f}$"),
+        mo.md(f"$\\varphi_2 = {_p2:.2f}$ → $v_2/c = {_v2:.4f}$"),
+        mo.md(f"Einstein addition: $(v_1 + v_2)/(1 + v_1 v_2) = {_v_einstein:.4f}$"),
+        mo.md(f"Rapidity addition: $\\tanh(\\varphi_1 + \\varphi_2) = {_v_total:.4f}$"),
+        mo.md(f"Composed rotor applied to $\\gamma_0$: ${_boosted.latex()}$"),
     ])
     return
 
 
 @app.cell
 def _(mo):
-    mo.md("""
+    mo.md(r"""
     ### Velocity Addition Plot
     """)
     return
