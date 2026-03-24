@@ -202,7 +202,7 @@ mv.scalar_part          # 7.0
 ## Dual
 
 ```python
-dual(e1 ^ e2)   # e₃  (in 3D Euclidean)
+dual(e1 ^ e2)    # e₃  (in 3D Euclidean)
 undual(e3)       # e₁₂
 ```
 
@@ -212,8 +212,8 @@ undual(e3)       # e₁₂
 is_scalar(alg.scalar(5))    # True
 is_vector(e1 + e2)          # True
 is_bivector(e1 ^ e2)        # True
-is_even(1 + (e1 ^ e2))     # True
-is_rotor(R)                  # True (even-graded and R*~R = 1)
+is_even(1 + (e1 ^ e2))      # True
+is_rotor(R)                 # True (even-graded and R*~R = 1)
 ```
 
 ## Rotation Example
@@ -726,6 +726,7 @@ Interactive [marimo](https://marimo.io) notebooks in `examples/`:
 - **`symbolic_demo.py`** — Symbolic expression trees, rendering, simplification, LaTeX output
 - **`spacetime_algebra.py`** — Spacetime Algebra Cl(1,3): boosts, rotations, EM field, Thomas–Wigner rotation
 - **`quantum_physics.py`** — Quantum spin-½: Bloch sphere, measurement, Stern–Gerlach, Larmor precession
+- **`pga_demo.py`** — Projective GA Cl(3,0,1): translations, reflections, motors, screw interpolation
 
 ```bash
 uv run marimo edit examples/quantum_physics.py
