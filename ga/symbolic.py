@@ -507,6 +507,109 @@ def _ensure_expr(x) -> Expr:
     raise TypeError(f"Cannot convert {type(x)} to symbolic expression")
 
 
+def _eq(a: Expr, b: Expr) -> bool:
+    """Structural equality for expression nodes."""
+    if type(a) is not type(b):
+        return False
+    if isinstance(a, Sym):
+        return a._name == b._name
+    if isinstance(a, Scalar):
+        return a._value == b._value
+    if isinstance(a, ScalarMul):
+        return a.k == b.k and _eq(a.x, b.x)
+    if isinstance(a, Neg):
+        return _eq(a.x, b.x)
+    if isinstance(a, (Reverse, Involute, Conjugate, Dual, Undual, Norm, Unit, Inverse, Squared, Even, Odd)):
+        return _eq(a.x, b.x)
+    if isinstance(a, (Gp, Op, Lc, Rc, Hi, Sp, Add, Sub)):
+        return _eq(a.a, b.a) and _eq(a.b, b.b)
+    if isinstance(a, Grade):
+        return _eq(a.x, b.x) and a.k == b.k
+    return False
+
+
+def simplify(expr: Expr) -> Expr:
+    """Apply algebraic rewrite rules to simplify an expression tree.
+
+    Rules applied:
+    - ~~x → x  (double reverse)
+    - x * 1 → x, 1 * x → x  (multiplicative identity)
+    - x + 0 → x, 0 + x → x  (additive identity)
+    - x * 0 → 0, 0 * x → 0
+    - x - x → 0
+    - -(-x) → x
+    - grade(grade(x, k), k) → grade(x, k)
+    - x * ~x → scalar (evaluated numerically when possible)
+    """
+    return _simplify(expr)
+
+
+def _is_scalar(e: Expr, val: float) -> bool:
+    return isinstance(e, Scalar) and e._value == val
+
+
+def _simplify(e: Expr) -> Expr:
+    # Recurse first
+    if isinstance(e, (Gp, Op, Lc, Rc, Hi, Sp, Add, Sub)):
+        e = type(e)(_simplify(e.a), _simplify(e.b))
+    elif isinstance(e, ScalarMul):
+        e = ScalarMul(e.k, _simplify(e.x))
+    elif isinstance(e, (Reverse, Involute, Conjugate, Dual, Undual, Norm, Unit, Inverse, Squared, Even, Odd)):
+        e = type(e)(_simplify(e.x))
+    elif isinstance(e, Neg):
+        e = Neg(_simplify(e.x))
+    elif isinstance(e, Grade):
+        e = Grade(_simplify(e.x), e.k)
+
+    # ~~x → x
+    if isinstance(e, Reverse) and isinstance(e.x, Reverse):
+        return e.x.x
+
+    # -(-x) → x
+    if isinstance(e, Neg) and isinstance(e.x, Neg):
+        return e.x.x
+
+    # x * 1 → x, 1 * x → x
+    if isinstance(e, Gp):
+        if _is_scalar(e.a, 1):
+            return e.b
+        if _is_scalar(e.b, 1):
+            return e.a
+        if _is_scalar(e.a, 0) or _is_scalar(e.b, 0):
+            return Scalar(0)
+        # x * ~x → evaluate numerically
+        if isinstance(e.b, Reverse) and _eq(e.a, e.b.x):
+            try:
+                val = e.eval()
+                return Sym(val, str(val))
+            except Exception:
+                pass
+
+    # 0 * x → 0
+    if isinstance(e, ScalarMul):
+        if e.k == 0:
+            return Scalar(0)
+        if e.k == 1:
+            return e.x
+
+    # x + 0 → x, 0 + x → x
+    if isinstance(e, Add):
+        if _is_scalar(e.a, 0):
+            return e.b
+        if _is_scalar(e.b, 0):
+            return e.a
+
+    # x - x → 0
+    if isinstance(e, Sub) and _eq(e.a, e.b):
+        return Scalar(0)
+
+    # grade(grade(x, k), k) → grade(x, k)
+    if isinstance(e, Grade) and isinstance(e.x, Grade) and e.k == e.x.k:
+        return e.x
+
+    return e
+
+
 # --- Public API: drop-in replacements for ga.algebra functions ---
 # These detect Expr arguments and return Expr trees; otherwise delegate to numeric.
 

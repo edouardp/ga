@@ -27,6 +27,7 @@ from ga.symbolic import (
     squared as ssq, even as seven, odd as sodd,
     even_grades as seven_grades, odd_grades as sodd_grades,
     sandwich as ssandwich, sw as ssw_alias,
+    simplify,
 )
 
 
@@ -904,3 +905,60 @@ class TestScalarVectorPart:
         z = cl3.scalar(0.0)
         assert z.scalar_part == 0.0
         assert np.allclose(z.vector_part, [0, 0, 0])
+
+
+class TestSimplify:
+    """Tests for simplify() rewrite rules."""
+
+    def test_double_reverse(self, cl3):
+        R = sym(cl3.basis_vectors()[0], "R")
+        assert str(simplify(~~R)) == "R"
+
+    def test_double_neg(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(-(-v))) == "v"
+
+    def test_mul_identity_right(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(v * Scalar(1))) == "v"
+
+    def test_mul_identity_left(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(Scalar(1) * v)) == "v"
+
+    def test_mul_zero(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(v * Scalar(0))) == "0"
+        assert str(simplify(Scalar(0) * v)) == "0"
+
+    def test_add_zero(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(v + Scalar(0))) == "v"
+        assert str(simplify(Scalar(0) + v)) == "v"
+
+    def test_sub_self(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(v - v)) == "0"
+
+    def test_scalar_mul_zero(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(0 * v)) == "0"
+
+    def test_scalar_mul_one(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(1 * v)) == "v"
+
+    def test_r_times_r_reverse(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        R = sym(cl3.rotor_from_plane_angle(e1 ^ e2, 0.5), "R")
+        result = simplify(R * ~R)
+        assert np.allclose(result.eval().data[0], 1.0, atol=1e-12)
+
+    def test_grade_idempotent(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        assert str(simplify(sgrade(sgrade(v, 1), 1))) == "⟨v⟩₁"
+
+    def test_nested(self, cl3):
+        v = sym(cl3.basis_vectors()[0], "v")
+        # ~~v + 0 → v
+        assert str(simplify(~~v + Scalar(0))) == "v"

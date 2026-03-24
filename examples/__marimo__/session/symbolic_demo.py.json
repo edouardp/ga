@@ -596,7 +596,7 @@
         {
           "type": "data",
           "data": {
-            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><marimo-tex class=\"arithmatex\">||(\\theta = 144\u00b0||)</marimo-tex></span></span><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\">Symbolic: <marimo-tex class=\"arithmatex\">||(\\langle R v \\tilde{R} \\rangle_{1}||)</marimo-tex></span></span><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\">Result: <marimo-tex class=\"arithmatex\">||(\\;||)</marimo-tex> <code>-0.809017e\u2081 + 0.587785e\u2082</code></span></span></div>"
+            "text/html": "<div style='display: flex;flex: 1;flex-direction: column;justify-content: flex-start;align-items: normal;flex-wrap: nowrap;gap: 0.5rem'><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\"><marimo-tex class=\"arithmatex\">||(\\theta = 187\u00b0||)</marimo-tex></span></span><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\">Symbolic: <marimo-tex class=\"arithmatex\">||(\\langle R v \\tilde{R} \\rangle_{1}||)</marimo-tex></span></span><span class=\"markdown prose dark:prose-invert contents\"><span class=\"paragraph\">Result: <marimo-tex class=\"arithmatex\">||(\\;||)</marimo-tex> <code>-0.992546e\u2081 - 0.121869e\u2082</code></span></span></div>"
           }
         }
       ],

@@ -22,7 +22,7 @@ def _():
     return (mo,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     # Geometric Algebra — Symbolic Expressions
@@ -67,7 +67,7 @@ def _():
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md("""
     ## Setup — 3D Euclidean Algebra
@@ -389,7 +389,7 @@ def _(mo):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     angle_slider = mo.ui.slider(
         start=0, stop=360, step=1, value=90, label="Angle (degrees)"
