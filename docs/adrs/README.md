@@ -29,6 +29,7 @@ helps future contributors understand why certain choices were made.
 | [014](014-fixed-point-simplification.md) | Fixed-Point Simplification | Accepted |
 | [015](015-uv-workspace-monorepo.md) | uv Workspace for Monorepo | Accepted |
 | [016](016-t-string-rendering.md) | T-String Rendering in Marimo Notebooks | Accepted |
+| [017](017-doran-lasenby-inner-as-pipe.md) | Doran–Lasenby Inner Product as the \| Operator | Accepted |
 
 ## Creating New ADRs
 

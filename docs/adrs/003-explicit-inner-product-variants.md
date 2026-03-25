@@ -27,11 +27,12 @@ expose the others?
 ## Decision Outcome
 
 Chosen option: "One function per variant" — `left_contraction`,
-`right_contraction`, `hestenes_inner`, `scalar_product` are all first-class
-functions. The `|` operator maps to `hestenes_inner`.
+`right_contraction`, `hestenes_inner`, `doran_lasenby_inner`, `scalar_product`
+are all first-class functions. The `|` operator maps to `doran_lasenby_inner`.
 
-An `ip(a, b, mode="hestenes")` convenience function is also provided for
-users who want a single entry point.
+An `ip(a, b, mode="doran_lasenby")` convenience function is also provided for
+users who want a single entry point. `dorst_inner` is an alias for
+`doran_lasenby_inner`.
 
 ### Consequences
 

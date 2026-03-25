@@ -6,7 +6,7 @@ from ga import (
     Algebra, gp, op, left_contraction, right_contraction, hestenes_inner,
     scalar_product, reverse, involute, conjugate, grade, grades, scalar,
     dual, undual, norm2, norm, unit, inverse, commutator, anticommutator,
-    lie_bracket, jordan_product,
+    lie_bracket, jordan_product, doran_lasenby_inner, dorst_inner,
     is_scalar, is_vector, is_bivector, is_even, wedge, geometric_product, rev,
     exp, log, project, reject, reflect, sandwich,
 )
@@ -341,6 +341,21 @@ class TestContractions:
         r = hestenes_inner(s, e1)
         assert np.allclose(r.data, 0)
 
+    def test_doran_lasenby_inner_vectors(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        assert np.isclose(scalar(doran_lasenby_inner(e1, e1)), 1.0)
+        assert np.isclose(scalar(doran_lasenby_inner(e1, e2)), 0.0)
+
+    def test_doran_lasenby_inner_scalar_includes(self, cl3):
+        """Unlike Hestenes, Doran–Lasenby does NOT kill scalars."""
+        s = cl3.scalar(3.0)
+        e1, _, _ = cl3.basis_vectors()
+        r = doran_lasenby_inner(s, e1)
+        assert r == 3.0 * e1
+
+    def test_dorst_inner_is_alias(self):
+        assert dorst_inner is doran_lasenby_inner
+
     def test_scalar_product(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         assert np.isclose(scalar(scalar_product(e1, e1)), 1.0)
@@ -349,7 +364,7 @@ class TestContractions:
     def test_operator_pipe(self, cl3):
         e1, e2, _ = cl3.basis_vectors()
         e12 = e1 ^ e2
-        assert (e1 | e12) == hestenes_inner(e1, e12)
+        assert (e1 | e12) == doran_lasenby_inner(e1, e12)
 
     # --- Mixed-grade cases where the three inner products diverge ---
 

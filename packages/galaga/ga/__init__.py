@@ -27,8 +27,9 @@ Design Principles
 - **Named functions are the contract.** ``gp``, ``op``, ``grade``, ``reverse``
   never change meaning. Operators (``*``, ``^``, ``|``, ``~``) are sugar.
 - **No ambiguity.** Every inner product variant has its own name. The ``|``
-  operator maps to Hestenes inner, but ``left_contraction``,
-  ``right_contraction``, and ``scalar_product`` are always available.
+  operator maps to Doran–Lasenby inner, but ``left_contraction``,
+  ``right_contraction``, ``hestenes_inner``, and ``scalar_product`` are
+  always available.
 - **Aliases exist for convenience**, not as separate implementations.
   ``wedge`` is literally ``op``, ``rev`` is literally ``reverse``, etc.
 """
@@ -42,6 +43,8 @@ from ga.algebra import (
     left_contraction,
     right_contraction,
     hestenes_inner,
+    doran_lasenby_inner,
+    dorst_inner,
     scalar_product,
     commutator,
     anticommutator,
@@ -98,6 +101,8 @@ __all__ = [
     "left_contraction",
     "right_contraction",
     "hestenes_inner",
+    "doran_lasenby_inner",
+    "dorst_inner",
     "scalar_product",
     "commutator",
     "anticommutator",

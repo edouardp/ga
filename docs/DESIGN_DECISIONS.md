@@ -12,9 +12,9 @@ Operators (`*`, `^`, `|`, `~`) are sugar — convenient, but not the API you dep
 
 Where mathematics has competing conventions, we expose each one explicitly rather than picking a default.
 
-- Inner products: `left_contraction`, `right_contraction`, `hestenes_inner`, `scalar_product` — all available, all named.
+- Inner products: `left_contraction`, `right_contraction`, `hestenes_inner`, `doran_lasenby_inner`, `scalar_product` — all available, all named.
 - Commutator family: `commutator` (ab − ba), `lie_bracket` (½(ab − ba)), `anticommutator` (ab + ba), `jordan_product` (½(ab + ba)) — four functions, no boolean flags.
-- The `|` operator maps to Hestenes inner, but that's documented sugar, not a hidden choice.
+- The `|` operator maps to Doran–Lasenby inner, but that's documented sugar, not a hidden choice.
 
 ## 3. Explicit over implicit
 

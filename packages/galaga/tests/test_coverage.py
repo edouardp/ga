@@ -5,6 +5,7 @@ import numpy as np
 from ga import (
     Algebra, Multivector, gp, op, grade, reverse, involute, conjugate,
     left_contraction, right_contraction, hestenes_inner, scalar_product,
+    doran_lasenby_inner, dorst_inner,
     scalar, dual, undual, complement, uncomplement, norm, norm2, unit, inverse, ip,
     normalize, normalise, grades,
     commutator, anticommutator, lie_bracket, jordan_product,
@@ -165,9 +166,13 @@ class TestMultivectorConvenience:
 
 
 class TestIpFunction:
+    def test_ip_default_is_doran_lasenby(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        assert ip(e1, e1) == doran_lasenby_inner(e1, e1)
+
     def test_ip_hestenes(self, cl3):
         e1, _, _ = cl3.basis_vectors()
-        assert ip(e1, e1) == hestenes_inner(e1, e1)
+        assert ip(e1, e1, mode="hestenes") == hestenes_inner(e1, e1)
 
     def test_ip_left(self, cl3):
         e1, e2, _ = cl3.basis_vectors()

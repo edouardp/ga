@@ -87,7 +87,7 @@ def _needs_parens(node: Expr, parent_op: str) -> bool:
     if isinstance(node, (Sym, Neg)):
         return False
     if isinstance(node, (Add, Sub)):
-        return parent_op in ("gp", "op", "lc", "rc", "hi", "sp", "jordan")
+        return parent_op in ("gp", "op", "lc", "rc", "hi", "dli", "sp", "jordan")
     return False
 
 
@@ -340,6 +340,20 @@ class Hi(Expr):
 
     def _latex(self):
         return rf"{_latex_wrap(self.a, 'hi')} \cdot {_latex_wrap(self.b, 'hi')}"
+
+
+class Dli(Expr):
+    def __init__(self, a: Expr, b: Expr):
+        self.a, self.b = a, b
+
+    def eval(self):
+        return _alg.doran_lasenby_inner(self.a.eval(), self.b.eval())
+
+    def __str__(self):
+        return f"{_wrap(self.a, 'dli')}·{_wrap(self.b, 'dli')}"
+
+    def _latex(self):
+        return rf"{_latex_wrap(self.a, 'dli')} \cdot {_latex_wrap(self.b, 'dli')}"
 
 
 class Sp(Expr):
@@ -691,7 +705,7 @@ def _eq(a: Expr, b: Expr) -> bool:
         return _eq(a.x, b.x)
     if isinstance(a, (Reverse, Involute, Conjugate, Dual, Undual, Norm, Unit, Inverse, Squared, Even, Odd)):
         return _eq(a.x, b.x)
-    if isinstance(a, (Gp, Op, Lc, Rc, Hi, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub)):
+    if isinstance(a, (Gp, Op, Lc, Rc, Hi, Dli, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub)):
         return _eq(a.a, b.a) and _eq(a.b, b.b)
     if isinstance(a, Grade):
         return _eq(a.x, b.x) and a.k == b.k
@@ -762,7 +776,7 @@ def _known_grade(e: Expr) -> int | None:
 def _simplify(e: Expr) -> Expr:
     """Single-pass rewrite of an expression tree (called repeatedly by simplify)."""
     # --- Phase 1: recurse into children first (bottom-up rewriting) ---
-    if isinstance(e, (Gp, Op, Lc, Rc, Hi, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub)):
+    if isinstance(e, (Gp, Op, Lc, Rc, Hi, Dli, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub)):
         e = type(e)(_simplify(e.a), _simplify(e.b))
     elif isinstance(e, ScalarMul):
         e = ScalarMul(e.k, _simplify(e.x))
@@ -949,6 +963,15 @@ def hestenes_inner(a, b):
     return _alg.hestenes_inner(a, b)
 
 
+def doran_lasenby_inner(a, b):
+    if isinstance(a, Expr) or isinstance(b, Expr):
+        return Dli(_ensure_expr(a), _ensure_expr(b))
+    return _alg.doran_lasenby_inner(a, b)
+
+
+dorst_inner = doran_lasenby_inner
+
+
 def scalar_product(a, b):
     if isinstance(a, Expr) or isinstance(b, Expr):
         return Sp(_ensure_expr(a), _ensure_expr(b))
@@ -1041,10 +1064,12 @@ normalize = unit
 normalise = unit
 
 
-def ip(a, b, mode: str = "hestenes"):
+def ip(a, b, mode: str = "doran_lasenby"):
     if isinstance(a, Expr) or isinstance(b, Expr):
         a, b = _ensure_expr(a), _ensure_expr(b)
         match mode:
+            case "doran_lasenby" | "dorst":
+                return Dli(a, b)
             case "hestenes":
                 return Hi(a, b)
             case "left":

@@ -65,7 +65,8 @@ Every product has a definitive named function. Operators are optional shorthand.
 | Outer (wedge) product | `op(a, b)` | `a ^ b` | `∧` |
 | Left contraction | `left_contraction(a, b)` | | `⌋` |
 | Right contraction | `right_contraction(a, b)` | | `⌊` |
-| Hestenes inner | `hestenes_inner(a, b)` | `a \| b` | `·` |
+| Doran–Lasenby inner | `doran_lasenby_inner(a, b)` | `a \| b` | `·` |
+| Hestenes inner | `hestenes_inner(a, b)` | | `·` |
 | Scalar product | `scalar_product(a, b)` | | `∗` |
 | Commutator | `commutator(a, b)` | | |
 | Anticommutator | `anticommutator(a, b)` | | |
@@ -81,7 +82,7 @@ scalar_product(e1, e1)      # 1
 # Operator shorthand
 e1 * e2     # geometric product
 e1 ^ e2     # outer product
-e1 | (e1^e2)  # Hestenes inner product
+e1 | (e1^e2)  # Doran–Lasenby inner product
 ```
 
 ### Unified Inner Product
@@ -89,22 +90,23 @@ e1 | (e1^e2)  # Hestenes inner product
 The `ip` function dispatches to the specific inner product you want — no ambiguity.
 
 ```python
-ip(e1, e1)                       # Hestenes (default)
-ip(e1, e1 ^ e2, mode="left")     # left contraction
-ip(e1 ^ e2, e2, mode="right")    # right contraction
-ip(e1, e2, mode="scalar")        # scalar product
+ip(e1, e1)                            # Doran–Lasenby (default)
+ip(e1, e1, mode="hestenes")           # Hestenes
+ip(e1, e1 ^ e2, mode="left")          # left contraction
+ip(e1 ^ e2, e2, mode="right")         # right contraction
+ip(e1, e2, mode="scalar")             # scalar product
 ```
 
 ### When Do the Inner Products Differ?
 
 For vector-on-vector they all agree. The differences show up with mixed grades:
 
-| Expression | Left contraction | Right contraction | Hestenes |
-|---|---|---|---|
-| `vector, bivector` | `e₂` (grade 2−1=1) | `0` (1−2 < 0) | `e₂` (\|1−2\|=1) |
-| `bivector, vector` | `0` (1−2 < 0) | `e₂` (grade 2−1=1) | `-e₂` (\|2−1\|=1) |
-| `scalar, vector` | `3e₁` (passes through) | `0` (0−1 < 0) | `0` (kills scalars) |
-| `vector, scalar` | `0` (1−0 < 0) | `3e₁` (passes through) | `0` (kills scalars) |
+| Expression | Left contraction | Right contraction | Hestenes | Doran–Lasenby |
+|---|---|---|---|---|
+| `vector, bivector` | `e₂` (grade 2−1=1) | `0` (1−2 < 0) | `e₂` (\|1−2\|=1) | `e₂` (\|1−2\|=1) |
+| `bivector, vector` | `0` (1−2 < 0) | `e₂` (grade 2−1=1) | `-e₂` (\|2−1\|=1) | `-e₂` (\|2−1\|=1) |
+| `scalar, vector` | `3e₁` (passes through) | `0` (0−1 < 0) | `0` (kills scalars) | `3e₁` (\|0−1\|=1) |
+| `vector, scalar` | `0` (1−0 < 0) | `3e₁` (passes through) | `0` (kills scalars) | `3e₁` (\|1−0\|=1) |
 
 ```python
 e12 = e1 ^ e2
@@ -118,10 +120,14 @@ right_contraction(e1, e12)     # 0
 hestenes_inner(e1, e12)        # e₂  — uses |grade difference|
 hestenes_inner(e12, e1)        # -e₂ — nonzero both ways (unlike left/right)
 hestenes_inner(cl3.scalar(3), e1)  # 0 — always zero if either is scalar
+
+doran_lasenby_inner(e1, e12)        # e₂  — same as Hestenes for non-scalars
+doran_lasenby_inner(cl3.scalar(3), e1)  # 3e₁ — includes scalars (unlike Hestenes)
 ```
 
-**Rule of thumb:** left contraction is the most common in GA literature.
-Hestenes inner is symmetric in grade but kills scalars. Right contraction is the mirror of left.
+**Rule of thumb:** Doran–Lasenby (the `|` operator) is the most general — it
+includes scalars. Hestenes is the same but kills scalars. Left contraction is
+the most common in GA literature.
 
 ## Unary Operations
 
@@ -403,6 +409,7 @@ Full rendering table:
 | Wedge | `a ^ b` | `a∧b` |
 | Left contraction | `a \| b` | `a⌋b` |
 | Right contraction | `right_contraction(a, b)` | `a⌊b` |
+| Doran–Lasenby inner | `doran_lasenby_inner(a, b)` | `A·B` |
 | Hestenes inner | `hestenes_inner(a, b)` | `A·B` |
 | Scalar product | `scalar_product(a, b)` | `A∗B` |
 | Reverse | `~R` | `R̃` |
@@ -462,8 +469,9 @@ Full LaTeX rendering table:
 |---|---|---|---|
 | Geometric product | `R * v * ~R` | `RvR̃` | `R v \tilde{R}` |
 | Wedge | `a ^ b` | `a∧b` | `a \wedge b` |
-| Left contraction | `a \| b` | `a⌋b` | `a \;\lrcorner\; b` |
+| Left contraction | `left_contraction(a, b)` | `a⌋b` | `a \;\lrcorner\; b` |
 | Right contraction | `right_contraction(a, b)` | `a⌊b` | `a \;\llcorner\; b` |
+| Doran–Lasenby inner | `a \| b` | `A·B` | `A \cdot B` |
 | Hestenes inner | `hestenes_inner(a, b)` | `A·B` | `A \cdot B` |
 | Scalar product | `scalar_product(a, b)` | `A∗B` | `A * B` |
 | Reverse | `~R` | `R̃` | `\tilde{R}` |

@@ -388,7 +388,7 @@ class Multivector:
     Operator overloads map to the named functions:
     - ``a * b``  → ``gp(a, b)``     (geometric product)
     - ``a ^ b``  → ``op(a, b)``     (outer/wedge product)
-    - ``a | b``  → ``hestenes_inner(a, b)``
+    - ``a | b``  → ``doran_lasenby_inner(a, b)``
     - ``~a``     → ``reverse(a)``
     - ``a[k]``   → ``grade(a, k)``  (grade projection)
 
@@ -467,8 +467,8 @@ class Multivector:
         return op(self, other)
 
     def __or__(self, other):
-        """Hestenes inner product (a | b)."""
-        return hestenes_inner(self, other)
+        """Doran–Lasenby inner product (a | b)."""
+        return doran_lasenby_inner(self, other)
 
     def __invert__(self):
         """Reverse (~a)."""
@@ -799,11 +799,8 @@ def hestenes_inner(a: Multivector, b: Multivector) -> Multivector:
        nonzero in both directions (e.g. bivector · vector ≠ 0).
     2. Kills scalars: if either operand is grade-0, the result is zero.
 
-    For vector-on-vector, all three inner products (left, right, Hestenes)
-    agree. The differences only show up with mixed grades — see the README
-    comparison table for concrete examples.
-
-    This is the ``|`` operator on Multivector.
+    For vector-on-vector, all inner products agree. The differences only show
+    up with mixed grades — see the README comparison table for examples.
     """
     a._check_same(b)
     alg = a.algebra
@@ -822,6 +819,35 @@ def hestenes_inner(a: Multivector, b: Multivector) -> Multivector:
             if bin(k).count("1") == target_grade:
                 out[k] += ai * b.data[j] * alg._mul_sign[i, j]
     return Multivector(alg, out)
+
+
+def doran_lasenby_inner(a: Multivector, b: Multivector) -> Multivector:
+    """Doran–Lasenby inner product: grade-|r-s| part of gp(a,b), including scalars.
+
+    Like Hestenes inner but does NOT kill scalars. When either operand is
+    grade-0, the result is the scalar times the other operand (grade
+    difference = the other operand's grade).
+
+    This is the ``|`` operator on Multivector, and the convention used by
+    Doran & Lasenby ("Geometric Algebra for Physicists") and Dorst et al.
+    ("Geometric Algebra for Computer Science").
+    """
+    a._check_same(b)
+    alg = a.algebra
+    out = np.zeros(alg.dim)
+    for i in np.nonzero(a.data)[0]:
+        gi = bin(i).count("1")
+        ai = a.data[i]
+        for j in np.nonzero(b.data)[0]:
+            gj = bin(j).count("1")
+            target_grade = abs(gi - gj)
+            k = alg._mul_index[i, j]
+            if bin(k).count("1") == target_grade:
+                out[k] += ai * b.data[j] * alg._mul_sign[i, j]
+    return Multivector(alg, out)
+
+
+dorst_inner = doran_lasenby_inner
 
 
 def scalar_product(a: Multivector, b: Multivector) -> Multivector:
@@ -1196,7 +1222,7 @@ normalise = unit
 norm_squared = norm2
 
 
-def ip(a: Multivector, b: Multivector, mode: str = "hestenes") -> Multivector:
+def ip(a: Multivector, b: Multivector, mode: str = "doran_lasenby") -> Multivector:
     """Unified inner product dispatcher — removes ambiguity about which inner product.
 
     GA has multiple inner products that agree on simple cases (vector·vector)
@@ -1204,8 +1230,11 @@ def ip(a: Multivector, b: Multivector, mode: str = "hestenes") -> Multivector:
     the choice explicit.
 
     Modes:
-        "hestenes" — Hestenes inner product (default). Uses |r-s| grade
-                     selection, kills scalars. This is the ``|`` operator.
+        "doran_lasenby" — Doran–Lasenby inner product (default). Uses |r-s|
+                     grade selection, includes scalars. This is the ``|``
+                     operator. Also known as the Dorst inner product.
+        "hestenes" — Hestenes inner product. Like Doran–Lasenby but kills
+                     scalars (zero if either operand is grade-0).
         "left"     — Left contraction (a ⌋ b). Grade s-r, zero if r > s.
                      Most common in GA literature.
         "right"    — Right contraction (a ⌊ b). Grade r-s, zero if s > r.
@@ -1213,6 +1242,8 @@ def ip(a: Multivector, b: Multivector, mode: str = "hestenes") -> Multivector:
         "scalar"   — Scalar product. Grade-0 part of gp(a, b) only.
     """
     match mode:
+        case "doran_lasenby" | "dorst":
+            return doran_lasenby_inner(a, b)
         case "hestenes":
             return hestenes_inner(a, b)
         case "left":
@@ -1224,7 +1255,7 @@ def ip(a: Multivector, b: Multivector, mode: str = "hestenes") -> Multivector:
         case _:
             raise ValueError(
                 f"Unknown inner product mode: {mode!r}. "
-                f"Use 'hestenes', 'left', 'right', or 'scalar'."
+                f"Use 'doran_lasenby', 'dorst', 'hestenes', 'left', 'right', or 'scalar'."
             )
 
 
