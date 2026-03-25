@@ -1160,3 +1160,34 @@ class TestSquaredParens:
         e1, _, _ = cl3.basis_vectors()
         v = e1.name("v")
         assert result.latex() == "v^2" if (result := squared(v)) else False
+
+
+class TestBasisVectorsLazy:
+    """Tests for basis_vectors(lazy=True)."""
+
+    def test_default_is_eager(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        assert e1._is_lazy is False
+
+    def test_lazy_flag(self, cl3):
+        e1, _, _ = cl3.basis_vectors(lazy=True)
+        assert e1._is_lazy is True
+        assert e1._name is not None
+
+    def test_lazy_ops_build_trees(self, cl3):
+        e1, e2, _ = cl3.basis_vectors(lazy=True)
+        result = e1 ^ e2
+        assert result._is_lazy is True
+        assert "∧" in str(result)
+
+    def test_lazy_eval_gives_concrete(self, cl3):
+        e1, e2, _ = cl3.basis_vectors(lazy=True)
+        result = (e1 ^ e2).eval()
+        expected = cl3.basis_vectors()[0] ^ cl3.basis_vectors()[1]
+        assert result == expected
+
+    def test_lazy_preserves_names(self, cl3):
+        e1, e2, e3 = cl3.basis_vectors(lazy=True)
+        assert str(e1) == "e₁"
+        assert str(e2) == "e₂"
+        assert str(e3) == "e₃"

@@ -228,8 +228,13 @@ class Algebra:
     def dim(self) -> int:
         return self._dim
 
-    def basis_vectors(self) -> tuple[Multivector, ...]:
-        """Return the n basis 1-vectors (named + eager)."""
+    def basis_vectors(self, lazy: bool = False) -> tuple[Multivector, ...]:
+        """Return the n basis 1-vectors (named + eager by default).
+
+        Args:
+            lazy: If True, return named + lazy blades that build expression
+                  trees when used in arithmetic.
+        """
         _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
         vecs = []
         for k in range(self._n):
@@ -252,7 +257,7 @@ class Algebra:
             mv._name = ascii_name
             mv._name_unicode = unicode_name
             mv._name_latex = latex_name
-            # Basis blades are named + eager (not lazy)
+            mv._is_lazy = lazy
             vecs.append(mv)
         return tuple(vecs)
 

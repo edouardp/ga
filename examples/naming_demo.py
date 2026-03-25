@@ -437,16 +437,18 @@ def _(gm):
 
 
 @app.cell
-def _(e1, e2, e3, exp, gm, np):
+def _(alg, e1, e2, e3, exp, gm, np):
     # Build a rotation in two steps
+    _pi = alg.scalar(np.pi).name("π", latex=r"\pi")
+
     B1 = (e1 ^ e2).name("B₁", latex=r"B_1")
     B2 = (e2 ^ e3).name("B₂", latex=r"B_2")
 
-    R1 = exp(-B1.eager() * np.pi / 6).name("R₁", latex=r"R_1")
-    R2 = exp(-B2.eager() * np.pi / 4).name("R₂", latex=r"R_2")
+    R1 = exp(-B1 * np.pi / 6).name("R₁", latex=r"R_1")
+    R2 = exp(-B2 * np.pi / 4).name("R₂", latex=r"R_2")
 
     # Compose rotors
-    R_total = (R2.eager() * R1.eager()).name("R", latex=r"R_{\text{total}}")
+    R_total = (R2 * R1).name("R", latex=r"R_{\text{total}}")
 
     # Apply to a vector
     v_start = e1
@@ -455,8 +457,8 @@ def _(e1, e2, e3, exp, gm, np):
     gm.md(t"""
     Two successive rotations:
 
-    1. {R1} = exp(-{B1}·π/6) — 30° in the {B1} plane
-    2. {R2} = exp(-{B2}·π/4) — 45° in the {B2} plane
+    1. {R1} = {exp(-B1 * (_pi/6))} — 30° in the {B1} plane
+    2. {R2} = {exp(-B2 * (_pi/4))} — 45° in the {B2} plane
 
     Composed rotor: {R_total} = {R2}{R1}
 
