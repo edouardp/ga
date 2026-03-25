@@ -1400,8 +1400,11 @@ def sandwich(r: Multivector, x: Multivector) -> Multivector:
     The fundamental transformation in GA. When r is a rotor (even-graded,
     r*~r = 1), this applies the rotation/boost encoded by r to x.
     Grade-preserving: if x is grade-k, the result is also grade-k.
+
+    Laziness-aware: if r or x is lazy, the result is lazy with a symbolic
+    expression tree.
     """
-    return gp(gp(r, x), reverse(r))
+    return r * x * ~r
 
 
 sw = sandwich
