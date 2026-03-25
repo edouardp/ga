@@ -108,6 +108,21 @@ def _latex_wrap(node: Expr, parent_op: str) -> str:
 Numeric = Union[int, float]
 
 
+def _coerce(x):
+    """Coerce a value to Expr if needed. Used by node constructors."""
+    if isinstance(x, Expr):
+        return x
+    if isinstance(x, _alg.Multivector):
+        # Deferred to avoid forward reference — _ensure_expr is defined later
+        if x._expr is not None:
+            return x._expr
+        if x._name is not None:
+            return Sym(x, x._name_unicode or x._name,
+                       name_latex=x._name_latex, name_ascii=x._name)
+        return Sym(x, str(x))
+    return x
+
+
 class Expr:
     """Base class for all symbolic GA expression tree nodes.
 
@@ -220,9 +235,12 @@ class Sym(Expr):
     known to be grade-1, and ``grade(v, 2) → 0``.
     """
 
-    def __init__(self, mv: _alg.Multivector, name: str, grade: int | None = None):
+    def __init__(self, mv: _alg.Multivector, name: str, grade: int | None = None,
+                 name_latex: str | None = None, name_ascii: str | None = None):
         self._mv = mv
         self._name = name
+        self._name_latex = name_latex or name
+        self._name_ascii = name_ascii or name
         # Auto-detect grade if not provided
         if grade is not None:
             self._grade = grade
@@ -239,10 +257,10 @@ class Sym(Expr):
         return self._name
 
     def _latex(self) -> str:
-        return self._name
+        return self._name_latex
 
     def __repr__(self) -> str:
-        return self._name
+        return self._name_ascii
 
 
 class Scalar(Expr):
@@ -273,8 +291,8 @@ class Scalar(Expr):
 # --- Binary ops ---
 
 class Gp(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.gp(self.a.eval(), self.b.eval())
@@ -287,8 +305,8 @@ class Gp(Expr):
 
 
 class Op(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.op(self.a.eval(), self.b.eval())
@@ -301,8 +319,8 @@ class Op(Expr):
 
 
 class Lc(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.left_contraction(self.a.eval(), self.b.eval())
@@ -315,8 +333,8 @@ class Lc(Expr):
 
 
 class Rc(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.right_contraction(self.a.eval(), self.b.eval())
@@ -329,8 +347,8 @@ class Rc(Expr):
 
 
 class Hi(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.hestenes_inner(self.a.eval(), self.b.eval())
@@ -343,8 +361,8 @@ class Hi(Expr):
 
 
 class Dli(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.doran_lasenby_inner(self.a.eval(), self.b.eval())
@@ -357,8 +375,8 @@ class Dli(Expr):
 
 
 class Sp(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.scalar_product(self.a.eval(), self.b.eval())
@@ -371,8 +389,8 @@ class Sp(Expr):
 
 
 class Commutator(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.commutator(self.a.eval(), self.b.eval())
@@ -385,8 +403,8 @@ class Commutator(Expr):
 
 
 class Anticommutator(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.anticommutator(self.a.eval(), self.b.eval())
@@ -399,8 +417,8 @@ class Anticommutator(Expr):
 
 
 class LieBracket(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.lie_bracket(self.a.eval(), self.b.eval())
@@ -413,8 +431,8 @@ class LieBracket(Expr):
 
 
 class JordanProduct(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return _alg.jordan_product(self.a.eval(), self.b.eval())
@@ -427,8 +445,8 @@ class JordanProduct(Expr):
 
 
 class Add(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return self.a.eval() + self.b.eval()
@@ -441,8 +459,8 @@ class Add(Expr):
 
 
 class Sub(Expr):
-    def __init__(self, a: Expr, b: Expr):
-        self.a, self.b = a, b
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
 
     def eval(self):
         return self.a.eval() - self.b.eval()
@@ -455,8 +473,8 @@ class Sub(Expr):
 
 
 class ScalarMul(Expr):
-    def __init__(self, k: Numeric, x: Expr):
-        self.k, self.x = k, x
+    def __init__(self, k: Numeric, x):
+        self.k, self.x = k, _coerce(x)
 
     def eval(self):
         return self.x.eval() * self.k
@@ -473,8 +491,8 @@ class ScalarMul(Expr):
 
 
 class Neg(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return -self.x.eval()
@@ -489,8 +507,8 @@ class Neg(Expr):
 # --- Unary ops ---
 
 class Reverse(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.reverse(self.x.eval())
@@ -503,8 +521,8 @@ class Reverse(Expr):
 
 
 class Involute(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.involute(self.x.eval())
@@ -517,8 +535,8 @@ class Involute(Expr):
 
 
 class Conjugate(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.conjugate(self.x.eval())
@@ -531,8 +549,8 @@ class Conjugate(Expr):
 
 
 class Grade(Expr):
-    def __init__(self, x: Expr, k: int):
-        self.x, self.k = x, k
+    def __init__(self, x, k: int):
+        self.x, self.k = _coerce(x), k
 
     def eval(self):
         return _alg.grade(self.x.eval(), self.k)
@@ -546,8 +564,8 @@ class Grade(Expr):
 
 
 class Dual(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.dual(self.x.eval())
@@ -560,8 +578,8 @@ class Dual(Expr):
 
 
 class Undual(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.undual(self.x.eval())
@@ -574,8 +592,8 @@ class Undual(Expr):
 
 
 class Norm(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.norm(self.x.eval())
@@ -588,8 +606,8 @@ class Norm(Expr):
 
 
 class Unit(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.unit(self.x.eval())
@@ -605,8 +623,8 @@ class Unit(Expr):
 
 
 class Inverse(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.inverse(self.x.eval())
@@ -619,8 +637,8 @@ class Inverse(Expr):
 
 
 class Squared(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.gp(self.x.eval(), self.x.eval())
@@ -633,8 +651,8 @@ class Squared(Expr):
 
 
 class Even(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.even_grades(self.x.eval())
@@ -647,8 +665,8 @@ class Even(Expr):
 
 
 class Odd(Expr):
-    def __init__(self, x: Expr):
-        self.x = x
+    def __init__(self, x):
+        self.x = _coerce(x)
 
     def eval(self):
         return _alg.odd_grades(self.x.eval())
@@ -667,7 +685,9 @@ def _ensure_expr(x) -> Expr:
 
     - ``Expr`` → returned as-is
     - ``int``/``float`` → wrapped in ``Scalar``
-    - ``Multivector`` → wrapped in ``Sym`` with its string representation as name
+    - ``Multivector`` with ``_expr`` → returns the expression tree
+    - ``Multivector`` with ``_name`` → wrapped in ``Sym`` with its name
+    - ``Multivector`` (anonymous eager) → wrapped in ``Sym`` with its string representation
 
     This is called by every operator overload to handle mixed-type expressions
     like ``sym_v + 3`` or ``sym_R * e1`` transparently.
@@ -677,6 +697,11 @@ def _ensure_expr(x) -> Expr:
     if isinstance(x, (int, float)):
         return Scalar(x)
     if isinstance(x, _alg.Multivector):
+        if x._expr is not None:
+            return x._expr
+        if x._name is not None:
+            return Sym(x, x._name_unicode or x._name,
+                       name_latex=x._name_latex, name_ascii=x._name)
         return Sym(x, str(x))
     raise TypeError(f"Cannot convert {type(x)} to symbolic expression")
 
@@ -712,8 +737,10 @@ def _eq(a: Expr, b: Expr) -> bool:
     return False
 
 
-def simplify(expr: Expr) -> Expr:
+def simplify(expr) -> Expr:
     """Apply algebraic rewrite rules to simplify an expression tree.
+
+    Accepts an ``Expr`` or a lazy ``Multivector`` (extracts its expression tree).
 
     Runs ``_simplify()`` repeatedly until the tree stops changing (fixed-point
     iteration). This handles cascading rules like ``a - (-a) → a + a → 2a``.
@@ -730,6 +757,8 @@ def simplify(expr: Expr) -> Expr:
       ``grade(v, 2) → 0`` if v has no grade-2 component
     - Even/odd projection with known grades
     """
+    if isinstance(expr, _alg.Multivector):
+        expr = _ensure_expr(expr)
     prev = None
     e = expr
     while not (prev is not None and _eq(prev, e)):
@@ -923,48 +952,69 @@ def _simplify(e: Expr) -> Expr:
 # while keeping full numeric performance for unwrapped multivectors.
 # ============================================================
 
-def sym(mv: _alg.Multivector, name: str, grade: int | None = None) -> Sym:
+def _is_symbolic(x) -> bool:
+    """Check if x is an Expr or a lazy Multivector."""
+    if isinstance(x, Expr):
+        return True
+    if isinstance(x, _alg.Multivector) and x._is_lazy:
+        return True
+    return False
+
+
+def sym(mv: _alg.Multivector, name: str, grade: int | None = None) -> _alg.Multivector:
     """Wrap a concrete multivector with a display name.
 
+    Convenience alias for ``mv.name(name)``. Returns a named + lazy Multivector.
+
     Args:
+        name: Display name for all formats.
         grade: If provided, asserts the homogeneous grade for simplification.
                If omitted, auto-detected from the multivector data.
     """
-    return Sym(mv, name, grade=grade)
+    result = mv.name(name)
+    if grade is not None:
+        result = result._copy_with(_grade=grade)
+    # Ensure the expr carries the grade info
+    if result._expr is None:
+        expr = Sym(mv, name, grade=result._grade)
+        result = result._copy_with(_expr=expr)
+    elif isinstance(result._expr, Sym):
+        result._expr._grade = result._grade
+    return result
 
 
 def gp(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Gp(_ensure_expr(a), _ensure_expr(b))
     return _alg.gp(a, b)
 
 
 def op(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Op(_ensure_expr(a), _ensure_expr(b))
     return _alg.op(a, b)
 
 
 def left_contraction(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Lc(_ensure_expr(a), _ensure_expr(b))
     return _alg.left_contraction(a, b)
 
 
 def right_contraction(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Rc(_ensure_expr(a), _ensure_expr(b))
     return _alg.right_contraction(a, b)
 
 
 def hestenes_inner(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Hi(_ensure_expr(a), _ensure_expr(b))
     return _alg.hestenes_inner(a, b)
 
 
 def doran_lasenby_inner(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Dli(_ensure_expr(a), _ensure_expr(b))
     return _alg.doran_lasenby_inner(a, b)
 
@@ -973,90 +1023,91 @@ dorst_inner = doran_lasenby_inner
 
 
 def scalar_product(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Sp(_ensure_expr(a), _ensure_expr(b))
     return _alg.scalar_product(a, b)
 
 
 def commutator(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Commutator(_ensure_expr(a), _ensure_expr(b))
     return _alg.commutator(a, b)
 
 
 def anticommutator(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return Anticommutator(_ensure_expr(a), _ensure_expr(b))
     return _alg.anticommutator(a, b)
 
 
 def lie_bracket(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return LieBracket(_ensure_expr(a), _ensure_expr(b))
     return _alg.lie_bracket(a, b)
 
 
 def jordan_product(a, b):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         return JordanProduct(_ensure_expr(a), _ensure_expr(b))
     return _alg.jordan_product(a, b)
 
 
 def reverse(x):
-    if isinstance(x, Expr):
-        return Reverse(x)
+    if _is_symbolic(x):
+        return Reverse(_ensure_expr(x))
     return _alg.reverse(x)
 
 
 def involute(x):
-    if isinstance(x, Expr):
-        return Involute(x)
+    if _is_symbolic(x):
+        return Involute(_ensure_expr(x))
     return _alg.involute(x)
 
 
 def conjugate(x):
-    if isinstance(x, Expr):
-        return Conjugate(x)
+    if _is_symbolic(x):
+        return Conjugate(_ensure_expr(x))
     return _alg.conjugate(x)
 
 
 def grade(x, k):
-    if isinstance(x, Expr):
+    if _is_symbolic(x):
+        e = _ensure_expr(x)
         if k == "even":
-            return Even(x)
+            return Even(e)
         if k == "odd":
-            return Odd(x)
-        return Grade(x, k)
+            return Odd(e)
+        return Grade(e, k)
     return _alg.grade(x, k)
 
 
 def dual(x):
-    if isinstance(x, Expr):
-        return Dual(x)
+    if _is_symbolic(x):
+        return Dual(_ensure_expr(x))
     return _alg.dual(x)
 
 
 def undual(x):
-    if isinstance(x, Expr):
-        return Undual(x)
+    if _is_symbolic(x):
+        return Undual(_ensure_expr(x))
     return _alg.undual(x)
 
 
 def norm(x):
-    if isinstance(x, Expr):
-        return Norm(x)
+    if _is_symbolic(x):
+        return Norm(_ensure_expr(x))
     return _alg.norm(x)
 
 
 def unit(x):
-    if isinstance(x, Expr):
-        return Unit(x)
+    if _is_symbolic(x):
+        return Unit(_ensure_expr(x))
     return _alg.unit(x)
 
 
 def inverse(x):
-    if isinstance(x, Expr):
-        return Inverse(x)
+    if _is_symbolic(x):
+        return Inverse(_ensure_expr(x))
     return _alg.inverse(x)
 
 
@@ -1065,7 +1116,7 @@ normalise = unit
 
 
 def ip(a, b, mode: str = "doran_lasenby"):
-    if isinstance(a, Expr) or isinstance(b, Expr):
+    if _is_symbolic(a) or _is_symbolic(b):
         a, b = _ensure_expr(a), _ensure_expr(b)
         match mode:
             case "doran_lasenby" | "dorst":
@@ -1084,16 +1135,16 @@ def ip(a, b, mode: str = "doran_lasenby"):
 
 
 def squared(x):
-    if isinstance(x, Expr):
-        return Squared(x)
+    if _is_symbolic(x):
+        return Squared(_ensure_expr(x))
     return _alg.squared(x)
 
 
 def sandwich(r, x):
-    if isinstance(r, Expr) or isinstance(x, Expr):
-        r = r if isinstance(r, Expr) else sym(r, str(r))
-        x = x if isinstance(x, Expr) else sym(x, str(x))
-        return Gp(Gp(r, x), Reverse(r))
+    if _is_symbolic(r) or _is_symbolic(x):
+        re = _ensure_expr(r)
+        xe = _ensure_expr(x)
+        return Gp(Gp(re, xe), Reverse(re))
     return _alg.sandwich(r, x)
 
 
@@ -1101,14 +1152,14 @@ sw = sandwich
 
 
 def even_grades(x):
-    if isinstance(x, Expr):
-        return Even(x)
+    if _is_symbolic(x):
+        return Even(_ensure_expr(x))
     return _alg.even_grades(x)
 
 
 def odd_grades(x):
-    if isinstance(x, Expr):
-        return Odd(x)
+    if _is_symbolic(x):
+        return Odd(_ensure_expr(x))
     return _alg.odd_grades(x)
 
 

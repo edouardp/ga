@@ -229,19 +229,42 @@ class Algebra:
         return self._dim
 
     def basis_vectors(self) -> tuple[Multivector, ...]:
-        """Return the n basis 1-vectors."""
+        """Return the n basis 1-vectors (named + eager)."""
+        _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
         vecs = []
         for k in range(self._n):
             data = np.zeros(self._dim)
             data[1 << k] = 1.0
-            vecs.append(Multivector(self, data))
+            mv = Multivector(self, data)
+            # Compute names for all three formats
+            if self._names is not None:
+                ascii_name = self._names[0][k]
+                unicode_name = self._names[1][k]
+            else:
+                ascii_name = f"e{k+1}"
+                unicode_name = "e" + str(k+1).translate(_SUBSCRIPTS)
+            if self._latex_names is not None:
+                latex_name = self._latex_names[k]
+            elif self._names is None:
+                latex_name = f"e_{{{k+1}}}"
+            else:
+                latex_name = ascii_name
+            mv._name = ascii_name
+            mv._name_unicode = unicode_name
+            mv._name_latex = latex_name
+            # Basis blades are named + eager (not lazy)
+            vecs.append(mv)
         return tuple(vecs)
 
     def pseudoscalar(self) -> Multivector:
-        """Return the unit pseudoscalar I (𝑰)."""
+        """Return the unit pseudoscalar I (𝑰) (named + eager)."""
         data = np.zeros(self._dim)
         data[self._dim - 1] = 1.0
-        return Multivector(self, data)
+        mv = Multivector(self, data)
+        mv._name = "I"
+        mv._name_unicode = "𝑰"
+        mv._name_latex = "I"
+        return mv
 
     @property
     def I(self) -> Multivector:
@@ -278,7 +301,11 @@ class Algebra:
             if bitmask is not None:
                 data = np.zeros(self._dim)
                 data[bitmask] = 1.0
-                return Multivector(self, data)
+                mv = Multivector(self, data)
+                mv._name = name
+                mv._name_unicode = self._blade_name(bitmask, unicode=True)
+                mv._name_latex = self._blade_latex(bitmask)
+                return mv
         # Default e-index parsing
         if not name.startswith("e"):
             raise ValueError(f"Invalid blade name: {name!r}")
@@ -290,7 +317,11 @@ class Algebra:
             bitmask |= 1 << (idx - 1)
         data = np.zeros(self._dim)
         data[bitmask] = 1.0
-        return Multivector(self, data)
+        mv = Multivector(self, data)
+        mv._name = name
+        mv._name_unicode = self._blade_name(bitmask, unicode=True)
+        mv._name_latex = self._blade_latex(bitmask)
+        return mv
 
     def _parse_blade_name(self, name: str, code_names: list[str]) -> int | None:
         """Try to parse a blade name as concatenation of code names. Returns bitmask or None."""
@@ -409,7 +440,7 @@ class Multivector:
         data: Dense NumPy float64 array of length ``algebra.dim``.
     """
 
-    __slots__ = ("algebra", "data")
+    __slots__ = ("algebra", "data", "_name", "_name_latex", "_name_unicode", "_is_lazy", "_expr", "_grade")
 
     def __init__(self, algebra: Algebra, data: np.ndarray):
         """Wrap a coefficient array as a multivector in the given algebra.
@@ -420,6 +451,12 @@ class Multivector:
         """
         self.algebra = algebra
         self.data = np.array(data, dtype=np.float64)
+        self._name = None
+        self._name_latex = None
+        self._name_unicode = None
+        self._is_lazy = False
+        self._expr = None
+        self._grade = None
 
     def _check_same(self, other: Multivector):
         if self.algebra is not other.algebra:
@@ -428,63 +465,267 @@ class Multivector:
                 f"{self.algebra} vs {other.algebra}"
             )
 
+    def _copy_with(self, **overrides) -> Multivector:
+        """Return a copy with selected fields overridden."""
+        mv = Multivector.__new__(Multivector)
+        mv.algebra = self.algebra
+        mv.data = self.data
+        mv._name = overrides.get("_name", self._name)
+        mv._name_latex = overrides.get("_name_latex", self._name_latex)
+        mv._name_unicode = overrides.get("_name_unicode", self._name_unicode)
+        mv._is_lazy = overrides.get("_is_lazy", self._is_lazy)
+        mv._expr = overrides.get("_expr", self._expr)
+        mv._grade = overrides.get("_grade", self._grade)
+        return mv
+
+    def name(self, label: str, *, latex: str | None = None,
+             unicode: str | None = None, ascii: str | None = None) -> Multivector:
+        """Assign a display name. Makes the object lazy by default.
+
+        Args:
+            label: Default name used for all formats unless overridden.
+            latex: LaTeX-specific name override.
+            unicode: Unicode-specific name override.
+            ascii: ASCII-specific name (used for repr); label is used if omitted.
+        """
+        # Auto-detect grade if homogeneous
+        g = self._grade
+        if g is None:
+            nonzero = [k for k in range(self.algebra._n + 1)
+                       if any(abs(c) > 1e-12 for i, c in enumerate(self.data)
+                              if bin(i).count('1') == k)]
+            g = nonzero[0] if len(nonzero) == 1 else None
+        ascii_name = ascii or label
+        latex_name = latex or label
+        unicode_name = unicode or label
+        # Build a Sym expr so .anon() can reveal the name-based tree
+        from ga.symbolic import Sym
+        expr = self._expr if self._expr is not None else Sym(
+            self, unicode_name, name_latex=latex_name, name_ascii=ascii_name)
+        return self._copy_with(
+            _name=ascii_name,
+            _name_latex=latex_name,
+            _name_unicode=unicode_name,
+            _is_lazy=True,
+            _expr=expr,
+            _grade=g,
+        )
+
+    def anon(self) -> Multivector:
+        """Remove the display name, preserving lazy/eager state."""
+        # If the expr is just a Sym wrapping this value (from .name()),
+        # clear it so we fall through to concrete display
+        expr = self._expr
+        from ga.symbolic import Sym
+        if isinstance(expr, Sym) and expr._name == (self._name_unicode or self._name):
+            expr = None
+        return self._copy_with(
+            _name=None, _name_latex=None, _name_unicode=None,
+            _expr=expr,
+        )
+
+    def lazy(self) -> Multivector:
+        """Prefer lazy symbolic representation for future operations."""
+        return self._copy_with(_is_lazy=True)
+
+    def eager(self) -> Multivector:
+        """Force eager evaluation, preserving the name."""
+        return self._copy_with(_is_lazy=False, _expr=None)
+
+    def eval(self) -> Multivector:
+        """Evaluate to concrete form. Equivalent to ``.eager()``."""
+        return self.eager()
+
+    def _to_expr(self):
+        """Convert this MV to an Expr node for use in expression trees.
+
+        Named MVs become Sym nodes (so they appear by name in trees).
+        Anonymous lazy MVs use their stored expr tree.
+        Anonymous eager MVs become Sym nodes with their string representation.
+        """
+        from ga.symbolic import Sym
+        if self._name is not None:
+            return Sym(self, self._name_unicode or self._name,
+                       name_latex=self._name_latex, name_ascii=self._name)
+        if self._expr is not None:
+            return self._expr
+        return Sym(self, str(self))
+
     # --- Operator overloads ---
 
+    def _is_any_lazy(self, other=None) -> bool:
+        if self._is_lazy:
+            return True
+        if isinstance(other, Multivector) and other._is_lazy:
+            return True
+        return False
+
+    def _lazy_result(self, data: np.ndarray, expr) -> Multivector:
+        """Build a lazy MV with computed data and an expression tree."""
+        mv = Multivector.__new__(Multivector)
+        mv.algebra = self.algebra
+        mv.data = np.array(data, dtype=np.float64)
+        mv._name = None
+        mv._name_latex = None
+        mv._name_unicode = None
+        mv._is_lazy = True
+        mv._expr = expr
+        mv._grade = None
+        return mv
+
     def __add__(self, other):
+        from ga.symbolic import Expr as SymExpr
+        if isinstance(other, SymExpr):
+            from ga.symbolic import Add
+            return Add(self._to_expr(), other)
         if isinstance(other, (int, float)):
             d = self.data.copy()
             d[0] += other
+            if self._is_lazy:
+                from ga.symbolic import Add, Scalar, _ensure_expr
+                return self._lazy_result(d, Add(self._to_expr(), Scalar(other)))
             return Multivector(self.algebra, d)
         self._check_same(other)
+        if self._is_any_lazy(other):
+            from ga.symbolic import Add
+            return self._lazy_result(
+                self.data + other.data,
+                Add(self._to_expr(), other._to_expr()),
+            )
         return Multivector(self.algebra, self.data + other.data)
 
     def __radd__(self, other):
+        if isinstance(other, (int, float)) and self._is_lazy:
+            from ga.symbolic import Add, Scalar
+            d = self.data.copy()
+            d[0] += other
+            return self._lazy_result(d, Add(Scalar(other), self._to_expr()))
         return self.__add__(other)
 
     def __sub__(self, other):
+        from ga.symbolic import Expr as SymExpr
+        if isinstance(other, SymExpr):
+            from ga.symbolic import Sub
+            return Sub(self._to_expr(), other)
         if isinstance(other, (int, float)):
             d = self.data.copy()
             d[0] -= other
+            if self._is_lazy:
+                from ga.symbolic import Sub, Scalar
+                return self._lazy_result(d, Sub(self._to_expr(), Scalar(other)))
             return Multivector(self.algebra, d)
         self._check_same(other)
+        if self._is_any_lazy(other):
+            from ga.symbolic import Sub
+            return self._lazy_result(
+                self.data - other.data,
+                Sub(self._to_expr(), other._to_expr()),
+            )
         return Multivector(self.algebra, self.data - other.data)
 
     def __rsub__(self, other):
         if isinstance(other, (int, float)):
             d = -self.data.copy()
             d[0] += other
+            if self._is_lazy:
+                from ga.symbolic import Sub, Scalar
+                return self._lazy_result(d, Sub(Scalar(other), self._to_expr()))
             return Multivector(self.algebra, d)
         return NotImplemented
 
     def __neg__(self):
+        if self._is_lazy:
+            from ga.symbolic import Neg
+            return self._lazy_result(-self.data, Neg(self._to_expr()))
         return Multivector(self.algebra, -self.data)
 
     def __mul__(self, other):
         """Geometric product (a * b) or scalar multiplication."""
         if isinstance(other, (int, float)):
+            if self._is_lazy:
+                from ga.symbolic import ScalarMul
+                return self._lazy_result(
+                    self.data * other,
+                    ScalarMul(other, self._to_expr()),
+                )
             return Multivector(self.algebra, self.data * other)
+        # Handle Expr operands (e.g. Scalar(1) from symbolic module)
+        from ga.symbolic import Expr as SymExpr
+        if isinstance(other, SymExpr):
+            from ga.symbolic import Gp, _ensure_expr
+            return Gp(self._to_expr(), other)
         self._check_same(other)
+        if self._is_any_lazy(other):
+            from ga.symbolic import Gp
+            return self._lazy_result(
+                gp(Multivector(self.algebra, self.data),
+                   Multivector(other.algebra, other.data)).data,
+                Gp(self._to_expr(), other._to_expr()),
+            )
         return gp(self, other)
 
     def __rmul__(self, other):
         if isinstance(other, (int, float)):
+            if self._is_lazy:
+                from ga.symbolic import ScalarMul
+                return self._lazy_result(
+                    self.data * other,
+                    ScalarMul(other, self._to_expr()),
+                )
             return Multivector(self.algebra, self.data * other)
+        if isinstance(other, Multivector):
+            return other.__mul__(self)
         return NotImplemented
 
     def __xor__(self, other):
         """Outer product (a ^ b)."""
+        from ga.symbolic import Expr as SymExpr
+        if isinstance(other, SymExpr):
+            from ga.symbolic import Op
+            return Op(self._to_expr(), other)
+        if isinstance(other, Multivector) and self._is_any_lazy(other):
+            from ga.symbolic import Op
+            result = op(Multivector(self.algebra, self.data),
+                        Multivector(other.algebra, other.data))
+            return self._lazy_result(
+                result.data,
+                Op(self._to_expr(), other._to_expr()),
+            )
         return op(self, other)
 
     def __or__(self, other):
         """Doran–Lasenby inner product (a | b)."""
+        from ga.symbolic import Expr as SymExpr
+        if isinstance(other, SymExpr):
+            from ga.symbolic import Dli
+            return Dli(self._to_expr(), other)
+        if isinstance(other, Multivector) and self._is_any_lazy(other):
+            from ga.symbolic import Dli
+            result = doran_lasenby_inner(
+                Multivector(self.algebra, self.data),
+                Multivector(other.algebra, other.data))
+            return self._lazy_result(
+                result.data,
+                Dli(self._to_expr(), other._to_expr()),
+            )
         return doran_lasenby_inner(self, other)
 
     def __invert__(self):
         """Reverse (~a)."""
+        if self._is_lazy:
+            from ga.symbolic import Reverse as SymReverse
+            result = reverse(Multivector(self.algebra, self.data))
+            return self._lazy_result(result.data, SymReverse(self._to_expr()))
         return reverse(self)
 
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
+            if self._is_lazy:
+                from ga.symbolic import ScalarMul
+                return self._lazy_result(
+                    self.data / other,
+                    ScalarMul(1.0 / other, self._to_expr()),
+                )
             return Multivector(self.algebra, self.data / other)
         return NotImplemented
 
@@ -543,16 +784,25 @@ class Multivector:
     @property
     def inv(self) -> Multivector:
         """Inverse: x⁻¹"""
+        if self._is_lazy:
+            from ga.symbolic import Inverse as SymInverse
+            result = inverse(Multivector(self.algebra, self.data))
+            return self._lazy_result(result.data, SymInverse(self._to_expr()))
         return inverse(self)
 
     @property
     def dag(self) -> Multivector:
         """Reverse (dagger): x†"""
-        return reverse(self)
+        return ~self
 
     @property
     def sq(self) -> Multivector:
         """Squared: x²"""
+        if self._is_lazy:
+            from ga.symbolic import Squared as SymSquared
+            result = gp(Multivector(self.algebra, self.data),
+                        Multivector(self.algebra, self.data))
+            return self._lazy_result(result.data, SymSquared(self._to_expr()))
         return gp(self, self)
 
     @property
@@ -592,10 +842,22 @@ class Multivector:
 
     def __repr__(self) -> str:
         """ASCII representation (or Unicode if ``repr_unicode=True`` on the algebra)."""
+        if self._name is not None:
+            if self.algebra._repr_unicode and self._name_unicode is not None:
+                return self._name_unicode
+            return self._name
+        if self._is_lazy and self._expr is not None:
+            return repr(self._expr)
         return self._format(unicode=self.algebra._repr_unicode)
 
     def __str__(self) -> str:
         """Unicode representation, e.g. ``3 + 2e₁ - e₃``."""
+        if self._name_unicode is not None:
+            return self._name_unicode
+        if self._name is not None:
+            return self._name
+        if self._is_lazy and self._expr is not None:
+            return str(self._expr)
         return self._format(unicode=True)
 
     def __format__(self, spec: str) -> str:
@@ -606,8 +868,16 @@ class Multivector:
         if spec == "latex":
             return self.latex()
         if spec in ("unicode", "u"):
+            if self._name_unicode is not None:
+                return self._name_unicode
+            if self._is_lazy and self._expr is not None:
+                return str(self._expr)
             return self._format(unicode=True)
         if spec in ("ascii", "a"):
+            if self._name is not None:
+                return self._name
+            if self._is_lazy and self._expr is not None:
+                return repr(self._expr)
             return self._format(unicode=False)
         # Numeric format spec — apply to each coefficient
         alg = self.algebra
@@ -641,35 +911,45 @@ class Multivector:
                          When set, all coefficients are shown explicitly
                          (the drop-1 convention is disabled).
         """
-        alg = self.algebra
-        terms = []
-        for i in range(alg.dim):
-            c = self.data[i]
-            if abs(c) < 1e-12:
-                continue
-            name = alg._blade_latex(i)
-            if coeff_format:
-                formatted_c = format(c, coeff_format)
-                if name == "":
-                    terms.append(formatted_c)
-                else:
-                    terms.append(f"{formatted_c} {name}")
-            else:
-                if name == "":
-                    terms.append(f"{c:g}")
-                elif abs(c) == 1.0:
-                    terms.append(name if c > 0 else f"-{name}")
-                else:
-                    terms.append(f"{c:g} {name}")
-        if not terms:
-            raw = format(0.0, coeff_format) if coeff_format else "0"
+        # Named → return name
+        if self._name_latex is not None and coeff_format is None:
+            raw = self._name_latex
+        elif self._name is not None and coeff_format is None:
+            raw = self._name
+        # Anonymous lazy → delegate to expr tree
+        elif self._is_lazy and self._expr is not None and coeff_format is None:
+            raw = self._expr._latex()
         else:
-            raw = terms[0]
-            for t in terms[1:]:
-                if t.startswith("-"):
-                    raw += " - " + t[1:]
+            # Eager anonymous → existing coefficient rendering
+            alg = self.algebra
+            terms = []
+            for i in range(alg.dim):
+                c = self.data[i]
+                if abs(c) < 1e-12:
+                    continue
+                name = alg._blade_latex(i)
+                if coeff_format:
+                    formatted_c = format(c, coeff_format)
+                    if name == "":
+                        terms.append(formatted_c)
+                    else:
+                        terms.append(f"{formatted_c} {name}")
                 else:
-                    raw += " + " + t
+                    if name == "":
+                        terms.append(f"{c:g}")
+                    elif abs(c) == 1.0:
+                        terms.append(name if c > 0 else f"-{name}")
+                    else:
+                        terms.append(f"{c:g} {name}")
+            if not terms:
+                raw = format(0.0, coeff_format) if coeff_format else "0"
+            else:
+                raw = terms[0]
+                for t in terms[1:]:
+                    if t.startswith("-"):
+                        raw += " - " + t[1:]
+                    else:
+                        raw += " + " + t
         if wrap == "$":
             return f"${raw}$"
         if wrap == "$$":
