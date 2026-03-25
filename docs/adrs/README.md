@@ -34,6 +34,7 @@ helps future contributors understand why certain choices were made.
 | [019](019-basis-blades-named-eager.md) | Basis Blades as Named Eager Multivectors | Accepted |
 | [020](020-lazy-propagation-through-operators.md) | Lazy Propagation Through Operators | Accepted |
 | [021](021-lazy-basis-blades.md) | Lazy Basis Blades via basis_vectors(lazy=True) | Accepted |
+| [022](022-blade-lookup-dimension-guard.md) | Blade Lookup Rejects Digit-by-Digit Parsing Above 9D | Accepted |
 
 ## Creating New ADRs
 
