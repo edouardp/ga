@@ -120,8 +120,7 @@ def _(I, gm, np, scalar, sta):
     |---|---|---|
     {"\n".join(_rows):text}
 
-    Note: at $\\phi = 2\\pi$ the factor is $-1$ (the spinor sign flip familiar from
-    the SU(2) double cover). The **observable** interference depends on the
+    Note: at $\\phi = 2\\pi$ the factor is $-1$ (the spinor sign flip familiar from the SU(2) double cover). The **observable** interference depends on the
     *relative* phase between paths, not the global sign.""")
     return
 
@@ -153,9 +152,11 @@ def _(gm):
 def _(mo):
     flux_slider = mo.ui.slider(
         start=0.0, stop=4.0, step=0.01, value=1.0,
-        label="Δφ = qΦ_B/ℏ (units of π)"
     )
-    flux_slider
+    mo.hstack([
+        mo.md(r"$\Delta\phi = \frac{q\Phi_B}{\hbar}$ (units of $\pi$):"),
+        flux_slider,
+    ], justify="start", gap=1)
     return (flux_slider,)
 
 
