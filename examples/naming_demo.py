@@ -71,7 +71,7 @@ def _(gm):
 def _(Algebra):
     alg = Algebra((1, 1, 1))
     e1, e2, e3 = alg.basis_vectors()
-    return e1, e2, e3
+    return alg, e1, e2, e3
 
 
 @app.cell
@@ -209,6 +209,61 @@ def _(R, e1, e2, e3, gm):
 @app.cell(hide_code=True)
 def _(gm):
     gm.md(t"""
+    ## 3b. Named Scalars — Physical Parameters
+
+    Scalars are multivectors too, so they can be named. This is great for
+    physical constants and parameters that should appear symbolically.
+    Division by integers renders as fractions.
+    """)
+    return
+
+
+@app.cell
+def _(alg, e1, e2, exp, gm, np, reverse):
+    theta_s = alg.scalar(np.pi / 3).name("θ", latex=r"\theta")
+    B_s = (e1 ^ e2).name("B")
+
+    # Build rotor with named scalar — renders as fraction
+    half_angle = -B_s * theta_s / 2
+    _R_s = exp(half_angle.eval()).name("R")
+
+    gm.md(t"""
+    Named angle: {theta_s}
+
+    Half-angle bivector: -B·θ/2 = {half_angle}
+
+    Rotor: {_R_s} = exp({half_angle}) = {_R_s.eval()}
+
+    Reverse: {reverse(_R_s)}
+    """)
+    return
+
+
+@app.cell
+def _(alg, gm):
+    # Named physical constants
+    c = alg.scalar(3e8).name("c", latex=r"c")
+    m = alg.scalar(9.109e-31).name("mₑ", latex=r"m_e")
+    hbar = alg.scalar(1.055e-34).name("ℏ", latex=r"\hbar")
+
+    # Compton wavelength: λ = ℏ / (m c)
+    lam_val = hbar.eval().scalar_part / (m.eval().scalar_part * c.eval().scalar_part)
+
+    gm.md(t"""
+    ### Named physical constants
+
+    - Speed of light: {c}
+    - Electron mass: {m}
+    - Reduced Planck: {hbar}
+
+    Compton wavelength: ℏ/(mₑc) = {lam_val:.4e} m
+    """)
+    return
+
+
+@app.cell(hide_code=True)
+def _(gm):
+    gm.md(t"""
     ## 4. Electromagnetic Field in Spacetime Algebra
 
     In the Spacetime Algebra Cl(1,3), the electromagnetic field is a bivector
@@ -283,7 +338,7 @@ def _(e1, e2, gm, simplify, sym):
             _d.line(f"| {label}: ${expr.latex()}$ | ${simplify(expr).latex()}$ |")
 
     _d.render()
-    return (v,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -540,7 +595,8 @@ def _(gm):
     | `.name("B", latex=r"\\mathcal{{B}}")` | With format overrides |
     | `.anon()` | Remove name, keep lazy/eager |
     | `.lazy()` | Prefer symbolic display |
-    | `.eager()` | Force eager in-place, keep name |
+    | `.eager()` | Force eager in-place, strip name |
+    | `.eager("B")` | Force eager in-place, keep/set name |
     | `.eval()` | Return new anonymous eager copy |
 
     **Key rules:**
@@ -549,24 +605,9 @@ def _(gm):
     - Named operands appear by name in expression trees
     - Eager + eager = eager (zero overhead)
     - `sym()` still works — it's an alias for `.name()`
+    - Division by scalars renders as fractions: `φ/2` not `0.5φ`
+    - Named scalars work too: `alg.scalar(π).name("θ")`
     """)
-    return
-
-
-@app.cell
-def _(v):
-    v
-    return
-
-
-@app.cell
-def _(B):
-    B
-    return
-
-
-@app.cell
-def _():
     return
 
 
