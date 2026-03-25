@@ -1,17 +1,15 @@
-[project]
-name = "ga"
-version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = [
-    "numpy>=2.4.3",
-]
+[tool.uv.workspace]
+members = ["packages/galaga"]
+exclude = ["packages/gamo"]
 
 [dependency-groups]
 dev = [
+    "galaga",
     "marimo>=0.21.1",
     "matplotlib>=3.10.8",
     "pytest>=9.0.2",
     "pytest-cov>=7.1.0",
 ]
+
+[tool.uv.sources]
+galaga = { workspace = true }
