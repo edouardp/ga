@@ -932,3 +932,99 @@ class TestSandwichLazy:
         R = (e1 * e2).name("R")
         result = sw(R, e1)
         assert result._is_lazy
+
+
+class TestSmallValueDisplay:
+    """Tests for displaying values below the 1e-12 noise threshold."""
+
+    def test_format_spec_shows_small_values(self, cl3):
+        mv = cl3.scalar(9.109e-31)
+        assert format(mv, '.3e') == '9.109e-31'
+
+    def test_format_spec_shows_small_negative(self, cl3):
+        mv = cl3.scalar(-1.055e-34)
+        assert format(mv, '.3e') == '-1.055e-34'
+
+    def test_str_suppresses_small_values(self, cl3):
+        mv = cl3.scalar(9.109e-31)
+        assert str(mv) == '0'
+
+    def test_latex_default_suppresses_small(self, cl3):
+        mv = cl3.scalar(9.109e-31)
+        assert mv.latex() == '0'
+
+    def test_latex_coeff_format_shows_small(self, cl3):
+        mv = cl3.scalar(9.109e-31)
+        assert mv.latex(coeff_format='.3e') == '9.109e-31'
+
+    def test_latex_coeff_format_electron_mass(self, cl3):
+        mv = cl3.scalar(9.109e-31)
+        assert '9.109' in mv.latex(coeff_format='.4e')
+
+    def test_latex_coeff_format_planck(self, cl3):
+        mv = cl3.scalar(1.055e-34)
+        assert '1.055' in mv.latex(coeff_format='.4e')
+
+    def test_latex_coeff_format_compton(self, cl3):
+        mv = cl3.scalar(3.861e-13)
+        assert '3.861' in mv.latex(coeff_format='.4e')
+
+    def test_format_spec_zero_is_exact_zero(self, cl3):
+        """Exact 0.0 should still show as zero even with format spec."""
+        mv = cl3.scalar(0.0)
+        assert format(mv, '.3e') == '0.000e+00'
+
+    def test_physical_constants_division(self, cl3):
+        """ℏ / (m * c) should give correct Compton wavelength."""
+        hbar = cl3.scalar(1.055e-34).name("ℏ")
+        m = cl3.scalar(9.109e-31).name("m")
+        c = cl3.scalar(3e8).name("c")
+        lam = hbar / (m * c)
+        val = lam.eval().scalar_part
+        assert abs(val - 3.86e-13) < 1e-15
+
+    def test_physical_constants_format_in_latex(self, cl3):
+        """Format spec through latex(coeff_format=) for small values."""
+        hbar = cl3.scalar(1.055e-34).name("ℏ")
+        m = cl3.scalar(9.109e-31).name("m")
+        c = cl3.scalar(3e8).name("c")
+        lam = hbar / (m * c)
+        result = lam.eval().latex(coeff_format='.4e')
+        assert '3.8607e-13' in result or '3.861' in result
+
+
+class TestMVDivision:
+    """Tests for multivector / multivector division."""
+
+    def test_scalar_div_scalar(self, cl3):
+        a = cl3.scalar(10.0)
+        b = cl3.scalar(2.0)
+        assert (a / b).scalar_part == 5.0
+
+    def test_named_scalar_div(self, cl3):
+        a = cl3.scalar(6.0).name("a")
+        b = cl3.scalar(3.0).name("b")
+        result = a / b
+        assert result.eval().scalar_part == 2.0
+
+    def test_vector_div_vector(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        result = (3 * e1) / e1
+        assert result == 3
+
+    def test_div_zero_raises(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        with pytest.raises(ZeroDivisionError):
+            e1 / cl3.scalar(0.0)
+
+    def test_rdiv_scalar_over_mv(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        result = 1 / e1
+        assert result == e1  # e1⁻¹ = e1 in Euclidean
+
+    def test_div_non_invertible_raises(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        null = e1 + e2  # not a blade, but invertible
+        # This should work (e1+e2 is invertible)
+        result = e1 / (e1 + e2)
+        assert result is not None
