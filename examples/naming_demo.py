@@ -324,7 +324,7 @@ def _(Algebra, gm):
 
     Plane through all three: {pi} = {pi.anon()}
     """)
-    return (L,)
+    return
 
 
 @app.cell(hide_code=True)
@@ -390,7 +390,7 @@ def _(e1, e2, e3, exp, gm, np):
     R2 = exp(-B2.eager() * np.pi / 4).name("R₂", latex=r"R_2")
 
     # Compose rotors
-    R_total = (R2.eager() * R1.eager()).name("R", latex=r"R_{\\text{total}}")
+    R_total = (R2.eager() * R1.eager()).name("R", latex=r"R_{\text{total}}")
 
     # Apply to a vector
     v_start = e1
@@ -495,7 +495,7 @@ def _(gm):
 
 
 @app.cell
-def _(Algebra, L, exp, gm, sandwich):
+def _(Algebra, exp, gm, sandwich):
     sta2 = Algebra((1, -1, -1, -1), names="gamma")
     t0, x1, x2, x3 = sta2.basis_vectors()
 
@@ -509,13 +509,13 @@ def _(Algebra, L, exp, gm, sandwich):
     Lambda = exp((t0 * x1) * rapidity / 2).name("Λ", latex=r"\Lambda")
 
     # Boost a particle at rest: p = m*γ₀
-    p_rest = t0.name("p", latex=r"p_{\\text{rest}}")
-    p_boosted = sandwich(L, p_rest.eager())
+    p_rest = t0.name("p", latex=r"p_{\text{rest}}")
+    p_boosted = sandwich(Lambda, p_rest.eager())
 
     gm.md(t"""
     Boost in the {t0}{x1} plane with rapidity φ = {rapidity}:
 
-    {Lambda} = exp({boost_plane} · φ/2) = {L.anon()}
+    {Lambda} = exp({boost_plane} · φ/2) = {Lambda.anon()}
 
     Particle at rest: {p_rest} = {t0}
 
@@ -550,6 +550,47 @@ def _(gm):
     - Eager + eager = eager (zero overhead)
     - `sym()` still works — it's an alias for `.name()`
     """)
+    return
+
+
+@app.cell
+def _(e1):
+    e1
+    return
+
+
+@app.cell
+def _(e1, e2):
+    e1^e2
+    return
+
+
+@app.cell
+def _(B):
+    B
+    return
+
+
+@app.cell
+def _(B):
+    B.eval()
+    return
+
+
+@app.cell
+def _(B):
+    B.eager()
+    return
+
+
+@app.cell
+def _(B):
+    B
+    return
+
+
+@app.cell
+def _():
     return
 
 
