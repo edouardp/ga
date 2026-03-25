@@ -344,3 +344,534 @@ class TestSpecUseCases:
         assert str(psi_eval) == "psi"
         s = str(psi_eval.anon())
         assert s != "psi"
+
+
+class TestAdditionalCoverage:
+    """Additional tests to cover edge cases and uncovered paths."""
+
+    def test_lazy_add_scalar(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        B = e1.name("B")
+        x = B + 5
+        assert x._is_lazy
+        assert x == e1 + 5
+
+    def test_lazy_sub_scalar(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        B = e1.name("B")
+        x = B - 2
+        assert x._is_lazy
+        assert x == e1 - 2
+
+    def test_lazy_rsub_scalar(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        B = e1.name("B")
+        x = 10 - B
+        assert x._is_lazy
+        assert x == 10 - e1
+
+    def test_lazy_radd_scalar(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        B = e1.name("B")
+        x = 3 + B
+        assert str(x) == "3 + B"
+
+    def test_lazy_neg(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        B = e1.name("B")
+        x = -B
+        assert x._is_lazy
+        assert str(x) == "-B"
+
+    def test_lazy_div(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        B = e1.name("B")
+        x = B / 2
+        assert x._is_lazy
+        assert x == e1 / 2
+
+    def test_lazy_xor(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        x = v ^ e2
+        assert x._is_lazy
+        assert "v" in str(x)
+
+    def test_lazy_or(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        x = v | e2
+        assert x._is_lazy
+
+    def test_lazy_invert(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        x = ~v
+        assert x._is_lazy
+        assert "v" in str(x)
+
+    def test_xor_with_expr(self, cl3):
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        expr = Sym(e2, "b")
+        result = e1 ^ expr
+        assert "b" in str(result)
+
+    def test_or_with_expr(self, cl3):
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        expr = Sym(e2, "b")
+        result = e1 | expr
+        assert "b" in str(result)
+
+    def test_sub_with_expr(self, cl3):
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        expr = Sym(e2, "b")
+        result = e1 - expr
+        assert "b" in str(result)
+
+    def test_format_unicode_named(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v", unicode="𝐯")
+        assert f"{v:u}" == "𝐯"
+
+    def test_format_ascii_named(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        assert f"{v:a}" == "v"
+
+    def test_format_unicode_lazy_anon(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        B = (e1.name("a") + e2.name("b")).anon()
+        assert "a" in f"{B:u}"
+
+    def test_format_ascii_lazy_anon(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        B = (e1.name("a") + e2.name("b")).anon()
+        assert "a" in f"{B:a}"
+
+    def test_str_fallback_to_name(self, cl3):
+        """When _name_unicode is None but _name is set."""
+        e1, _, _ = cl3.basis_vectors()
+        mv = e1._copy_with(_name="test", _name_unicode=None)
+        assert str(mv) == "test"
+
+    def test_latex_named_no_latex_name(self, cl3):
+        """latex() when _name_latex is None but _name is set."""
+        e1, _, _ = cl3.basis_vectors()
+        mv = e1._copy_with(_name="x", _name_latex=None)
+        assert mv.latex() == "x"
+
+    def test_latex_lazy_anon(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        B = (e1.name("a") + e2.name("b")).anon()
+        latex = B.latex()
+        assert "a" in latex
+
+    def test_to_expr_anonymous_eager(self, cl3):
+        """_to_expr on anonymous eager MV uses str representation."""
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        mv = (e1 + e2).anon()
+        mv = mv._copy_with(_name=None, _name_unicode=None, _name_latex=None)
+        expr = mv._to_expr()
+        assert isinstance(expr, Sym)
+
+    def test_lazy_mul_two_lazy(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        b = e2.name("b")
+        x = a * b
+        assert x._is_lazy
+        assert "a" in str(x)
+        assert "b" in str(x)
+
+    def test_lazy_add_two_lazy(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        b = e2.name("b")
+        x = a + b
+        assert str(x) == "a + b"
+
+    def test_lazy_sub_two_lazy(self, cl3):
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        b = e2.name("b")
+        x = a - b
+        assert str(x) == "a - b"
+
+    def test_sym_latex_rendering(self, cl3):
+        """Sym._latex returns name_latex."""
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        s = Sym(e1, "v", name_latex=r"\mathbf{v}")
+        assert s._latex() == r"\mathbf{v}"
+
+    def test_symbolic_reverse_lazy_mv(self, cl3):
+        from ga.symbolic import reverse
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = reverse(v)
+        assert "v" in str(result)
+
+    def test_symbolic_grade_lazy_mv(self, cl3):
+        from ga.symbolic import grade
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = grade(v, 1)
+        assert "v" in str(result)
+
+    def test_symbolic_sandwich_lazy_mv(self, cl3):
+        from ga.symbolic import sandwich
+        e1, e2, _ = cl3.basis_vectors()
+        R = (e1 * e2).name("R")
+        v = e1.name("v")
+        result = sandwich(R, v)
+        assert "R" in str(result)
+
+    def test_symbolic_ip_lazy_mv(self, cl3):
+        from ga.symbolic import ip
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = ip(a, e2)
+        assert "a" in str(result)
+
+    def test_symbolic_squared_lazy_mv(self, cl3):
+        from ga.symbolic import squared
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = squared(v)
+        assert "v" in str(result)
+
+    def test_ensure_expr_lazy_mv_with_expr(self, cl3):
+        """_ensure_expr extracts _expr from lazy MV."""
+        from ga.symbolic import _ensure_expr, Sym
+        e1, e2, _ = cl3.basis_vectors()
+        B = (e1.name("a") + e2.name("b"))
+        expr = _ensure_expr(B)
+        assert not isinstance(expr, type(B))  # Should be Expr, not MV
+
+    def test_ensure_expr_named_eager_mv(self, cl3):
+        """_ensure_expr on named eager MV creates Sym."""
+        from ga.symbolic import _ensure_expr, Sym
+        e1, _, _ = cl3.basis_vectors()
+        # basis blades are named + eager
+        expr = _ensure_expr(e1)
+        assert isinstance(expr, Sym)
+
+
+class TestExprOperatorCoverage:
+    """Cover Expr operator overloads that are now less commonly hit."""
+
+    def test_expr_add(self, cl3):
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        b = Sym(e2, "b")
+        assert str(a + b) == "a + b"
+
+    def test_expr_radd(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert str(3 + a) == "3 + a"
+
+    def test_expr_sub(self, cl3):
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        b = Sym(e2, "b")
+        assert str(a - b) == "a - b"
+
+    def test_expr_rsub(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert str(3 - a) == "3 - a"
+
+    def test_expr_neg(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert str(-a) == "-a"
+
+    def test_expr_mul_scalar(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert str(a * 2) == "2a"
+
+    def test_expr_rmul_scalar(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert str(5 * a) == "5a"
+
+    def test_expr_mul_expr(self, cl3):
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        b = Sym(e2, "b")
+        assert str(a * b) == "ab"
+
+    def test_expr_xor(self, cl3):
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        b = Sym(e2, "b")
+        assert str(a ^ b) == "a∧b"
+
+    def test_expr_or(self, cl3):
+        from ga.symbolic import Sym
+        e1, e2, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        b = Sym(e2, "b")
+        assert "a" in str(a | b)
+
+    def test_expr_invert(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert "a" in str(~a)
+
+    def test_expr_truediv(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        result = a / 3
+        assert "a" in str(result)
+
+    def test_expr_truediv_non_scalar(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert a.__truediv__("bad") is NotImplemented
+
+    def test_expr_inv_property(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert "a" in str(a.inv)
+
+    def test_expr_dag_property(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert "a" in str(a.dag)
+
+    def test_expr_sq_property(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert str(a.sq) == "a²"
+
+    def test_expr_latex_wrap_dollar(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert a.latex(wrap="$") == "$a$"
+
+    def test_expr_latex_wrap_display(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert "$$" in a.latex(wrap="$$")
+
+    def test_expr_repr_latex(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert a._repr_latex_() == "$a$"
+
+    def test_scalar_eval_raises(self):
+        from ga.symbolic import Scalar
+        with pytest.raises(TypeError):
+            Scalar(42).eval()
+
+    def test_sym_repr_ascii(self, cl3):
+        from ga.symbolic import Sym
+        e1, _, _ = cl3.basis_vectors()
+        s = Sym(e1, "v", name_ascii="v_ascii")
+        assert repr(s) == "v_ascii"
+
+    def test_coerce_mv_with_name(self, cl3):
+        """_coerce on a named MV without _expr."""
+        from ga.symbolic import _coerce, Sym
+        e1, _, _ = cl3.basis_vectors()
+        # basis blades are named + eager, no _expr
+        result = _coerce(e1)
+        assert isinstance(result, Sym)
+
+    def test_is_symbolic_lazy_mv(self, cl3):
+        from ga.symbolic import _is_symbolic
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        assert _is_symbolic(v) is True
+
+    def test_is_symbolic_eager_mv(self, cl3):
+        from ga.symbolic import _is_symbolic
+        e1, _, _ = cl3.basis_vectors()
+        assert _is_symbolic(e1) is False
+
+    def test_simplify_rotor_norm(self, cl3):
+        """simplify(R * ~R) for a rotor."""
+        from ga.symbolic import Sym, Gp, Reverse, simplify
+        e1, e2, _ = cl3.basis_vectors()
+        R_val = e1 * e2
+        R = Sym(R_val, "R")
+        result = simplify(Gp(R, Reverse(R)))
+        # Should simplify to scalar 1 (or -1 depending on signature)
+        assert "R" not in str(result)
+
+    def test_eq_neg(self, cl3):
+        from ga.symbolic import _eq, Neg, Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert _eq(Neg(a), Neg(a))
+        assert not _eq(Neg(a), Neg(Sym(e1, "b")))
+
+    def test_eq_grade(self, cl3):
+        from ga.symbolic import _eq, Grade, Sym
+        e1, _, _ = cl3.basis_vectors()
+        a = Sym(e1, "a")
+        assert _eq(Grade(a, 1), Grade(a, 1))
+        assert not _eq(Grade(a, 1), Grade(a, 2))
+
+
+class TestSymbolicDropInWithLazyMV:
+    """Cover symbolic module drop-in functions with lazy MVs."""
+
+    def test_involute_lazy(self, cl3):
+        from ga.symbolic import involute
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = involute(v)
+        assert "v" in str(result)
+
+    def test_conjugate_lazy(self, cl3):
+        from ga.symbolic import conjugate
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = conjugate(v)
+        assert "v" in str(result)
+
+    def test_dual_lazy(self, cl3):
+        from ga.symbolic import dual
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = dual(v)
+        assert "v" in str(result)
+
+    def test_undual_lazy(self, cl3):
+        from ga.symbolic import undual
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = undual(v)
+        assert "v" in str(result)
+
+    def test_norm_lazy(self, cl3):
+        from ga.symbolic import norm
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = norm(v)
+        assert "v" in str(result)
+
+    def test_unit_lazy(self, cl3):
+        from ga.symbolic import unit
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = unit(v)
+        assert "v" in str(result)
+
+    def test_inverse_lazy(self, cl3):
+        from ga.symbolic import inverse
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = inverse(v)
+        assert "v" in str(result)
+
+    def test_left_contraction_lazy(self, cl3):
+        from ga.symbolic import left_contraction
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = left_contraction(a, e2)
+        assert "a" in str(result)
+
+    def test_right_contraction_lazy(self, cl3):
+        from ga.symbolic import right_contraction
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = right_contraction(a, e2)
+        assert "a" in str(result)
+
+    def test_hestenes_inner_lazy(self, cl3):
+        from ga.symbolic import hestenes_inner
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = hestenes_inner(a, e2)
+        assert "a" in str(result)
+
+    def test_doran_lasenby_inner_lazy(self, cl3):
+        from ga.symbolic import doran_lasenby_inner
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = doran_lasenby_inner(a, e2)
+        assert "a" in str(result)
+
+    def test_scalar_product_lazy(self, cl3):
+        from ga.symbolic import scalar_product
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = scalar_product(a, e2)
+        assert "a" in str(result)
+
+    def test_commutator_lazy(self, cl3):
+        from ga.symbolic import commutator
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = commutator(a, e2)
+        assert "a" in str(result)
+
+    def test_anticommutator_lazy(self, cl3):
+        from ga.symbolic import anticommutator
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = anticommutator(a, e2)
+        assert "a" in str(result)
+
+    def test_lie_bracket_lazy(self, cl3):
+        from ga.symbolic import lie_bracket
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = lie_bracket(a, e2)
+        assert "a" in str(result)
+
+    def test_jordan_product_lazy(self, cl3):
+        from ga.symbolic import jordan_product
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        result = jordan_product(a, e2)
+        assert "a" in str(result)
+
+    def test_even_grades_lazy(self, cl3):
+        from ga.symbolic import even_grades
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = even_grades(v)
+        assert "v" in str(result)
+
+    def test_odd_grades_lazy(self, cl3):
+        from ga.symbolic import odd_grades
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v")
+        result = odd_grades(v)
+        assert "v" in str(result)
+
+    def test_ip_modes_lazy(self, cl3):
+        from ga.symbolic import ip
+        e1, e2, _ = cl3.basis_vectors()
+        a = e1.name("a")
+        for mode in ("doran_lasenby", "hestenes", "left", "right", "scalar"):
+            result = ip(a, e2, mode=mode)
+            assert "a" in str(result)
