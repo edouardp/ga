@@ -390,8 +390,12 @@ e1, e2, e3 = alg.basis_vectors()
 B = (e1 ^ e2).name("B")
 print(B)              # B
 print(B.anon())       # e₁₂  (reveal concrete value)
-print(B.eager())      # B    (name preserved)
-print(B.eager().anon())  # e₁₂
+print(B.eval())       # e₁₂  (new anonymous eager copy, B unchanged)
+
+B.eager("B")          # mutate: force eager, keep name
+print(B)              # B  (named eager — no lazy overhead)
+B.eager()             # mutate: force eager, strip name
+print(B)              # e₁₂
 ```
 
 Naming and evaluation are orthogonal axes:
@@ -409,7 +413,7 @@ When a lazy value participates in an operation, the result is lazy:
 B = (e1 ^ e2).name("B")
 x = B + e3
 print(x)              # B + e₃  (symbolic)
-print(x.eager())      # e₁₂ + e₃  (concrete)
+print(x.eval())       # e₁₂ + e₃  (concrete)
 ```
 
 Names don't propagate — the result is anonymous but named operands appear by name in the expression tree.
@@ -479,8 +483,7 @@ print(expr)          # ⟨RvR̃⟩₁
 print(expr.eval())   # concrete Multivector result
 ```
 
-`.eval()` and `.eager()` are equivalent — both return a concrete multivector
-while preserving the name.
+`.eval()` returns a new anonymous eager copy. `.eager()` mutates in-place.
 
 ### LaTeX Output
 
@@ -731,7 +734,8 @@ In 3D Euclidean space, this is isomorphic to the vector cross product. In Cl(1,3
 | `.name(label, *, latex=, unicode=, ascii=)` | Assign display name (makes lazy by default) |
 | `.anon()` | Remove display name, preserve lazy/eager state |
 | `.lazy()` | Prefer symbolic representation |
-| `.eager()` | Force eager evaluation in-place, preserve name |
+| `.eager()` | Force eager in-place, strip name |
+| `.eager("B")` | Force eager in-place, keep/set name |
 | `.eval()` | Return a new anonymous eager copy |
 | `.inv` | Inverse |
 | `.dag` | Reverse (dagger) |

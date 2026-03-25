@@ -515,11 +515,11 @@ def _(Algebra, exp, gm, sandwich):
     gm.md(t"""
     Boost in the {t0}{x1} plane with rapidity φ = {rapidity}:
 
-    {Lambda} = exp({boost_plane} · φ/2) = {Lambda.anon()}
+    {Lambda} = exp({boost_plane} · φ/2) = {Lambda.eval()}
 
     Particle at rest: {p_rest} = {t0}
 
-    After boost: {Lambda}{p_rest}{Lambda}̃ = {p_boosted.eval()}
+    After boost: {Lambda}{p_rest}{Lambda} = {p_boosted.eval()}
 
     The boosted 4-momentum has both time and space components — the
     particle is now moving!
@@ -560,8 +560,8 @@ def _(v):
 
 
 @app.cell
-def _(R):
-    R.eval()
+def _(B):
+    B
     return
 
 

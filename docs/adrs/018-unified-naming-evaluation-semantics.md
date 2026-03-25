@@ -52,7 +52,8 @@ mv.name("B")                    # named + lazy (default)
 mv.name("B", latex=r"\mathbf{B}")  # with format overrides
 mv.anon()                       # remove name, keep lazy/eager
 mv.lazy()                       # prefer symbolic representation
-mv.eager()                      # force eager in-place, preserve name
+mv.eager()                      # force eager in-place, strip name
+mv.eager("B")                   # force eager in-place, keep/set name
 mv.eval()                       # return new anonymous eager copy
 ```
 

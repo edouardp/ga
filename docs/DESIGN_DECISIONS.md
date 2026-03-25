@@ -40,13 +40,13 @@ Every multivector independently controls two things:
 - **Identity / display** — named (prints as `B`) or anonymous (prints as `e₁₂`)
 - **Evaluation strategy** — lazy (preserves expression tree) or eager (concrete coefficients)
 
-`.name("B")` makes an object named + lazy by default. `.eager()` forces concrete evaluation while preserving the name. `.anon()` removes the name while preserving the lazy/eager state.
+`.name("B")` makes an object named + lazy by default. `.eager()` forces concrete evaluation in-place and strips the name (or `.eager("B")` to keep it). `.eval()` returns a new anonymous eager copy without mutating the original. `.anon()` removes the name while preserving the lazy/eager state.
 
 Basis blades are **named + eager** by default — they have display names (`e₁`) but behave as concrete numeric objects with no symbolic overhead.
 
 ## 7. Lazy is contagious
 
-When a lazy multivector participates in an operation with an eager one, the result is lazy. The result carries both concrete data (for `.eager()`) and an expression tree (for display). Names don't propagate — the result is anonymous, but named operands appear by name in the tree.
+When a lazy multivector participates in an operation with an eager one, the result is lazy. The result carries both concrete data (for `.eval()`) and an expression tree (for display). Names don't propagate — the result is anonymous, but named operands appear by name in the tree.
 
 When all operands are eager, the fast numeric path is taken with zero symbolic overhead.
 

@@ -39,7 +39,7 @@ Lazy results carry both:
 1. **Concrete data** — the numeric result, computed eagerly for `.data` access
 2. **Expression tree** — the symbolic structure, for display and simplification
 
-This means `.eager()` on a lazy result is instant (data is already computed),
+This means `.eval()` on a lazy result is instant (data is already computed),
 and `.anon()` reveals the expression tree without evaluation.
 
 ### Name Handling in Trees
@@ -66,6 +66,6 @@ path — no imports from `ga.symbolic`, no tree construction, no overhead.
 
 * Good, because symbolic structure is preserved through chains of operations
 * Good, because eager arithmetic has zero overhead
-* Good, because `.eager()` is instant (data pre-computed)
+* Good, because `.eval()` is instant (data pre-computed)
 * Good, because named values appear naturally in expression trees
 * Neutral, because lazy results use ~2x memory (data + tree)

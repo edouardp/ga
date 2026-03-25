@@ -24,8 +24,9 @@ Every ``Multivector`` independently controls two orthogonal axes:
 - **Identity / display** — ``.name("B")`` assigns a display name;
   ``.anon()`` removes it.
 - **Evaluation strategy** — ``.lazy()`` preserves expression trees;
-  ``.eager()`` forces concrete evaluation in-place; ``.eval()`` returns
-  a new anonymous eager copy.
+  ``.eager()`` forces concrete evaluation in-place (strips name by default,
+  or ``.eager("B")`` to keep it); ``.eval()`` returns a new anonymous eager
+  copy without mutating the original.
 
 Basis blades from ``Algebra.basis_vectors()`` are **named + eager** by default:
 they have display names (``e₁``) but behave as concrete numeric objects.
