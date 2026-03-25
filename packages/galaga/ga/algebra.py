@@ -1490,6 +1490,10 @@ def exp(B: Multivector) -> Multivector:
     manually computing cos(θ/2) and sin(θ/2). Note: ``alg.rotor(B, radians=θ)``
     computes ``exp(-θ/2 * B)`` for a unit bivector B.
     """
+    if B._is_lazy:
+        from ga.symbolic import Exp as SymExp
+        result = exp(Multivector(B.algebra, B.data))
+        return B._lazy_result(result.data, SymExp(B._to_expr()))
     B2 = scalar(gp(B, B))
     if abs(B2) < 1e-15:
         # Null bivector: exp(B) = 1 + B

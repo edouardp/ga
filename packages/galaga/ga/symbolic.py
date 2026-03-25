@@ -665,6 +665,20 @@ class Squared(Expr):
         return rf"{self.x._latex()}^2"
 
 
+class Exp(Expr):
+    def __init__(self, x):
+        self.x = _coerce(x)
+
+    def eval(self):
+        return _alg.exp(self.x.eval())
+
+    def __str__(self):
+        return f"exp({self.x})"
+
+    def _latex(self):
+        return rf"e^{{{self.x._latex()}}}"
+
+
 class Even(Expr):
     def __init__(self, x):
         self.x = _coerce(x)
@@ -745,7 +759,7 @@ def _eq(a: Expr, b: Expr) -> bool:
         return a.k == b.k and _eq(a.x, b.x)
     if isinstance(a, Neg):
         return _eq(a.x, b.x)
-    if isinstance(a, (Reverse, Involute, Conjugate, Dual, Undual, Norm, Unit, Inverse, Squared, Even, Odd)):
+    if isinstance(a, (Reverse, Involute, Conjugate, Dual, Undual, Norm, Unit, Inverse, Squared, Even, Odd, Exp)):
         return _eq(a.x, b.x)
     if isinstance(a, (Gp, Op, Lc, Rc, Hi, Dli, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub)):
         return _eq(a.a, b.a) and _eq(a.b, b.b)
@@ -830,7 +844,7 @@ def _simplify(e: Expr) -> Expr:
         e = ScalarMul(e.k, _simplify(e.x))
     elif isinstance(e, ScalarDiv):
         e = ScalarDiv(_simplify(e.x), e.k)
-    elif isinstance(e, (Reverse, Involute, Conjugate, Dual, Undual, Norm, Unit, Inverse, Squared, Even, Odd)):
+    elif isinstance(e, (Reverse, Involute, Conjugate, Dual, Undual, Norm, Unit, Inverse, Squared, Even, Odd, Exp)):
         e = type(e)(_simplify(e.x))
     elif isinstance(e, Neg):
         e = Neg(_simplify(e.x))

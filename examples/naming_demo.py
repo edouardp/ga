@@ -224,7 +224,7 @@ def _(alg, e1, e2, exp, gm, np, reverse):
     B_s = (e1 ^ e2).name("B")
 
     # Build rotor with named scalar — renders as fraction
-    half_angle = -B_s * theta_s / 2
+    half_angle = -B_s * (theta_s / 2)
     _R_s = exp(half_angle.eval()).name("R")
 
     gm.md(t"""
