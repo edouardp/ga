@@ -38,7 +38,7 @@ def _():
     )
     import galaga_marimo as gm
 
-    return Algebra, exp, gm, np, sandwich, scalar, simplify, sym
+    return Algebra, exp, gm, np, reverse, sandwich, scalar, simplify, sym
 
 
 @app.cell(hide_code=True)
@@ -495,7 +495,7 @@ def _(gm):
 
 
 @app.cell
-def _(Algebra, exp, gm, sandwich):
+def _(Algebra, exp, gm, reverse, sandwich):
     sta2 = Algebra((1, -1, -1, -1), names="gamma")
     t0, x1, x2, x3 = sta2.basis_vectors()
 
@@ -510,7 +510,7 @@ def _(Algebra, exp, gm, sandwich):
 
     # Boost a particle at rest: p = m*γ₀
     p_rest = t0.name("p", latex=r"p_{\text{rest}}")
-    p_boosted = sandwich(Lambda, p_rest.eager())
+    p_boosted = sandwich(Lambda, p_rest)
 
     gm.md(t"""
     Boost in the {t0}{x1} plane with rapidity φ = {rapidity}:
@@ -519,7 +519,7 @@ def _(Algebra, exp, gm, sandwich):
 
     Particle at rest: {p_rest} = {t0}
 
-    After boost: {Lambda}{p_rest}{Lambda} = {p_boosted.eval()}
+    After boost: {Lambda}{p_rest}{reverse(Lambda)} = {p_boosted.eval()}
 
     The boosted 4-momentum has both time and space components — the
     particle is now moving!

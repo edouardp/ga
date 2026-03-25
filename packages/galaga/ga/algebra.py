@@ -1208,6 +1208,8 @@ def reverse(x: Multivector) -> Multivector:
     ~V = vₖ...v₂v₁. The sandwich product R x ~R uses the reverse to
     apply rotations/boosts, and V~V gives the squared norm.
     """
+    if x._is_lazy:
+        return ~x
     alg = x.algebra
     out = x.data.copy()
     for k in range(alg.n + 1):
@@ -1223,6 +1225,14 @@ def involute(x: Multivector) -> Multivector:
     Even grades are unchanged, odd grades are negated. This is the
     automorphism that distinguishes the even and odd sub-algebras.
     """
+    if x._is_lazy:
+        from ga.symbolic import Involute as SymInvolute
+        alg = x.algebra
+        out = x.data.copy()
+        for k in range(alg.n + 1):
+            if k % 2 == 1:
+                out[alg._grade_masks[k]] *= -1
+        return x._lazy_result(out, SymInvolute(x._to_expr()))
     alg = x.algebra
     out = x.data.copy()
     for k in range(alg.n + 1):
@@ -1237,11 +1247,25 @@ def conjugate(x: Multivector) -> Multivector:
     Combines both sign-flip patterns. The grade-k component is multiplied
     by (-1)^(k(k+1)/2). This is the composition ``involute(reverse(x))``.
     """
+    if x._is_lazy:
+        from ga.symbolic import Conjugate as SymConjugate
+        result = involute(reverse(Multivector(x.algebra, x.data)))
+        return x._lazy_result(result.data, SymConjugate(x._to_expr()))
     return involute(reverse(x))
 
 
 def grade(x: Multivector, k: int | str) -> Multivector:
     """Extract grade-k component, or 'even'/'odd' for parity selection."""
+    if x._is_lazy:
+        from ga.symbolic import Grade as SymGrade, Even, Odd
+        if k == "even":
+            result = even_grades(Multivector(x.algebra, x.data))
+            return x._lazy_result(result.data, Even(x._to_expr()))
+        if k == "odd":
+            result = odd_grades(Multivector(x.algebra, x.data))
+            return x._lazy_result(result.data, Odd(x._to_expr()))
+        result = grade(Multivector(x.algebra, x.data), k)
+        return x._lazy_result(result.data, SymGrade(x._to_expr(), k))
     if k == "even":
         return even_grades(x)
     if k == "odd":
@@ -1281,6 +1305,10 @@ def dual(x: Multivector) -> Multivector:
     pseudoscalar. We use left contraction (not geometric product with I⁻¹)
     because it gives the correct grade mapping for all signatures.
     """
+    if x._is_lazy:
+        from ga.symbolic import Dual as SymDual
+        result = dual(Multivector(x.algebra, x.data))
+        return x._lazy_result(result.data, SymDual(x._to_expr()))
     I_inv = inverse(x.algebra.pseudoscalar())
     return left_contraction(x, I_inv)
 
@@ -1290,6 +1318,10 @@ def undual(x: Multivector) -> Multivector:
 
     ``undual(dual(x)) = x`` for all x.
     """
+    if x._is_lazy:
+        from ga.symbolic import Undual as SymUndual
+        result = undual(Multivector(x.algebra, x.data))
+        return x._lazy_result(result.data, SymUndual(x._to_expr()))
     I = x.algebra.pseudoscalar()
     return left_contraction(x, I)
 
@@ -1338,6 +1370,10 @@ def norm(x: Multivector) -> float:
 
 def unit(x: Multivector) -> Multivector:
     """Normalize to unit multivector."""
+    if x._is_lazy:
+        from ga.symbolic import Unit as SymUnit
+        result = unit(Multivector(x.algebra, x.data))
+        return x._lazy_result(result.data, SymUnit(x._to_expr()))
     n = norm(x)
     if n < 1e-15:
         raise ValueError("Cannot normalize near-zero multivector")
@@ -1356,6 +1392,10 @@ def inverse(x: Multivector) -> Multivector:
 
     Raises ValueError if the multivector is not invertible (x * ~x ≈ 0).
     """
+    if x._is_lazy:
+        from ga.symbolic import Inverse as SymInverse
+        result = inverse(Multivector(x.algebra, x.data))
+        return x._lazy_result(result.data, SymInverse(x._to_expr()))
     x_rev = reverse(x)
     denom = scalar(gp(x, x_rev))
     if abs(denom) < 1e-15:
@@ -1397,18 +1437,28 @@ def is_rotor(x: Multivector) -> bool:
 
 def even_grades(x: Multivector) -> Multivector:
     """Extract even-grade components."""
+    if x._is_lazy:
+        from ga.symbolic import Even
+        result = even_grades(Multivector(x.algebra, x.data))
+        return x._lazy_result(result.data, Even(x._to_expr()))
     alg = x.algebra
     return grades(x, [k for k in range(0, alg.n + 1, 2)])
 
 
 def odd_grades(x: Multivector) -> Multivector:
     """Extract odd-grade components."""
+    if x._is_lazy:
+        from ga.symbolic import Odd
+        result = odd_grades(Multivector(x.algebra, x.data))
+        return x._lazy_result(result.data, Odd(x._to_expr()))
     alg = x.algebra
     return grades(x, [k for k in range(1, alg.n + 1, 2)])
 
 
 def squared(x: Multivector) -> Multivector:
     """Geometric product of x with itself: x²."""
+    if x._is_lazy:
+        return x.sq
     return gp(x, x)
 
 
