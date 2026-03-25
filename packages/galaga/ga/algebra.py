@@ -912,12 +912,12 @@ class Multivector:
             if self._is_lazy and self._expr is not None:
                 return repr(self._expr)
             return self._format(unicode=False)
-        # Numeric format spec — apply to each coefficient
+        # Numeric format spec — apply to each coefficient, no threshold
         alg = self.algebra
         terms = []
         for i in range(alg.dim):
             c = self.data[i]
-            if abs(c) < 1e-12:
+            if c == 0.0:
                 continue
             name = alg._blade_name(i, unicode=True)
             formatted_c = format(c, spec)

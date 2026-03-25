@@ -232,7 +232,7 @@ def _(alg, e1, e2, exp, gm, np, reverse):
 
     Half-angle bivector: -B·θ/2 = {half_angle}
 
-    Rotor: {_R_s} = exp({half_angle}) = {_R_s.eval()}
+    Rotor: {_R_s} = exp(half_angle) = {_R_s.eval()}
 
     Reverse: {reverse(_R_s)}
     """)
@@ -247,16 +247,16 @@ def _(alg, gm):
     hbar = alg.scalar(1.055e-34).name("ℏ", latex=r"\hbar")
 
     # Compton wavelength: λ = ℏ / (m c)
-    lam_val = (hbar / (m * c)).eval().scalar_part
+    lam_val = (hbar / (m * c))
 
     gm.md(t"""
     ### Named physical constants
 
-    - Speed of light: {c}
-    - Electron mass: {m}
-    - Reduced Planck: {hbar}
+    - Speed of light: {c} = {c.eval():.3e} m/s
+    - Electron mass: {m} = {m.eval():.3e} kg
+    - Reduced Planck: {hbar} = {hbar.eval():.3e} J·s
 
-    Compton wavelength: ℏ/(mₑc) = {lam_val:.4e} m
+    Compton wavelength: {lam_val} = {lam_val.eval():.4e} m
     """)
     return
 
