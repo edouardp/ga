@@ -745,6 +745,21 @@ class Multivector:
                     ScalarDiv(self._to_expr(), other),
                 )
             return Multivector(self.algebra, self.data / other)
+        if isinstance(other, Multivector):
+            self._check_same(other)
+            # Fast path: dividing by a scalar MV
+            if is_scalar(other):
+                s = other.data[0]
+                if abs(s) < 1e-300:
+                    raise ZeroDivisionError("Division by zero scalar multivector")
+                return self / s
+            return self * inverse(other)
+        return NotImplemented
+
+    def __rtruediv__(self, other):
+        """Support scalar / multivector: k / x = k * x⁻¹."""
+        if isinstance(other, (int, float)):
+            return other * inverse(self)
         return NotImplemented
 
     def __pow__(self, n):

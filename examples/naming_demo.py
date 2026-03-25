@@ -247,7 +247,7 @@ def _(alg, gm):
     hbar = alg.scalar(1.055e-34).name("ℏ", latex=r"\hbar")
 
     # Compton wavelength: λ = ℏ / (m c)
-    lam_val = hbar.eval().scalar_part / (m.eval().scalar_part * c.eval().scalar_part)
+    lam_val = (hbar / (m * c)).eval().scalar_part
 
     gm.md(t"""
     ### Named physical constants
