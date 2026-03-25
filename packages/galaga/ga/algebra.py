@@ -681,12 +681,13 @@ class Multivector:
 # operands and accumulate into an output array using the precomputed multiplication
 # tables. The differences between products are *which grade combinations survive*:
 #
-#   gp:                all grades (full geometric product)
-#   op:                grade(a) + grade(b) only (wedge)
-#   left_contraction:  grade(b) - grade(a) only, must be ≥ 0
-#   right_contraction: grade(a) - grade(b) only, must be ≥ 0
-#   hestenes_inner:    |grade(a) - grade(b)|, but zero if either is grade-0
-#   scalar_product:    grade-0 only (just the scalar part of gp)
+#   gp:                  all grades (full geometric product)
+#   op:                  grade(a) + grade(b) only (wedge)
+#   left_contraction:    grade(b) - grade(a) only, must be ≥ 0
+#   right_contraction:   grade(a) - grade(b) only, must be ≥ 0
+#   doran_lasenby_inner: |grade(a) - grade(b)|, including scalars (the | operator)
+#   hestenes_inner:      |grade(a) - grade(b)|, but zero if either is grade-0
+#   scalar_product:      grade-0 only (just the scalar part of gp)
 # ============================================================
 
 

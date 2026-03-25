@@ -75,7 +75,7 @@ def _(gm):
     gm.md(t"""
     ## Basic Interpolation
 
-    Any object with a `.latex()` method is automatically rendered as inline LaTeX.
+    Any object with a `.latex()` or `._repr_latex_()` method is automatically rendered as inline LaTeX.
     Plain Python values (strings, ints, floats) render as text.
     """)
     return
