@@ -747,12 +747,18 @@ class Multivector:
             return Multivector(self.algebra, self.data / other)
         if isinstance(other, Multivector):
             self._check_same(other)
-            # Fast path: dividing by a scalar MV
             if is_scalar(other):
                 s = other.data[0]
                 if abs(s) < 1e-300:
                     raise ZeroDivisionError("Division by zero scalar multivector")
-                return self / s
+                # If either side is lazy, build a Div tree
+                if self._is_any_lazy(other):
+                    from ga.symbolic import Div
+                    return self._lazy_result(
+                        self.data / s,
+                        Div(self._to_expr(), other._to_expr()),
+                    )
+                return Multivector(self.algebra, self.data / s)
             return self * inverse(other)
         return NotImplemented
 

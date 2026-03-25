@@ -505,6 +505,21 @@ class ScalarDiv(Expr):
         return rf"\frac{{{self.x._latex()}}}{{{self.k:g}}}"
 
 
+class Div(Expr):
+    """Division of two expressions: a / b."""
+    def __init__(self, a, b):
+        self.a, self.b = _coerce(a), _coerce(b)
+
+    def eval(self):
+        return self.a.eval() / self.b.eval()
+
+    def __str__(self):
+        return f"{_wrap(self.a, 'gp')}/{_wrap(self.b, 'gp')}"
+
+    def _latex(self):
+        return rf"\frac{{{self.a._latex()}}}{{{self.b._latex()}}}"
+
+
 class Neg(Expr):
     def __init__(self, x):
         self.x = _coerce(x)
@@ -761,7 +776,7 @@ def _eq(a: Expr, b: Expr) -> bool:
         return _eq(a.x, b.x)
     if isinstance(a, (Reverse, Involute, Conjugate, Dual, Undual, Norm, Unit, Inverse, Squared, Even, Odd, Exp)):
         return _eq(a.x, b.x)
-    if isinstance(a, (Gp, Op, Lc, Rc, Hi, Dli, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub)):
+    if isinstance(a, (Gp, Op, Lc, Rc, Hi, Dli, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub, Div)):
         return _eq(a.a, b.a) and _eq(a.b, b.b)
     if isinstance(a, Grade):
         return _eq(a.x, b.x) and a.k == b.k
@@ -838,7 +853,7 @@ def _known_grade(e: Expr) -> int | None:
 def _simplify(e: Expr) -> Expr:
     """Single-pass rewrite of an expression tree (called repeatedly by simplify)."""
     # --- Phase 1: recurse into children first (bottom-up rewriting) ---
-    if isinstance(e, (Gp, Op, Lc, Rc, Hi, Dli, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub)):
+    if isinstance(e, (Gp, Op, Lc, Rc, Hi, Dli, Sp, Commutator, Anticommutator, LieBracket, JordanProduct, Add, Sub, Div)):
         e = type(e)(_simplify(e.a), _simplify(e.b))
     elif isinstance(e, ScalarMul):
         e = ScalarMul(e.k, _simplify(e.x))
