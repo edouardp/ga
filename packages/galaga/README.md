@@ -191,7 +191,7 @@ Convenience properties on multivectors:
 ```python
 v.inv           # inverse(v)
 v.dag           # reverse(v)  — the "dagger"
-v.sq            # gp(v, v)    — squared
+v.sq            # gp(v, v)    — squared (also v**2)
 v.scalar_part   # grade-0 coefficient as float
 v.vector_part   # grade-1 coefficients as np.ndarray
 ```

@@ -1487,3 +1487,57 @@ class TestGpSpacing:
         a = e1.name("a")
         # ã has base len 1
         assert str(reverse(a) * e2.name("b")) == "a\u0303b"
+
+
+class TestPowSquared:
+    """mv**2 delegates to squared() for symbolic rendering."""
+
+    def test_pow2_lazy_renders_squared(self, cl3):
+        e1, _, _ = cl3.basis_vectors(lazy=True)
+        v = e1.name("v")
+        assert str(v ** 2) == "v²"
+
+    def test_pow2_eager(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        assert (e1 ** 2) == 1  # e1² = 1 in Euclidean
+
+    def test_pow2_sum(self, cl3):
+        e1, e2, _ = cl3.basis_vectors(lazy=True)
+        a, b = e1.name("a"), e2.name("b")
+        assert str((a + b) ** 2) == "(a + b)²"
+
+    def test_pow3_not_squared(self, cl3):
+        e1, _, _ = cl3.basis_vectors(lazy=True)
+        v = e1.name("v")
+        assert "²" not in str(v ** 3)
+
+    def test_pow0(self, cl3):
+        e1, _, _ = cl3.basis_vectors(lazy=True)
+        v = e1.name("v")
+        assert (v ** 0) == 1
+
+
+class TestSymNoName:
+    """sym() with no name returns a lazy copy."""
+
+    def test_sym_no_name(self, cl3):
+        from ga.symbolic import sym
+        e1, _, _ = cl3.basis_vectors()
+        a = sym(e1)
+        assert a._is_lazy is True
+        assert a is not e1
+
+    def test_sym_no_name_chain(self, cl3):
+        from ga.symbolic import sym
+        e1, _, _ = cl3.basis_vectors()
+        a = sym(e1).name(latex=r"\hat{n}")
+        assert "n" in str(a)
+        assert e1._name == "e1"  # original untouched
+
+    def test_norm_lazy(self, cl3):
+        from ga import norm
+        e1, e2, _ = cl3.basis_vectors(lazy=True)
+        v = (3 * e1 + 4 * e2).name("v")
+        n = norm(v)
+        assert str(n) == "‖v‖"
+        assert abs(n.eval().scalar_part - 5.0) < 1e-10

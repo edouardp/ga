@@ -33,3 +33,19 @@ inputs and build expression trees when appropriate.
 * Good, because `ℏ/(mₑc)` preserves all names in the expression
 * Good, because `v/2` renders as a fraction, not `0.5v`
 * Good, because eager inputs take the fast numeric path (zero overhead)
+
+### Additional: `**2` delegates to `squared()`
+
+`mv ** 2` is special-cased to use the `Squared` node, so `v**2` renders
+as `v²` rather than `vv`. Other integer powers use repeated multiplication.
+
+### Additional: `norm()` returns lazy scalar MV
+
+When the input is lazy, `norm(v)` returns a lazy scalar MV wrapping a
+`Norm` expr (`‖v‖`), rather than a plain float. Eager inputs still
+return a float for backward compatibility.
+
+### Additional: `sym()` name is optional
+
+`sym(mv)` with no name returns a lazy copy. `sym(mv).name(latex=r"\hat{n}")`
+chains naturally. `sym(mv, "a")` still works as before.
