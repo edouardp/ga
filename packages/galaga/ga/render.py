@@ -173,6 +173,14 @@ _POSTFIX_UNICODE = {
     Dual: "⋆", Undual: "⋆⁻¹", Inverse: "⁻¹", Squared: "²",
 }
 
+# Combining diacriticals only work on single letters.
+# For compound expressions, use these prefix/wrap fallbacks instead.
+_COMPOUND_FALLBACK = {
+    Reverse:   ("~", None),      # ~(expr)
+    Involute:  ("inv(", ")"),     # inv(expr)
+    Conjugate: ("conj(", ")"),    # conj(expr)
+}
+
 _POSTFIX_LATEX_FMT = {
     Involute:  r"{inner}^\dagger",
     Dual:      r"{inner}^*",
@@ -252,7 +260,21 @@ def render(node: Expr) -> str:
     if t in _POSTFIX_UNICODE:
         suffix = _POSTFIX_UNICODE[t]
         inner = render(node.x)
-        return f"{_wrap(inner, node.x, 95)}{suffix}"
+        is_atom = isinstance(node.x, (Sym, Scalar))
+        if is_atom:
+            # Combining diacritical on single letter
+            return f"{inner}{suffix}"
+        elif t in _COMPOUND_FALLBACK:
+            # Combining chars don't work on compound expressions
+            prefix, close = _COMPOUND_FALLBACK[t]
+            wrapped = _wrap(inner, node.x, 95)
+            if close is not None:
+                return f"{prefix}{inner}{close}"
+            else:
+                return f"{prefix}{wrapped}"
+        else:
+            # Suffix chars (⋆, ⁻¹, ²) work fine on parens
+            return f"{_wrap(inner, node.x, 95)}{suffix}"
 
     # Bracket-style (explicit delimiters)
     if t is Grade:

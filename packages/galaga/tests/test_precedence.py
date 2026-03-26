@@ -27,15 +27,15 @@ class TestPostfixUnaryOnSums:
 
     def test_reverse_of_sum(self, lazy3):
         _, a, b, _ = lazy3
-        assert str(reverse(a + b)) == "(a + b)̃"
+        assert str(reverse(a + b)) == "~(a + b)"
 
     def test_involute_of_sum(self, lazy3):
         _, a, b, _ = lazy3
-        assert str(involute(a + b)) == "(a + b)̂"
+        assert str(involute(a + b)) == "inv(a + b)"
 
     def test_conjugate_of_sum(self, lazy3):
         _, a, b, _ = lazy3
-        assert str(conjugate(a + b)) == "(a + b)̄"
+        assert str(conjugate(a + b)) == "conj(a + b)"
 
     def test_dual_of_sum(self, lazy3):
         _, a, b, _ = lazy3
@@ -54,8 +54,8 @@ class TestPostfixUnaryOnProducts:
     def test_reverse_of_product(self, lazy3):
         _, a, b, _ = lazy3
         # Reverse of (a*b) — the tilde applies to the whole product
-        # Needs parens to be unambiguous: (ab)̃
-        assert str(reverse(a * b)) == "(ab)̃"
+        # Needs prefix ~ for compound: ~(ab)
+        assert str(reverse(a * b)) == "~(ab)"
 
     def test_inverse_of_product(self, lazy3):
         _, a, b, _ = lazy3
@@ -111,11 +111,11 @@ class TestReverseInProduct:
 
     def test_reverse_sum_times_c(self, lazy3):
         _, a, b, c = lazy3
-        assert str(~(a + b) * c) == "(a + b)̃c"
+        assert str(~(a + b) * c) == "~(a + b)c"
 
     def test_c_times_reverse_sum(self, lazy3):
         _, a, b, c = lazy3
-        assert str(c * ~(a + b)) == "c(a + b)̃"
+        assert str(c * ~(a + b)) == "c~(a + b)"
 
 
 class TestSandwichLike:
@@ -126,7 +126,7 @@ class TestSandwichLike:
         expr = (a + b) * c * ~(a + b)
         s = str(expr)
         assert "(a + b)" in s
-        assert "(a + b)̃" in s
+        assert "~(a + b)" in s
 
 
 class TestDoubleReverse:

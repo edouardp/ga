@@ -206,11 +206,11 @@ class TestPostfixUnary:
 
     def test_reverse_sum(self, syms):
         a, b, _ = syms
-        assert render(Reverse(Add(a, b))) == "(a + b)\u0303"
+        assert render(Reverse(Add(a, b))) == "~(a + b)"
 
     def test_reverse_product(self, syms):
         a, b, _ = syms
-        assert render(Reverse(Gp(a, b))) == "(ab)\u0303"
+        assert render(Reverse(Gp(a, b))) == "~(ab)"
 
     def test_involute_atom(self, syms):
         a, _, _ = syms
@@ -218,7 +218,7 @@ class TestPostfixUnary:
 
     def test_involute_sum(self, syms):
         a, b, _ = syms
-        assert render(Involute(Add(a, b))) == "(a + b)\u0302"
+        assert render(Involute(Add(a, b))) == "inv(a + b)"
 
     def test_conjugate_atom(self, syms):
         a, _, _ = syms
@@ -226,7 +226,7 @@ class TestPostfixUnary:
 
     def test_conjugate_sum(self, syms):
         a, b, _ = syms
-        assert render(Conjugate(Add(a, b))) == "(a + b)\u0304"
+        assert render(Conjugate(Add(a, b))) == "conj(a + b)"
 
     def test_dual_atom(self, syms):
         a, _, _ = syms
@@ -399,17 +399,17 @@ class TestCompositions:
     def test_reverse_of_sum_in_product(self, syms):
         a, b, c = syms
         expr = Gp(Reverse(Add(a, b)), c)
-        assert render(expr) == "(a + b)\u0303c"
+        assert render(expr) == "~(a + b)c"
 
     def test_product_times_reverse_sum(self, syms):
         a, b, c = syms
         expr = Gp(c, Reverse(Add(a, b)))
-        assert render(expr) == "c(a + b)\u0303"
+        assert render(expr) == "c~(a + b)"
 
     def test_sum_sandwich(self, syms):
         a, b, c = syms
         expr = Gp(Gp(Add(a, b), c), Reverse(Add(a, b)))
-        assert render(expr) == "(a + b)c(a + b)\u0303"
+        assert render(expr) == "(a + b)c~(a + b)"
 
     def test_scalar_mul_in_exp(self, syms):
         a, b, _ = syms
