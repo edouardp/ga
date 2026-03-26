@@ -1053,21 +1053,18 @@ def _is_symbolic(x) -> bool:
 def sym(mv: _alg.Multivector, name: str, grade: int | None = None) -> _alg.Multivector:
     """Wrap a concrete multivector with a display name.
 
-    Convenience alias for ``mv.name(name)``. Returns a named + lazy Multivector.
+    Returns a **copy** with the name set (does not mutate the original).
 
     Args:
         name: Display name for all formats.
         grade: If provided, asserts the homogeneous grade for simplification.
                If omitted, auto-detected from the multivector data.
     """
-    result = mv.name(name)
+    result = mv._copy_with()  # copy first
+    result.name(name)
     if grade is not None:
-        result = result._copy_with(_grade=grade)
-    # Ensure the expr carries the grade info
-    if result._expr is None:
-        expr = Sym(mv, name, grade=result._grade)
-        result = result._copy_with(_expr=expr)
-    elif isinstance(result._expr, Sym):
+        result._grade = grade
+    if result._expr is not None and isinstance(result._expr, Sym):
         result._expr._grade = result._grade
     return result
 

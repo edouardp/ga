@@ -495,7 +495,7 @@ class Multivector:
 
     def name(self, label: str | None = None, *, latex: str | None = None,
              unicode: str | None = None, ascii: str | None = None) -> Multivector:
-        """Assign a display name. Makes the object lazy by default.
+        """Assign a display name in-place. Sets lazy. Returns self.
 
         At least one of ``label`` or ``latex`` must be provided. If ``latex``
         is given, ``unicode`` and ``ascii`` are auto-derived from it unless
@@ -520,45 +520,37 @@ class Multivector:
                     unicode = uni_derived
                 if ascii is None:
                     ascii = asc_derived
-        ascii_name = ascii or label or latex
-        latex_name = latex or label
-        unicode_name = unicode or label or ascii_name
+        self._name = ascii or label or latex
+        self._name_latex = latex or label
+        self._name_unicode = unicode or label or self._name
+        self._is_lazy = True
         # Auto-detect grade if homogeneous
-        g = self._grade
-        if g is None:
+        if self._grade is None:
             nonzero = [k for k in range(self.algebra._n + 1)
                        if any(abs(c) > 1e-12 for i, c in enumerate(self.data)
                               if bin(i).count('1') == k)]
-            g = nonzero[0] if len(nonzero) == 1 else None
+            self._grade = nonzero[0] if len(nonzero) == 1 else None
         # Build a Sym expr so .anon() can reveal the name-based tree
-        from ga.symbolic import Sym
-        expr = self._expr if self._expr is not None else Sym(
-            self, unicode_name, name_latex=latex_name, name_ascii=ascii_name)
-        return self._copy_with(
-            _name=ascii_name,
-            _name_latex=latex_name,
-            _name_unicode=unicode_name,
-            _is_lazy=True,
-            _expr=expr,
-            _grade=g,
-        )
+        if self._expr is None:
+            from ga.symbolic import Sym
+            self._expr = Sym(self, self._name_unicode,
+                             name_latex=self._name_latex, name_ascii=self._name)
+        return self
 
     def anon(self) -> Multivector:
-        """Remove the display name, preserving lazy/eager state."""
-        # If the expr is just a Sym wrapping this value (from .name()),
-        # clear it so we fall through to concrete display
-        expr = self._expr
+        """Remove the display name in-place. Preserves lazy/eager. Returns self."""
         from ga.symbolic import Sym
-        if isinstance(expr, Sym) and expr._name == (self._name_unicode or self._name):
-            expr = None
-        return self._copy_with(
-            _name=None, _name_latex=None, _name_unicode=None,
-            _expr=expr,
-        )
+        if isinstance(self._expr, Sym) and self._expr._name == (self._name_unicode or self._name):
+            self._expr = None
+        self._name = None
+        self._name_latex = None
+        self._name_unicode = None
+        return self
 
     def lazy(self) -> Multivector:
-        """Prefer lazy symbolic representation for future operations."""
-        return self._copy_with(_is_lazy=True)
+        """Set lazy mode in-place. Returns self."""
+        self._is_lazy = True
+        return self
 
     def eager(self, name: str | None = None) -> Multivector:
         """Force eager evaluation in-place. Strips name unless one is given.
