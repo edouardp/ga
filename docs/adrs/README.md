@@ -40,6 +40,7 @@ helps future contributors understand why certain choices were made.
 | [025](025-standalone-renderer.md) | Standalone Precedence-Aware Renderer | Accepted |
 | [026](026-expression-nodes-exp-div.md) | Expression Nodes for Exp, Div, ScalarDiv | Accepted |
 | [027](027-gp-spacing.md) | Geometric Product Spacing for Multi-Character Names | Accepted |
+| [028](028-mutating-configuration-methods.md) | Mutating Symbolic Configuration Methods | Accepted |
 
 ## Creating New ADRs
 
