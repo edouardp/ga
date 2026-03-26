@@ -7,7 +7,8 @@ A numeric geometric algebra library with a stable, programmer-first API.
 - **No ambiguity** — every inner product variant has its own name
 - **Unicode pretty-printing** — `3 + 2e₁ - e₃`, `γ₀γ₁`, `σₓσᵧ`
 - **Symbolic expression trees** — write `grade(R * v * ~R, 1)` and see `⟨RvR̃⟩₁`
-- **Naming and evaluation** — `.name("B")`, `.anon()`, `.lazy()`, `.eager()` on any multivector
+- **Naming and evaluation** — `.name("B")`, `.anon()`, `.lazy()`, `.eager()` mutate in-place; `.eval()` returns a copy
+- **LaTeX-driven naming** — `.name(latex=r"\theta")` auto-derives unicode (θ) and ASCII (theta)
 
 ## Install
 
@@ -382,22 +383,39 @@ Name multivectors and build expression trees that render as mathematical notatio
 
 ### Naming and Evaluation
 
-Any multivector can be named and made symbolic with `.name()`:
+Any multivector can be named and made symbolic with `.name()`.
+All configuration methods (`.name()`, `.anon()`, `.lazy()`, `.eager()`)
+**mutate in-place** and return `self`. Only `.eval()` returns a new copy.
 
 ```python
 alg = Algebra((1, 1, 1))
 e1, e2, e3 = alg.basis_vectors()
 
-B = (e1 ^ e2).name("B")
+B = (e1 ^ e2).name("B")   # mutates, sets lazy
 print(B)              # B
-print(B.anon())       # e₁₂  (reveal concrete value)
-print(B.eval())       # e₁₂  (new anonymous eager copy, B unchanged)
+print(B.anon())       # e₁₂  (name removed in-place)
 
-B.eager("B")          # mutate: force eager, keep name
-print(B)              # B  (named eager — no lazy overhead)
-B.eager()             # mutate: force eager, strip name
-print(B)              # e₁₂
+B.name("B")           # re-name it
+print(B.eval())       # e₁₂  (new copy, B unchanged)
 ```
+
+#### LaTeX-driven naming
+
+Pass `latex=` and unicode/ASCII are derived automatically:
+
+```python
+theta = alg.scalar(0.5).name(latex=r"\theta")
+# unicode: θ, ascii: theta, latex: \theta — all auto-derived
+
+F = (e1 ^ e2).name(latex=r"\mathbf{F}")
+# unicode: 𝐅, ascii: F — derived from \mathbf{F}
+
+n = e1.name(latex=r"\hat{n}")
+# unicode: n̂, ascii: hat_n — combining accent
+```
+
+The `label` parameter is optional when `latex` is provided. User-supplied
+`unicode=` and `ascii=` always take precedence over auto-derivation.
 
 Naming and evaluation are orthogonal axes:
 
@@ -418,14 +436,6 @@ print(x.eval())       # e₁₂ + e₃  (concrete)
 ```
 
 Names don't propagate — the result is anonymous but named operands appear by name in the expression tree.
-
-### Name Format Overrides
-
-```python
-v = e1.name("v", latex=r"\mathbf{v}", unicode="𝐯")
-print(v)              # 𝐯
-v.latex()             # \mathbf{v}
-```
 
 ### Lazy Basis Blades
 
@@ -452,12 +462,14 @@ print(exp(-B * theta / 2))  # exp(-Bθ/2)
 
 ### sym() Compatibility
 
-`sym()` still works as a convenience alias:
+`sym()` still works as a convenience alias. Unlike `.name()`, it **copies**
+the original (does not mutate):
 
 ```python
 from ga.symbolic import sym, grade, reverse, simplify
 
-R = sym(e1 * e2, "R")
+R = sym(e1 * e2, "R")   # copy of e1*e2, named "R"
+v = sym(e1, "v")         # copy of e1, named "v" — e1 unchanged
 v = sym(e1 + 2*e2, "v")
 ```
 
@@ -507,7 +519,8 @@ print(expr)          # ⟨RvR̃⟩₁
 print(expr.eval())   # concrete Multivector result
 ```
 
-`.eval()` returns a new anonymous eager copy. `.eager()` mutates in-place.
+`.eval()` returns a new anonymous eager copy (non-mutating).
+`.eager()` mutates in-place.
 
 ### LaTeX Output
 
@@ -755,12 +768,12 @@ In 3D Euclidean space, this is isomorphic to the vector cross product. In Cl(1,3
 | Property / Method | Description |
 |---|---|
 | `[k]` | Grade-k projection (`x[2]` = `grade(x, 2)`) |
-| `.name(label, *, latex=, unicode=, ascii=)` | Assign display name (makes lazy by default) |
-| `.anon()` | Remove display name, preserve lazy/eager state |
-| `.lazy()` | Prefer symbolic representation |
-| `.eager()` | Force eager in-place, strip name |
-| `.eager("B")` | Force eager in-place, keep/set name |
-| `.eval()` | Return a new anonymous eager copy |
+| `.name(label, *, latex=, unicode=, ascii=)` | Set display name, set lazy (mutates). `label` optional if `latex` given. |
+| `.anon()` | Remove display name (mutates) |
+| `.lazy()` | Set lazy mode (mutates) |
+| `.eager()` | Force eager, strip name (mutates) |
+| `.eager("B")` | Force eager, keep/set name (mutates) |
+| `.eval()` | Return a new anonymous eager copy (non-mutating) |
 | `.inv` | Inverse |
 | `.dag` | Reverse (dagger) |
 | `.sq` | Squared (geometric product with self) |
@@ -815,6 +828,8 @@ Interactive [marimo](https://marimo.io) notebooks in `examples/`:
 
 - **`naming_demo.py`** — Naming and evaluation API: `.name()`, `.anon()`, `.lazy()`, `.eager()`, real-world examples
 - **`lazy_blades_demo.py`** — Lazy basis blades: `basis_vectors(lazy=True)` for fully symbolic workflows
+- **`latex_naming_demo.py`** — LaTeX-driven naming across physics domains (QM, STA, PGA)
+- **`rendering_gallery.py`** — Visual gallery of all expression types with LaTeX rendering
 - **`symbolic_demo.py`** — Symbolic expression trees, rendering, simplification, LaTeX output
 - **`spacetime_algebra.py`** — Spacetime Algebra Cl(1,3): boosts, rotations, EM field, Thomas–Wigner rotation
 - **`quantum_physics.py`** — Quantum spin-½: Bloch sphere, measurement, Stern–Gerlach, Larmor precession
@@ -839,7 +854,7 @@ uv run pytest tests/ -v                          # run all tests
 uv run pytest tests/ --cov=ga --cov-report=term  # with coverage
 ```
 
-576 tests, 98% coverage. Tests include:
+845 tests, 98% coverage. Tests include:
 - Algebraic identities (associativity, distributivity, reverse-of-product)
 - Golden tests for Cl(2,0), Cl(3,0), Cl(1,3)
 - All five inner products with mixed-grade cases where they diverge
@@ -851,6 +866,9 @@ uv run pytest tests/ --cov=ga --cov-report=term  # with coverage
 - Lazy propagation through all operators
 - Lazy basis blades: `basis_vectors(lazy=True)`
 - MV / MV division, ScalarDiv/Div/Exp expression nodes
+- Precedence-aware rendering (93 dedicated tests)
+- LaTeX symbol mapping (101 tests) and auto-derivation
+- Small value display with explicit format specs
 - All 10 spec use cases from the symbolic redesign
 - Edge cases and error handling
 
