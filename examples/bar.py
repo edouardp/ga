@@ -60,7 +60,7 @@ def _(e1, e2, e3):
 
 @app.cell
 def _(e1, e2, e3):
-    e1 ^ e2 + (2*e2) ^ e3
+    (e1 ^ e2) + 2*(e2 ^ e3)
     return
 
 
