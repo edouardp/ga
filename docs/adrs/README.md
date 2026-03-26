@@ -36,6 +36,9 @@ helps future contributors understand why certain choices were made.
 | [021](021-lazy-basis-blades.md) | Lazy Basis Blades via basis_vectors(lazy=True) | Accepted |
 | [022](022-blade-lookup-dimension-guard.md) | Blade Lookup Rejects Digit-by-Digit Parsing Above 9D | Accepted |
 | [023](023-squared-parenthesization.md) | Parenthesization in Squared Rendering | Accepted |
+| [024](024-latex-driven-name-derivation.md) | LaTeX-Driven Name Derivation | Accepted |
+| [025](025-standalone-renderer.md) | Standalone Precedence-Aware Renderer | Accepted |
+| [026](026-expression-nodes-exp-div.md) | Expression Nodes for Exp, Div, ScalarDiv | Accepted |
 
 ## Creating New ADRs
 

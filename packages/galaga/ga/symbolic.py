@@ -840,6 +840,8 @@ def simplify(expr) -> Expr:
     """
     if isinstance(expr, _alg.Multivector):
         expr = _ensure_expr(expr)
+    elif not isinstance(expr, Expr):
+        expr = _ensure_expr(expr)
     prev = None
     e = expr
     while not (prev is not None and _eq(prev, e)):

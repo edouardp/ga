@@ -1436,3 +1436,23 @@ class TestNameLatexOnly:
         e1, _, _ = cl3.basis_vectors()
         with pytest.raises(ValueError):
             e1.name()
+
+
+class TestSimplifyEdgeCases:
+    """Edge cases for simplify with non-Expr inputs."""
+
+    def test_simplify_float(self, cl3):
+        from ga.symbolic import simplify
+        assert str(simplify(1.0)) == "1"
+
+    def test_simplify_int(self, cl3):
+        from ga.symbolic import simplify
+        assert str(simplify(0)) == "0"
+
+    def test_simplify_norm_unit(self, cl3):
+        from ga import norm, unit
+        from ga.symbolic import simplify
+        e1, _, _ = cl3.basis_vectors(lazy=True)
+        v = e1.name("v")
+        result = simplify(norm(unit(v)))
+        assert str(result) == "1"
