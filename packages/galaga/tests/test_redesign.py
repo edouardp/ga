@@ -1354,3 +1354,57 @@ class TestAllBinaryOpsLazy:
         e1, e2, _ = cl3.basis_vectors(lazy=True)
         a, b = e1.name("a"), e2.name("b")
         assert "½" in str(jordan_product(a, b))
+
+
+class TestNameAutoDerive:
+    """Test that .name(latex=...) auto-derives unicode and ascii."""
+
+    def test_greek_auto_derive(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v", latex=r"\theta")
+        assert v._name_unicode == "θ"
+        assert v._name == "theta"
+        assert v._name_latex == r"\theta"
+
+    def test_mathbf_auto_derive(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("F", latex=r"\mathbf{F}")
+        assert v._name_unicode == "𝐅"
+        assert v._name == "F"
+
+    def test_hbar_auto_derive(self, cl3):
+        v = cl3.scalar(1.0).name("h", latex=r"\hbar")
+        assert v._name_unicode == "ℏ"
+        assert v._name == "hbar"
+
+    def test_user_unicode_overrides(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v", latex=r"\theta", unicode="MINE")
+        assert v._name_unicode == "MINE"
+        assert v._name == "theta"  # ascii still derived
+
+    def test_user_ascii_overrides(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v", latex=r"\theta", ascii="MINE")
+        assert v._name == "MINE"
+        assert v._name_unicode == "θ"  # unicode still derived
+
+    def test_both_overrides(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v", latex=r"\theta", unicode="U", ascii="A")
+        assert v._name_unicode == "U"
+        assert v._name == "A"
+
+    def test_unknown_latex_uses_label(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("v", latex=r"\weirdthing")
+        assert v._name_unicode == "v"
+        assert v._name == "v"
+        assert v._name_latex == r"\weirdthing"
+
+    def test_no_latex_uses_label(self, cl3):
+        e1, _, _ = cl3.basis_vectors()
+        v = e1.name("myvar")
+        assert v._name_unicode == "myvar"
+        assert v._name == "myvar"
+        assert v._name_latex == "myvar"
