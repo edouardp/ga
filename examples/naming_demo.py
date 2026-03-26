@@ -615,6 +615,19 @@ def _(gm):
 
 
 @app.cell
+def _(Algebra):
+    alg = Algebra([1,1,1])
+    e1,e2,e3 = alg.basis_vectors(lazy=True)
+    return alg, e1, e2, e3
+
+
+@app.cell
+def _(X):
+    X
+    return
+
+
+@app.cell
 def _():
     return
 
