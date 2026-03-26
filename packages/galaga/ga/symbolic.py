@@ -844,7 +844,9 @@ def simplify(expr) -> Expr:
         expr = _ensure_expr(expr)
     prev = None
     e = expr
-    while not (prev is not None and _eq(prev, e)):
+    for _ in range(100):
+        if prev is not None and _eq(prev, e):
+            break
         prev = e
         e = _simplify(e)
     return e
