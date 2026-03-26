@@ -784,5 +784,29 @@ def _(e1, e2, squared):
     return
 
 
+@app.cell
+def _(e1, e2, e3, reverse):
+    _v = reverse(e1 + e2) ^ reverse(e2 + e3)
+    _v
+    return
+
+
+@app.cell
+def _(e1, reverse):
+    reverse(e1)
+    return
+
+
+@app.cell
+def _(e1, e2, grade, reverse):
+    grade((e1 * e2) * reverse(e1), 1)
+    return
+
+
+@app.cell
+def _():
+    return
+
+
 if __name__ == "__main__":
     app.run()
