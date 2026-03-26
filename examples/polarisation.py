@@ -32,11 +32,11 @@ def _():
 
     matplotlib.rcParams.update({"figure.facecolor": "white"})
 
-    from ga import Algebra, gp, scalar, norm, unit, exp
-    from ga.symbolic import simplify
+    from ga import Algebra, gp, scalar, norm, unit, exp, squared
+    from ga.symbolic import simplify, sym
     import galaga_marimo as gm
 
-    return Algebra, exp, gm, gp, norm, np, plt, scalar, unit
+    return Algebra, exp, gm, gp, norm, np, plt, scalar, squared, sym, unit
 
 
 @app.cell(hide_code=True)
@@ -62,7 +62,7 @@ def _(Algebra):
 def _(gp, scalar):
     def polarise(E, a):
         """Ideal linear polariser: keep component along unit axis a."""
-        return scalar(gp(E.eval(), a.eval())) * a.eval()
+        return scalar(gp(E, a)) * a
 
     return (polarise,)
 
@@ -98,17 +98,23 @@ def _(gm):
 
 
 @app.cell
-def _(H, V, gm, norm, polarise):
-    E0 = H.eval().name(latex=r"E_0")
-    E1 = polarise(E0, V).name(latex=r"E_1")
-    I1 = norm(E1.eval()) ** 2
+def _(H, norm):
+    type(norm(H))
+    return
+
+
+@app.cell
+def _(H, V, gm, norm, polarise, squared, sym):
+    _E0 = sym(H, 'E0').name(latex=r"E_0")
+    _E1 = polarise(_E0, V).name(latex=r"E_1")
+    _I1 = squared(norm(_E1))
 
     gm.md(t"""
-    {E0} = {E0.eval()} (horizontal input)
+    {_E0} = {_E0.eval()} (horizontal input)
 
-    After vertical polariser: {E1} = {E1.eval()}
+    After vertical polariser: {_E1} = {_E1.eval()}
 
-    Intensity: $|{E1.latex()}|^2$ = {I1}  — **completely blocked**.
+    Intensity: {_I1} = {_I1.eval()}  — **completely blocked**.
     """)
     return
 

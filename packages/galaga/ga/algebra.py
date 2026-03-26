@@ -1467,8 +1467,13 @@ def norm2(x: Multivector) -> float:
     return scalar(gp(x, reverse(x)))
 
 
-def norm(x: Multivector) -> float:
-    """Norm: sqrt(|norm2(x)|)."""
+def norm(x: Multivector):
+    """Norm: sqrt(|norm2(x)|). Returns float for eager, lazy scalar MV for lazy."""
+    if x._is_lazy:
+        from ga.symbolic import Norm as SymNorm
+        val = float(np.sqrt(abs(norm2(x))))
+        result = x.algebra.scalar(val)
+        return x._lazy_result(result.data, SymNorm(x._to_expr()))
     return float(np.sqrt(abs(norm2(x))))
 
 
