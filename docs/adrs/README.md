@@ -39,6 +39,7 @@ helps future contributors understand why certain choices were made.
 | [024](024-latex-driven-name-derivation.md) | LaTeX-Driven Name Derivation | Accepted |
 | [025](025-standalone-renderer.md) | Standalone Precedence-Aware Renderer | Accepted |
 | [026](026-expression-nodes-exp-div.md) | Expression Nodes for Exp, Div, ScalarDiv | Accepted |
+| [027](027-gp-spacing.md) | Geometric Product Spacing for Multi-Character Names | Accepted |
 
 ## Creating New ADRs
 
