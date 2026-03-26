@@ -21,7 +21,7 @@ def _():
 def _():
     import marimo as mo
 
-    return (mo,)
+    return
 
 
 @app.cell
@@ -36,9 +36,17 @@ def _():
     import galaga_marimo as gm
 
     return (
-        Algebra, commutator, conjugate, dual, even_grades, exp, gm, gp,
-        grade, inverse, involute, left_contraction, log, norm, np, odd_grades,
-        op, reverse, sandwich, scalar, simplify, squared, unit,
+        Algebra,
+        commutator,
+        dual,
+        exp,
+        gm,
+        grade,
+        norm,
+        np,
+        simplify,
+        squared,
+        unit,
     )
 
 
@@ -51,11 +59,6 @@ def _(gm):
     derived automatically from the LaTeX command.
     """)
     return
-
-
-# ============================================================
-# 3D Euclidean — Rotors
-# ============================================================
 
 
 @app.cell(hide_code=True)
@@ -72,15 +75,19 @@ def _(Algebra):
 
 
 @app.cell
-def _(cl3, e1, e2, np):
+def _(cl3, np):
     _theta = cl3.scalar(np.pi / 3).name(latex=r"\theta")
+    print(_theta)
     _theta
+    return
 
 
 @app.cell
 def _(e1, e2):
     _B = (e1 ^ e2).name(latex=r"\mathbf{B}")
+    print(_B)
     _B
+    return
 
 
 @app.cell
@@ -88,7 +95,9 @@ def _(cl3, e1, e2, exp, np):
     _B = (e1 ^ e2).name(latex=r"\mathbf{B}")
     _theta = cl3.scalar(np.pi / 3).name(latex=r"\theta")
     _R = exp(-_B * _theta / 2).name("R")
+    print(_R)
     _R
+    return
 
 
 @app.cell
@@ -98,7 +107,9 @@ def _(cl3, e1, e2, exp, np):
     _R = exp(-_B * _theta / 2).name("R")
     _v = e1.name(latex=r"\mathbf{v}")
     _result = _R * _v * ~_R
+    print(_result)
     _result
+    return
 
 
 @app.cell
@@ -108,12 +119,9 @@ def _(cl3, e1, e2, exp, grade, np):
     _R = exp(-_B * _theta / 2).name("R")
     _v = e1.name(latex=r"\mathbf{v}")
     _result = grade(_R * _v * ~_R, 1)
+    print(_result)
     _result
-
-
-# ============================================================
-# Quantum Mechanics — Pauli Algebra
-# ============================================================
+    return
 
 
 @app.cell(hide_code=True)
@@ -137,38 +145,40 @@ def _(Algebra):
 @app.cell
 def _(pauli):
     _psi = pauli.scalar(1.0).name(latex=r"\psi")
+    print(_psi)
     _psi
+    return
 
 
 @app.cell
 def _(exp, np, pauli, s2, s3):
     _psi = exp(-(s2 * s3) * pauli.scalar(np.pi / 4).name(latex=r"\theta") / 2).name(latex=r"\psi")
+    print(_psi)
     _psi
+    return
 
 
 @app.cell
-def _(exp, np, pauli, s1, s2, s3, sandwich):
+def _(exp, np, pauli, s2, s3):
     _psi = exp(-(s2 * s3).name(latex=r"\mathbf{B}") * pauli.scalar(np.pi / 4).name(latex=r"\theta") / 2).name(latex=r"\psi")
     _n = s3.name(latex=r"\hat{n}")
     _result = _psi * _n * ~_psi
+    print(_result)
     _result
+    return
 
 
 @app.cell
-def _(exp, np, pauli, s1, s2, s3):
-    # Larmor precession: spin precesses around B field
+def _(exp, pauli, s1, s2, s3):
     _omega = pauli.scalar(1.0).name(latex=r"\omega")
     _t = pauli.scalar(0.3).name("t")
     _B_field = (s1 * s2).name(latex=r"\mathbf{B}")
     _U = exp(-_B_field * _omega * _t / 2).name("U")
     _spin = s3.name(latex=r"\hat{s}")
     _precessed = _U * _spin * ~_U
+    print(_precessed)
     _precessed
-
-
-# ============================================================
-# Spacetime Algebra — Electromagnetism
-# ============================================================
+    return
 
 
 @app.cell(hide_code=True)
@@ -186,43 +196,46 @@ def _(gm):
 def _(Algebra):
     sta = Algebra((1, -1, -1, -1), names="gamma")
     g0, g1, g2, g3 = sta.basis_vectors(lazy=True)
-    return g0, g1, g2, g3, sta
+    return g0, g1, g2, sta
 
 
 @app.cell
 def _(g0, g1):
     _E = (g1 * g0).name(latex=r"\mathbf{E}")
+    print(_E)
     _E
+    return
 
 
 @app.cell
 def _(g1, g2):
     _B = (g1 * g2).name(latex=r"\mathbf{B}")
+    print(_B)
     _B
+    return
 
 
 @app.cell
-def _(g0, g1, g2, g3, sta):
+def _(g0, g1, g2, sta):
     _E = (g1 * g0).name(latex=r"\mathbf{E}")
     _B = (g1 * g2).name(latex=r"\mathbf{B}")
     _I = sta.pseudoscalar().name("I")
     _F = (_E.eval() + _I.eval() * _B.eval()).name(latex=r"\mathcal{F}")
+    print(_F)
     _F
+    return
 
 
 @app.cell
-def _(g0, g1, g2, g3, squared, sta):
+def _(g0, g1, g2, squared, sta):
     _E = (g1 * g0).name(latex=r"\mathbf{E}")
     _B = (g1 * g2).name(latex=r"\mathbf{B}")
     _I = sta.pseudoscalar().name("I")
     _F = (_E.eval() + _I.eval() * _B.eval()).name(latex=r"\mathcal{F}")
     _invariant = squared(_F)
+    print(_invariant)
     _invariant
-
-
-# ============================================================
-# Spacetime Algebra — Lorentz Boost
-# ============================================================
+    return
 
 
 @app.cell(hide_code=True)
@@ -240,7 +253,9 @@ def _(exp, g0, g1, sta):
     _phi = sta.scalar(0.5).name(latex=r"\varphi")
     _B = (g0 * g1).name(latex=r"\hat{B}")
     _Lambda = exp(_B * _phi / 2).name(latex=r"\Lambda")
+    print(_Lambda)
     _Lambda
+    return
 
 
 @app.cell
@@ -250,24 +265,22 @@ def _(exp, g0, g1, sta):
     _Lambda = exp(_B * _phi / 2).name(latex=r"\Lambda")
     _p = g0.name("p")
     _boosted = _Lambda * _p * ~_Lambda
+    print(_boosted)
     _boosted
+    return
 
 
 @app.cell
 def _(exp, g0, g1, sta):
-    # 4-momentum transformation
     _phi = sta.scalar(0.5).name(latex=r"\varphi")
     _B = (g0 * g1).name(latex=r"\hat{B}")
     _Lambda = exp(_B * _phi / 2).name(latex=r"\Lambda")
     _m = sta.scalar(1.0).name("m")
     _p = (_m * g0).name("p")
     _result = _Lambda * _p * ~_Lambda
+    print(_result)
     _result
-
-
-# ============================================================
-# Projective GA — Points and Lines
-# ============================================================
+    return
 
 
 @app.cell(hide_code=True)
@@ -284,16 +297,17 @@ def _(gm):
 def _(Algebra):
     pga = Algebra((1, 1, 1, 0))
     pe1, pe2, pe3, pe0 = pga.basis_vectors(lazy=True)
-    return pe0, pe1, pe2, pe3, pga
+    return pe0, pe1, pe2, pe3
 
 
 @app.cell
-def _(pe0, pe1, pe2, pe3):
+def _(pe0, pe1, pe2):
     _P = (pe1 + pe0).name("P")
     _Q = (pe2 + pe0).name("Q")
-    _line = _P.eval() ^ _Q.eval()
-    _line = _line.name(latex=r"\ell")
+    _line = (_P.eval() ^ _Q.eval()).name(latex=r"\ell")
+    print(_line)
     _line
+    return
 
 
 @app.cell
@@ -301,25 +315,22 @@ def _(pe0, pe1, pe2, pe3):
     _P = (pe1 + pe0).name("P")
     _Q = (pe2 + pe0).name("Q")
     _R = (pe3 + pe0).name("R")
-    _plane = _P.eval() ^ _Q.eval() ^ _R.eval()
-    _plane = _plane.name(latex=r"\pi")
+    _plane = (_P.eval() ^ _Q.eval() ^ _R.eval()).name(latex=r"\pi")
+    print(_plane)
     _plane
+    return
 
 
 @app.cell
 def _(dual, pe0, pe1, pe2, pe3):
-    # Normal to a plane
     _P = (pe1 + pe0).name("P")
     _Q = (pe2 + pe0).name("Q")
     _R = (pe3 + pe0).name("R")
     _plane = (_P.eval() ^ _Q.eval() ^ _R.eval()).name(latex=r"\pi")
     _normal = dual(_plane)
+    print(_normal)
     _normal
-
-
-# ============================================================
-# Physical Constants
-# ============================================================
+    return
 
 
 @app.cell(hide_code=True)
@@ -335,13 +346,17 @@ def _(gm):
 @app.cell
 def _(cl3):
     _hbar = cl3.scalar(1.055e-34).name(latex=r"\hbar")
+    print(_hbar)
     _hbar
+    return
 
 
 @app.cell
 def _(cl3):
     _m = cl3.scalar(9.109e-31).name(latex=r"m_e")
+    print(_m)
     _m
+    return
 
 
 @app.cell
@@ -350,21 +365,19 @@ def _(cl3):
     _m = cl3.scalar(9.109e-31).name(latex=r"m_e")
     _c = cl3.scalar(3e8).name("c")
     _lambda = _hbar / (_m * _c)
+    print(_lambda)
     _lambda
+    return
 
 
 @app.cell
 def _(cl3):
-    # de Broglie wavelength: λ = ℏ / p
     _hbar = cl3.scalar(1.055e-34).name(latex=r"\hbar")
     _p = cl3.scalar(1e-24).name("p")
     _lambda_dB = (_hbar / _p).name(latex=r"\lambda_{dB}")
+    print(_lambda_dB)
     _lambda_dB
-
-
-# ============================================================
-# Bivector Algebra — Angular Momentum
-# ============================================================
+    return
 
 
 @app.cell(hide_code=True)
@@ -381,24 +394,21 @@ def _(gm):
 def _(commutator, e1, e2, e3):
     _L1 = (e2 ^ e3).name(latex=r"L_1")
     _L2 = (e3 ^ e1).name(latex=r"L_2")
-    _L3 = (e1 ^ e2).name(latex=r"L_3")
     _result = commutator(_L1, _L2)
+    print(_result)
     _result
+    return
 
 
 @app.cell
 def _(e1, e2, e3, squared):
-    # Casimir: L² = L₁² + L₂² + L₃²
     _L1 = (e2 ^ e3).name(latex=r"L_1")
     _L2 = (e3 ^ e1).name(latex=r"L_2")
     _L3 = (e1 ^ e2).name(latex=r"L_3")
     _L_sq = squared(_L1).eval() + squared(_L2).eval() + squared(_L3).eval()
+    print(_L_sq)
     _L_sq
-
-
-# ============================================================
-# Simplification with named symbols
-# ============================================================
+    return
 
 
 @app.cell(hide_code=True)
@@ -410,20 +420,28 @@ def _(gm):
 @app.cell
 def _(e1, simplify):
     _v = e1.name(latex=r"\mathbf{v}")
-    simplify(~~_v)
+    _result = simplify(~~_v)
+    print(_result)
+    _result
+    return
 
 
 @app.cell
 def _(e1, e2, simplify):
     _R = (e1 * e2).name("R")
-    simplify(_R * ~_R)
+    _result = simplify(_R * ~_R)
+    print(_result)
+    _result
+    return
 
 
 @app.cell
-def _(e1, simplify, unit):
-    from ga import norm
+def _(e1, norm, simplify, unit):
     _v = e1.name(latex=r"\mathbf{v}")
-    simplify(norm(unit(_v)))
+    _result = simplify(norm(unit(_v)))
+    print(_result)
+    _result
+    return
 
 
 if __name__ == "__main__":
