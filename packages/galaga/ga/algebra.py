@@ -794,6 +794,8 @@ class Multivector:
             return NotImplemented
         if n == 0:
             return self.algebra.scalar(1.0)
+        if n == 2:
+            return squared(self)
         if n < 0:
             return inverse(self) ** (-n)
         result = self

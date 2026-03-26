@@ -62,7 +62,7 @@ def _(Algebra):
 def _(grade):
     def polarise(E, a):
         """Ideal linear polariser: keep component along unit axis a."""
-        return grade((E * a) * a, 0)
+        return grade(E * a, 0) * a
 
     return (polarise,)
 
@@ -78,14 +78,11 @@ def _(gm):
 
 
 @app.cell
-def _(R, e1, e2, exp, gm, np, sym):
+def _(e1, e2, exp, gm, np, sym):
     H = sym(e1,'H')
     V = sym(e2,'V')
-    #D = unit(e1 + e2).name("D")
-
-    R_45 = exp(e1 ^ e2 * np.pi)
-
-    D = R*H*~R
+    R_45 = exp(e1^e2 * -np.radians(45)/2).name(r"R_{45\degree}")
+    D = (R_45 * H * ~R_45)#.name("D")
 
     gm.md(t"""
     - Horizontal: {H} = {H.eval()}
@@ -96,14 +93,20 @@ def _(R, e1, e2, exp, gm, np, sym):
 
 
 @app.cell
+def _(H):
+    H
+    return
+
+
+@app.cell
 def _(D):
     D
     return
 
 
 @app.cell
-def _(e1):
-    e1
+def _(D, H, polarise):
+    polarise(H, D)
     return
 
 
@@ -137,7 +140,7 @@ def _(gm):
 
 @app.cell
 def _(D, H, V, gm, norm, polarise, squared, sym):
-    _E0 = sym(H, 'E0').name(latex=r"E_0")
+    _E0 = sym(H).name(latex=r"E_0")
     _E1 = polarise(_E0, D).name(latex=r"E_1")
     _E2 = polarise(_E1, V).name(latex=r"E_2")
     _I1 = squared(norm(_E2))
@@ -300,7 +303,7 @@ def _(e1, e2, exp, gm, norm, np, sym):
 
     Intensity preserved: $|{E_rot.latex()}|^2$ = {norm(E_rot.eval())**2:.4f}
     """)
-    return E0, R
+    return (E0,)
 
 
 @app.cell(hide_code=True)
