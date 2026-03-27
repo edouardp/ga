@@ -1546,6 +1546,15 @@ def is_rotor(x: Multivector) -> bool:
     return is_even(x) and np.isclose(scalar(gp(x, reverse(x))), 1.0)
 
 
+def is_blade(x: Multivector) -> bool:
+    """True if x is a basis blade (possibly scaled).
+
+    A basis blade has exactly one nonzero component in the coefficient
+    array. e.g. e₁, 3e₁₂, -e₁₂₃ are blades; e₁ + e₂ is not.
+    """
+    return np.count_nonzero(np.abs(x.data) > 1e-12) == 1
+
+
 def even_grades(x: Multivector) -> Multivector:
     """Extract even-grade components."""
     if x._is_lazy:

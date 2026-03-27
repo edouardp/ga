@@ -36,12 +36,12 @@ def _():
     from ga.symbolic import simplify, sym
     import galaga_marimo as gm
 
-    return Algebra, exp, gm, grade, norm, np, plt, squared, sym, unit
+    return Algebra, exp, gm, grade, norm, np, plt, sym, unit
 
 
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"""
+def _(mo):
+    mo.md(r"""
     # Polarisation Optics with Geometric Algebra
 
     Light polarisation lives in a 2D transverse plane. A polariser is a
@@ -59,30 +59,37 @@ def _(Algebra):
 
 
 @app.cell
-def _(grade):
+def _(e1, e2, gm, grade):
     def polarise(E, a):
         """Ideal linear polariser: keep component along unit axis a."""
         return grade(E * a, 0) * a
 
+    # Example
+    _p = polarise(e1, e2)
+    gm.md(t"{_p} = {_p.eval()}")
     return (polarise,)
 
 
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"""
+def _(mo):
+    mo.md(r"""
     ## Polarisation Axes
 
-    $$P_a(E) = (E \\cdot a)\\,a$$
+    $$P_a(E) = (E \cdot a)\,a$$
     """)
     return
 
 
 @app.cell
 def _(e1, e2, exp, gm, np, sym):
-    H = sym(e1,'H')
-    V = sym(e2,'V')
-    R_45 = exp(e1^e2 * -np.radians(45)/2).name(r"R_{45\degree}")
-    D = (R_45 * H * ~R_45)#.name("D")
+    H = sym(e1, "H")
+    V = sym(e2, "V")
+    R_45 = exp((e1 ^ e2) * (-np.radians(45) / 2)).name(
+        latex=r"R_{45^\circ}",
+        unicode="R₄₅°",
+        ascii="R_45deg",
+    )
+    D = (R_45 * H * ~R_45).name("D")
 
     gm.md(t"""
     - Horizontal: {H} = {H.eval()}
@@ -92,35 +99,19 @@ def _(e1, e2, exp, gm, np, sym):
     return D, H, V
 
 
-@app.cell
-def _(H):
-    H
-    return
-
-
-@app.cell
-def _(D):
-    D
-    return
-
-
-@app.cell
-def _(D, H, polarise):
-    polarise(H, D)
-    return
-
-
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"## H Blocks V")
+def _(mo):
+    mo.md(r"""
+    ## H Blocks V
+    """)
     return
 
 
 @app.cell
-def _(H, V, gm, norm, polarise, squared, sym):
+def _(H, V, gm, norm, polarise, sym):
     _E0 = sym(H, 'E0').name(latex=r"E_0")
     _E1 = polarise(_E0, V).name(latex=r"E_1")
-    _I1 = squared(norm(_E1))
+    _I1 = norm(_E1)**2
 
     gm.md(t"""
     {_E0} = {_E0.eval()} (horizontal input)
@@ -133,17 +124,19 @@ def _(H, V, gm, norm, polarise, squared, sym):
 
 
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"## The Three-Polariser Trick")
+def _(mo):
+    mo.md(r"""
+    ## The Three-Polariser Trick
+    """)
     return
 
 
 @app.cell
-def _(D, H, V, gm, norm, polarise, squared, sym):
+def _(D, H, V, gm, norm, polarise, sym):
     _E0 = sym(H).name(latex=r"E_0")
     _E1 = polarise(_E0, D).name(latex=r"E_1")
     _E2 = polarise(_E1, V).name(latex=r"E_2")
-    _I1 = squared(norm(_E2))
+    _I1 = norm(_E2)**2
 
     gm.md(t"""
     {_E0} = {_E0.eval()}
@@ -158,8 +151,10 @@ def _(D, H, V, gm, norm, polarise, squared, sym):
 
 
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"## Interactive: Vary the Middle Polariser")
+def _(mo):
+    mo.md(r"""
+    ## Interactive: Vary the Middle Polariser
+    """)
     return
 
 
@@ -174,38 +169,22 @@ def _(mo):
 
 
 @app.cell
-def _(
-    E0,
-    E1,
-    E2,
-    H,
-    V,
-    angle_slider,
-    e1,
-    e2,
-    gm,
-    norm,
-    np,
-    polarise,
-    squared,
-    sym,
-    unit,
-):
+def _(H, V, angle_slider, e1, e2, gm, norm, np, polarise, sym, unit):
     _deg = angle_slider.value
     _rad = np.radians(_deg)
     _M = unit(np.cos(_rad) * e1 + np.sin(_rad) * e2).name("M")
 
-    _E0 = sym(H, 'E0').name(latex=r"E_0")
-    _E1 = polarise(_E0, _M).name(latex=r"E_1")
-    _E2 = polarise(_E1, V).name(latex=r"E_2")
-    _I_out = squared(norm(_E2))
+    _E0 = sym(H).name(latex=r"E_h")
+    _E1 = polarise(_E0, _M).name(latex=r"E_{diag}")
+    _E2 = polarise(_E1, V).name(latex=r"E_v")
+    _I_out = norm(_E2)**2
 
     gm.md(t"""
     Middle polariser {_M} at **{_deg}°** $\\quad$ ({_M} = {_M.eval()})
 
-    {E0} → {E1} = {E1.eval()} → {E2} = {E2.eval()}
+    {_E0} → {_E1} = {_E1.eval()} → {_E2} = {_E2.eval()}
 
-    **Output intensity:** {_I_out} = {_I_out.eval()}
+    **Output intensity:** {_I_out} = {_I_out.eval():.4f}
 
     Theory: $\\frac{{1}}{{4}}\\sin^2(2 \\times {_deg}°)$ = {0.25 * np.sin(2 * _rad)**2:.4f}
     """)
@@ -213,8 +192,10 @@ def _(
 
 
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"## Malus' Law — Full Curve")
+def _(mo):
+    mo.md(r"""
+    ## Malus' Law -- Full Curve
+    """)
     return
 
 
@@ -228,12 +209,13 @@ def _(H, V, e1, e2, norm, np, plt, polarise, unit):
         _mid = unit(np.cos(_rad) * e1.eval() + np.sin(_rad) * e2.eval())
         _E1 = polarise(H, _mid)
         _E2 = polarise(_E1, V)
-        _intensities.append(norm(_E2.eval()) ** 2)
+        _intensity = norm(_E2) ** 2
+        _intensities.append(_intensity.scalar_part)
 
     _fig, _ax = plt.subplots(figsize=(8, 4))
     _ax.plot(_angles, _intensities, 'b-', linewidth=2, label='GA computation')
     _ax.plot(_angles, 0.25 * np.sin(2 * np.radians(_angles))**2,
-             'r--', linewidth=1.5, label=r'$\frac{1}{4}\sin^2(2\theta)$')
+             'r--', linewidth=1.5, label='theory: 0.25 sin^2(2 theta)')
     _ax.set_xlabel('Middle polariser angle (degrees)')
     _ax.set_ylabel('Transmitted intensity')
     _ax.set_title("Three-Polariser Transmission (Malus' Law)")
@@ -246,11 +228,11 @@ def _(H, V, e1, e2, norm, np, plt, polarise, unit):
 
 
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"""
+def _(mo):
+    mo.md(r"""
     ## GA Reflection Form
 
-    $$P_a(E) = \\frac{{1}}{{2}}(E + aEa)$$
+    $$P_a(E) = \frac{1}{2}(E + aEa)$$
 
     The sandwich $aEa$ reflects $E$ in axis $a$. Averaging keeps the parallel component.
     """)
@@ -273,26 +255,27 @@ def _(D, H, V, gm, norm):
 
     $|{E2.latex()}|^2$ = {norm(E2.eval())**2:.4f} — same result.
     """)
-    return E1, E2
+    return
 
 
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"""
+def _(mo):
+    mo.md(r"""
     ## Waveplates as Rotors
 
-    A half-wave plate is a rotor $R = e^{{-B\\theta}}$ where $B = e_1 \\wedge e_2$.
+    A half-wave plate is a rotor $R = e^{-B\theta}$ where $B = e_1 \wedge e_2$.
     """)
     return
 
 
 @app.cell
 def _(e1, e2, exp, gm, norm, np, sym):
-    B = (e1 ^ e2)
+    B = e1 ^ e2
     R = exp(-B * np.pi / 4).name("R")
 
     E0 = sym(e1).name(latex=r"E_0")
     E_rot = (R * E0 * ~R).name(latex=r"E_{rot}")
+    _I = norm(E_rot)**2
 
     gm.md(t"""
     Half-wave plate at 45°: {R} = {R.eval()}
@@ -301,14 +284,16 @@ def _(e1, e2, exp, gm, norm, np, sym):
 
     Output: {E_rot} = {E_rot.eval()}
 
-    Intensity preserved: $|{E_rot.latex()}|^2$ = {norm(E_rot.eval())**2:.4f}
+    Intensity preserved: {_I} = {_I.eval()}
     """)
-    return (E0,)
+    return
 
 
 @app.cell(hide_code=True)
-def _(gm):
-    gm.md(t"## Polarisation State Diagram")
+def _(mo):
+    mo.md(r"""
+    ## Polarisation State Diagram
+    """)
     return
 
 
@@ -367,51 +352,51 @@ def _(mo):
     return (n_slider,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(e1, e2, n_slider, norm, np, plt, polarise, unit):
-    N = n_slider.value
-    step_deg = 90.0 / N
+    _N = n_slider.value
+    _step_deg = 90.0 / _N
 
-    E = e1.eval()
-    states = [(E, 0.0)]
-    for i in range(1, N + 1):
-        deg = step_deg * i
-        axis = unit(np.cos(np.radians(deg)) * e1 + np.sin(np.radians(deg)) * e2)
-        E = polarise(E, axis).eval()
-        states.append((E, deg))
+    _E = e1.eval()
+    _states = [(_E, 0.0)]
+    for _i in range(1, _N + 1):
+        _deg = _step_deg * _i
+        _axis = unit(np.cos(np.radians(_deg)) * e1 + np.sin(np.radians(_deg)) * e2)
+        _E = polarise(_E, _axis).eval()
+        _states.append((_E, _deg))
 
-    I_out = norm(E) ** 2
-    theory = np.cos(np.radians(step_deg)) ** (2 * N)
+    _I_out = norm(_E) ** 2
+    _theory = np.cos(np.radians(_step_deg)) ** (2 * _N)
 
     # --- Plots ---
     _fig, (_ax1, _ax2) = plt.subplots(1, 2, figsize=(12, 5))
 
     _cmap = plt.cm.viridis
-    for idx, (Ev, deg) in enumerate(states):
-        frac = idx / max(len(states) - 1, 1)
-        x, y = Ev.data[1], Ev.data[2]
-        _ax1.annotate("", xy=(x, y), xytext=(0, 0),
-                      arrowprops=dict(arrowstyle="->", color=_cmap(frac), lw=1.5))
-        if N <= 20 or idx % max(1, N // 10) == 0 or idx == len(states) - 1:
-            _ax1.annotate(f"{deg:.0f}°", xy=(x, y), fontsize=7,
-                          color=_cmap(frac), xytext=(3, 3), textcoords="offset points")
+    for _idx, (_Ev, _deg) in enumerate(_states):
+        _frac = _idx / max(len(_states) - 1, 1)
+        _x, _y = _Ev.data[1], _Ev.data[2]
+        _ax1.annotate("", xy=(_x, _y), xytext=(0, 0),
+                      arrowprops=dict(arrowstyle="->", color=_cmap(_frac), lw=1.5))
+        if _N <= 20 or _idx % max(1, _N // 10) == 0 or _idx == len(_states) - 1:
+            _ax1.annotate(f"{_deg:.0f}°", xy=(_x, _y), fontsize=7,
+                          color=_cmap(_frac), xytext=(3, 3), textcoords="offset points")
 
-    t = np.linspace(0, 2 * np.pi, 100)
-    _ax1.plot(np.cos(t), np.sin(t), "k-", alpha=0.1)
+    _t = np.linspace(0, 2 * np.pi, 100)
+    _ax1.plot(np.cos(_t), np.sin(_t), "k-", alpha=0.1)
     _ax1.set_xlim(-1.3, 1.3)
     _ax1.set_ylim(-0.2, 1.3)
     _ax1.set_aspect("equal")
     _ax1.set_xlabel("Horizontal (e₁)")
     _ax1.set_ylabel("Vertical (e₂)")
-    _ax1.set_title(f"{N} polarisers, {step_deg:.1f}° each")
+    _ax1.set_title(f"{_N} polarisers, {_step_deg:.1f}° each")
     _ax1.grid(True, alpha=0.3)
 
-    intensities = [norm(Ev) ** 2 for Ev, _ in states]
-    degs = [d for _, d in states]
-    _ax2.plot(degs, intensities, "o-", markersize=3, color="steelblue")
+    _intensities = [norm(_Ev) ** 2 for _Ev, _ in _states]
+    _degs = [_d for _, _d in _states]
+    _ax2.plot(_degs, _intensities, "o-", markersize=3, color="steelblue")
     _ax2.set_xlabel("Polariser angle (°)")
     _ax2.set_ylabel("Intensity")
-    _ax2.set_title(f"Output: {I_out:.4f}")
+    _ax2.set_title(f"Output: {_I_out:.4f}")
     _ax2.set_xlim(0, 90)
     _ax2.set_ylim(0, 1.05)
     _ax2.grid(True, alpha=0.3)
@@ -423,22 +408,22 @@ def _(e1, e2, n_slider, norm, np, plt, polarise, unit):
 
 @app.cell
 def _(e1, e2, gm, n_slider, norm, np, polarise, unit):
-    N = n_slider.value
-    step_deg = 90.0 / N
+    _N = n_slider.value
+    _step_deg = 90.0 / _N
 
-    E = e1.eval()
-    for i in range(1, N + 1):
-        axis = unit(np.cos(np.radians(step_deg * i)) * e1.eval() + np.sin(np.radians(step_deg * i)) * e2.eval())
-        E = polarise(E, axis).eval()
+    _E = e1.eval()
+    for _i in range(1, _N + 1):
+        _axis = unit(np.cos(np.radians(_step_deg * _i)) * e1.eval() + np.sin(np.radians(_step_deg * _i)) * e2.eval())
+        _E = polarise(_E, _axis).eval()
 
-    I_out = norm(E) ** 2
-    theory = np.cos(np.radians(step_deg)) ** (2 * N)
-    loss = (1 - np.cos(np.radians(step_deg))**2) * 100
+    _I_out = norm(_E) ** 2
+    _theory = np.cos(np.radians(_step_deg)) ** (2 * _N)
+    _loss = (1 - np.cos(np.radians(_step_deg))**2) * 100
 
     gm.md(t"""
-    **{N} polarisers**, step = **{step_deg:.2f}°**, loss/step = {loss:.4f}%
+    **{_N} polarisers**, step = **{_step_deg:.2f}°**, loss/step = {_loss:.4f}%
 
-    Output intensity: **{I_out:.6f}** (theory: {theory:.6f})
+    Output intensity: **{_I_out:.6f}** (theory: {_theory:.6f})
     """)
     return
 
@@ -456,11 +441,11 @@ def _(e1, e2, norm, np, plt, polarise, unit):
             _E = polarise(_E, _axis).eval()
         _intensities.append(norm(_E) ** 2)
 
-    _theory = [np.cos(np.radians(90.0 / N)) ** (2 * N) for N in _Ns]
+    _theory = [np.cos(np.radians(90.0 / _N)) ** (2 * _N) for _N in _Ns]
 
     _fig, _ax = plt.subplots(figsize=(8, 4))
     _ax.plot(_Ns, _intensities, 'b-', linewidth=2, label='GA computation')
-    _ax.plot(_Ns, _theory, 'r--', linewidth=1.5, label=r'$\cos^{2N}(90°/N)$')
+    _ax.plot(_Ns, _theory, 'r--', linewidth=1.5, label='theory: cos(90 deg / N)^(2N)')
     _ax.axhline(y=1.0, color='gray', linestyle=':', alpha=0.5)
     _ax.set_xlabel('Number of polarisers')
     _ax.set_ylabel('Transmitted intensity')
@@ -470,6 +455,40 @@ def _(e1, e2, norm, np, plt, polarise, unit):
     _ax.set_ylim(0, 1.05)
     _ax.grid(True, alpha=0.3)
     _fig
+    return
+
+
+@app.cell
+def _(e1, e2):
+    e12 = (e1 ^ e2).name(latex=r"e_{12}", unicode="e₁₂", ascii="e12")
+    k = 1 + 2*e1 + 3*e2 + 4*e12
+    return (k,)
+
+
+@app.cell
+def _(k):
+    k
+    return
+
+
+@app.cell
+def _(gm, grade, k):
+    _g0 = grade(k,0)
+    _g1 = grade(k,1)
+    _g2 = grade(k,2)
+
+    gm.md(t"""
+    {_g0} = {_g0.eval()}
+
+    {_g1} = {_g1.eval()}
+
+    {_g2} = {_g2.eval()}
+    """)
+    return
+
+
+@app.cell
+def _():
     return
 
 

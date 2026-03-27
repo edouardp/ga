@@ -1541,3 +1541,47 @@ class TestSymNoName:
         n = norm(v)
         assert str(n) == "‖v‖"
         assert abs(n.eval().scalar_part - 5.0) < 1e-10
+
+
+class TestIsBlade:
+    def test_basis_vector(self, cl3):
+        from ga import is_blade
+        e1, _, _ = cl3.basis_vectors()
+        assert is_blade(e1)
+
+    def test_scaled_blade(self, cl3):
+        from ga import is_blade
+        e1, _, _ = cl3.basis_vectors()
+        assert is_blade(3 * e1)
+
+    def test_bivector_blade(self, cl3):
+        from ga import is_blade
+        e1, e2, _ = cl3.basis_vectors()
+        assert is_blade(e1 ^ e2)
+
+    def test_scaled_bivector(self, cl3):
+        from ga import is_blade
+        e1, e2, _ = cl3.basis_vectors()
+        assert is_blade(5 * (e1 ^ e2))
+
+    def test_pseudoscalar(self, cl3):
+        from ga import is_blade
+        assert is_blade(cl3.pseudoscalar())
+
+    def test_scalar(self, cl3):
+        from ga import is_blade
+        assert is_blade(cl3.scalar(7.0))
+
+    def test_sum_not_blade(self, cl3):
+        from ga import is_blade
+        e1, e2, _ = cl3.basis_vectors()
+        assert not is_blade(e1 + e2)
+
+    def test_mixed_grade_not_blade(self, cl3):
+        from ga import is_blade
+        e1, e2, _ = cl3.basis_vectors()
+        assert not is_blade(e1 + (e1 ^ e2))
+
+    def test_zero(self, cl3):
+        from ga import is_blade
+        assert not is_blade(cl3.scalar(0.0))
