@@ -238,114 +238,86 @@ class Scalar(Expr):
 
 # --- Binary ops ---
 
-class Gp(Expr):
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ============================================================
+# Generated Expr subclasses
+# ============================================================
+
+def _make_binary_expr(name, alg_func_name):
+    """Generate a binary Expr subclass."""
     def __init__(self, a, b):
         self.a, self.b = _coerce(a), _coerce(b)
-
     def eval(self):
-        return _alg.gp(self.a.eval(), self.b.eval())
+        return getattr(_alg, alg_func_name)(self.a.eval(), self.b.eval())
+    return type(name, (Expr,), {'__init__': __init__, 'eval': eval})
 
 
-
-
-class Op(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
+def _make_unary_expr(name, alg_func_name):
+    """Generate a unary Expr subclass."""
+    def __init__(self, x):
+        self.x = _coerce(x)
     def eval(self):
-        return _alg.op(self.a.eval(), self.b.eval())
+        return getattr(_alg, alg_func_name)(self.x.eval())
+    return type(name, (Expr,), {'__init__': __init__, 'eval': eval})
 
 
+# Binary expression nodes
+Gp = _make_binary_expr('Gp', 'gp')
+Op = _make_binary_expr('Op', 'op')
+Lc = _make_binary_expr('Lc', 'left_contraction')
+Rc = _make_binary_expr('Rc', 'right_contraction')
+Hi = _make_binary_expr('Hi', 'hestenes_inner')
+Dli = _make_binary_expr('Dli', 'doran_lasenby_inner')
+Sp = _make_binary_expr('Sp', 'scalar_product')
+Commutator = _make_binary_expr('Commutator', 'commutator')
+Anticommutator = _make_binary_expr('Anticommutator', 'anticommutator')
+LieBracket = _make_binary_expr('LieBracket', 'lie_bracket')
+JordanProduct = _make_binary_expr('JordanProduct', 'jordan_product')
 
-
-class Lc(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.left_contraction(self.a.eval(), self.b.eval())
-
-
-
-
-class Rc(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.right_contraction(self.a.eval(), self.b.eval())
-
-
-
-
-class Hi(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.hestenes_inner(self.a.eval(), self.b.eval())
-
-
-
-
-class Dli(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.doran_lasenby_inner(self.a.eval(), self.b.eval())
-
-
-
-
-class Sp(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.scalar_product(self.a.eval(), self.b.eval())
-
-
-
-
-class Commutator(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.commutator(self.a.eval(), self.b.eval())
-
-
-
-
-class Anticommutator(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.anticommutator(self.a.eval(), self.b.eval())
-
-
-
-
-class LieBracket(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.lie_bracket(self.a.eval(), self.b.eval())
-
-
-
-
-class JordanProduct(Expr):
-    def __init__(self, a, b):
-        self.a, self.b = _coerce(a), _coerce(b)
-
-    def eval(self):
-        return _alg.jordan_product(self.a.eval(), self.b.eval())
-
-
+# Unary expression nodes
+Reverse = _make_unary_expr('Reverse', 'reverse')
+Involute = _make_unary_expr('Involute', 'involute')
+Conjugate = _make_unary_expr('Conjugate', 'conjugate')
+Dual = _make_unary_expr('Dual', 'dual')
+Undual = _make_unary_expr('Undual', 'undual')
+Norm = _make_unary_expr('Norm', 'norm')
+Unit = _make_unary_expr('Unit', 'unit')
+Inverse = _make_unary_expr('Inverse', 'inverse')
+Exp = _make_unary_expr('Exp', 'exp')
+Even = _make_unary_expr('Even', 'even_grades')
+Odd = _make_unary_expr('Odd', 'odd_grades')
 
 
 class Add(Expr):
@@ -412,32 +384,11 @@ class Neg(Expr):
 
 # --- Unary ops ---
 
-class Reverse(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.reverse(self.x.eval())
 
 
 
 
-class Involute(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
 
-    def eval(self):
-        return _alg.involute(self.x.eval())
-
-
-
-
-class Conjugate(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.conjugate(self.x.eval())
 
 
 
@@ -452,52 +403,17 @@ class Grade(Expr):
 
 
 
-class Dual(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.dual(self.x.eval())
 
 
 
 
-class Undual(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.undual(self.x.eval())
 
 
 
 
-class Norm(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.norm(self.x.eval())
 
 
 
-
-class Unit(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.unit(self.x.eval())
-
-
-
-
-class Inverse(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.inverse(self.x.eval())
 
 
 
@@ -512,32 +428,11 @@ class Squared(Expr):
 
 
 
-class Exp(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.exp(self.x.eval())
 
 
 
 
-class Even(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
 
-    def eval(self):
-        return _alg.even_grades(self.x.eval())
-
-
-
-
-class Odd(Expr):
-    def __init__(self, x):
-        self.x = _coerce(x)
-
-    def eval(self):
-        return _alg.odd_grades(self.x.eval())
 
 
 
