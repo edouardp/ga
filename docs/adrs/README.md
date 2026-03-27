@@ -24,7 +24,7 @@ helps future contributors understand why certain choices were made.
 | [009](009-aliases-are-convenience.md) | Aliases Are Convenience, Not Separate Implementations | Accepted |
 | [010](010-complement-vs-dual.md) | Complement vs Dual — Metric-Independent Duality | Accepted |
 | [011](011-precomputed-multiplication-tables.md) | Precomputed Multiplication Tables | Accepted |
-| [012](012-unicode-repr-opt-in.md) | Unicode Repr with Opt-In Flag | Accepted |
+| [012](012-unicode-repr-opt-in.md) | Unicode Repr with Opt-In Flag | Superseded by 033 |
 | [013](013-symbolic-drop-in-pattern.md) | Symbolic Drop-In Replacement Pattern | Superseded by 018 |
 | [014](014-fixed-point-simplification.md) | Fixed-Point Simplification | Accepted |
 | [015](015-uv-workspace-monorepo.md) | uv Workspace for Monorepo | Accepted |
@@ -42,6 +42,10 @@ helps future contributors understand why certain choices were made.
 | [027](027-gp-spacing.md) | Geometric Product Spacing for Multi-Character Names | Accepted |
 | [028](028-mutating-configuration-methods.md) | Mutating Symbolic Configuration Methods | Accepted |
 | [029](029-configurable-notation.md) | Configurable Notation System | Accepted |
+| [030](030-topic-focused-example-notebooks.md) | Topic-Focused Example Notebooks | Accepted |
+| [031](031-complement-based-regressive-product.md) | Complement-Based Regressive Product | Accepted |
+| [032](032-dynamic-basis-blade-renaming.md) | Dynamic BasisBlade Renaming | Accepted |
+| [033](033-unicode-repr-default.md) | Unicode repr() by Default | Accepted |
 | [030](030-topic-focused-example-notebooks.md) | Topic-Focused Example Notebooks for GA Teaching | Accepted |
 
 ## Creating New ADRs
