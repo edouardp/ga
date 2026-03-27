@@ -325,6 +325,7 @@ Norm = _make_unary_expr('Norm', 'norm')
 Unit = _make_unary_expr('Unit', 'unit')
 Inverse = _make_unary_expr('Inverse', 'inverse')
 Exp = _make_unary_expr('Exp', 'exp')
+Log = _make_unary_expr('Log', 'log')
 Even = _make_unary_expr('Even', 'even_grades')
 Odd = _make_unary_expr('Odd', 'odd_grades')
 

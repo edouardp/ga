@@ -76,7 +76,7 @@ def _(
 
     Dual of {B}: $\\quad$  {dual(B)} = {dual(B).eval()}
 
-    {undual(dual(B))} = {undual(dual(B)).eval()}
+    Undual of Dual of {B}: $\\quad$ {undual(dual(B))} = {undual(dual(B)).eval()}
 
     Complement of {B}: $\\quad$  {complement(B)} = {complement(B).eval()}
 

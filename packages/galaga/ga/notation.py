@@ -147,6 +147,7 @@ _DEFAULTS: dict[str, dict[str, NotationRule]] = {
         "latex": NotationRule(kind="accent", latex_cmd=r"\hat", latex_wide_cmd=r"\widehat"),
     },
     "Exp": _wrap("exp(", ")", "e^{", "}"),
+    "Log": _wrap("log(", ")", r"\log\left(", r"\right)"),
     "Even": _wrap("⟨", "⟩₊", r"\langle ", r" \rangle_{\text{even}}"),
     "Odd": _wrap("⟨", "⟩₋", r"\langle ", r" \rangle_{\text{odd}}"),
     "Commutator": _wrap("[", "]", "[", "]"),

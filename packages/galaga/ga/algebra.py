@@ -1609,6 +1609,7 @@ def exp(B: Multivector) -> Multivector:
         return B.algebra.scalar(np.cosh(mag)) + np.sinh(mag) / mag * B
 
 
+@lazy_unary('Log')
 def log(R: Multivector) -> Multivector:
     """Rotor logarithm: extract the bivector B such that exp(B) = R.
 

@@ -36,7 +36,7 @@ from ga.symbolic import (
     Expr, Sym, Scalar,
     Gp, Op, Add, Sub, Neg, ScalarMul, ScalarDiv, Div,
     Reverse, Involute, Conjugate, Dual, Undual, Complement, Uncomplement,
-    Inverse, Squared, Exp,
+    Inverse, Squared, Exp, Log,
     Grade, Norm, Unit, Even, Odd,
     Lc, Rc, Hi, Dli, Sp, Regressive,
     Commutator, Anticommutator, LieBracket, JordanProduct,
@@ -80,7 +80,7 @@ INFO: dict[type, OpInfo] = {
     Regressive: OpInfo(70, Assoc.LEFT, flat=True),
     Add: OpInfo(60, Assoc.LEFT, flat=True), Sub: OpInfo(60, Assoc.LEFT),
     Grade: OpInfo(100), Norm: OpInfo(100), Unit: OpInfo(100),
-    Exp: OpInfo(100), Even: OpInfo(100), Odd: OpInfo(100),
+    Exp: OpInfo(100), Log: OpInfo(100), Even: OpInfo(100), Odd: OpInfo(100),
     Commutator: OpInfo(100), Anticommutator: OpInfo(100),
     LieBracket: OpInfo(100), JordanProduct: OpInfo(100),
 }

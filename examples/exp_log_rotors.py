@@ -29,14 +29,12 @@ def _():
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        """
-        # Exponentials, Logarithms, and Rotors
+    mo.md("""
+    # Exponentials, Logarithms, and Rotors
 
-        A bivector exponential produces a rotor. The logarithm recovers the bivector
-        generator when the rotor lies on the supported branch.
-        """
-    )
+    A bivector exponential produces a rotor. The logarithm recovers the bivector
+    generator when the rotor lies on the supported branch.
+    """)
     return
 
 
@@ -44,7 +42,7 @@ def _(mo):
 def _(Algebra):
     alg = Algebra((1, 1, 1), repr_unicode=True)
     e1, e2, e3 = alg.basis_vectors(lazy=True)
-    return e1, e2, e3
+    return alg, e1, e2
 
 
 @app.cell
@@ -55,9 +53,9 @@ def _(mo):
 
 
 @app.cell
-def _(angle, e1, e2, exp, gm, log, np):
-    _theta = np.radians(angle.value)
-    B = e1 * e2
+def _(alg, angle, e1, e2, exp, gm, log, np):
+    _theta = alg.scalar(np.radians(angle.value)).name(latex=r"\theta")
+    B = (e1 * e2).name("B")
     R = exp((-_theta / 2) * B)
     gm.md(t"""
     {B} = {B.eval()}
