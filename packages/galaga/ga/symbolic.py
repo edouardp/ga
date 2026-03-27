@@ -859,91 +859,63 @@ def sym(mv: _alg.Multivector, name: str | None = None, grade: int | None = None)
     return result
 
 
-def gp(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Gp(_ensure_expr(a), _ensure_expr(b))
-    return _alg.gp(a, b)
+# ============================================================
+# Drop-in replacements for ga.algebra functions
+# ============================================================
+# These detect lazy Multivector arguments and build Expr trees.
+# With plain eager Multivectors, they delegate to ga.algebra.
+
+def _make_binary_dropin(node_cls, alg_func):
+    """Generate a binary drop-in that builds node_cls for symbolic args."""
+    def dropin(a, b):
+        if _is_symbolic(a) or _is_symbolic(b):
+            return node_cls(_ensure_expr(a), _ensure_expr(b))
+        return alg_func(a, b)
+    dropin.__name__ = alg_func.__name__
+    dropin.__doc__ = alg_func.__doc__
+    return dropin
 
 
-def op(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Op(_ensure_expr(a), _ensure_expr(b))
-    return _alg.op(a, b)
+def _make_unary_dropin(node_cls, alg_func):
+    """Generate a unary drop-in that builds node_cls for symbolic args."""
+    def dropin(x):
+        if _is_symbolic(x):
+            return node_cls(_ensure_expr(x))
+        return alg_func(x)
+    dropin.__name__ = alg_func.__name__
+    dropin.__doc__ = alg_func.__doc__
+    return dropin
 
 
-def left_contraction(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Lc(_ensure_expr(a), _ensure_expr(b))
-    return _alg.left_contraction(a, b)
-
-
-def right_contraction(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Rc(_ensure_expr(a), _ensure_expr(b))
-    return _alg.right_contraction(a, b)
-
-
-def hestenes_inner(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Hi(_ensure_expr(a), _ensure_expr(b))
-    return _alg.hestenes_inner(a, b)
-
-
-def doran_lasenby_inner(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Dli(_ensure_expr(a), _ensure_expr(b))
-    return _alg.doran_lasenby_inner(a, b)
-
-
+# Binary drop-ins
+gp = _make_binary_dropin(Gp, _alg.gp)
+op = _make_binary_dropin(Op, _alg.op)
+left_contraction = _make_binary_dropin(Lc, _alg.left_contraction)
+right_contraction = _make_binary_dropin(Rc, _alg.right_contraction)
+hestenes_inner = _make_binary_dropin(Hi, _alg.hestenes_inner)
+doran_lasenby_inner = _make_binary_dropin(Dli, _alg.doran_lasenby_inner)
 dorst_inner = doran_lasenby_inner
+scalar_product = _make_binary_dropin(Sp, _alg.scalar_product)
+commutator = _make_binary_dropin(Commutator, _alg.commutator)
+anticommutator = _make_binary_dropin(Anticommutator, _alg.anticommutator)
+lie_bracket = _make_binary_dropin(LieBracket, _alg.lie_bracket)
+jordan_product = _make_binary_dropin(JordanProduct, _alg.jordan_product)
 
+# Unary drop-ins
+reverse = _make_unary_dropin(Reverse, _alg.reverse)
+involute = _make_unary_dropin(Involute, _alg.involute)
+conjugate = _make_unary_dropin(Conjugate, _alg.conjugate)
+dual = _make_unary_dropin(Dual, _alg.dual)
+undual = _make_unary_dropin(Undual, _alg.undual)
+norm = _make_unary_dropin(Norm, _alg.norm)
+unit = _make_unary_dropin(Unit, _alg.unit)
+inverse = _make_unary_dropin(Inverse, _alg.inverse)
+squared = _make_unary_dropin(Squared, _alg.squared)
+even_grades = _make_unary_dropin(Even, _alg.even_grades)
+odd_grades = _make_unary_dropin(Odd, _alg.odd_grades)
 
-def scalar_product(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Sp(_ensure_expr(a), _ensure_expr(b))
-    return _alg.scalar_product(a, b)
-
-
-def commutator(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Commutator(_ensure_expr(a), _ensure_expr(b))
-    return _alg.commutator(a, b)
-
-
-def anticommutator(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return Anticommutator(_ensure_expr(a), _ensure_expr(b))
-    return _alg.anticommutator(a, b)
-
-
-def lie_bracket(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return LieBracket(_ensure_expr(a), _ensure_expr(b))
-    return _alg.lie_bracket(a, b)
-
-
-def jordan_product(a, b):
-    if _is_symbolic(a) or _is_symbolic(b):
-        return JordanProduct(_ensure_expr(a), _ensure_expr(b))
-    return _alg.jordan_product(a, b)
-
-
-def reverse(x):
-    if _is_symbolic(x):
-        return Reverse(_ensure_expr(x))
-    return _alg.reverse(x)
-
-
-def involute(x):
-    if _is_symbolic(x):
-        return Involute(_ensure_expr(x))
-    return _alg.involute(x)
-
-
-def conjugate(x):
-    if _is_symbolic(x):
-        return Conjugate(_ensure_expr(x))
-    return _alg.conjugate(x)
+normalize = unit
+normalise = unit
 
 
 def grade(x, k):
@@ -955,40 +927,6 @@ def grade(x, k):
             return Odd(e)
         return Grade(e, k)
     return _alg.grade(x, k)
-
-
-def dual(x):
-    if _is_symbolic(x):
-        return Dual(_ensure_expr(x))
-    return _alg.dual(x)
-
-
-def undual(x):
-    if _is_symbolic(x):
-        return Undual(_ensure_expr(x))
-    return _alg.undual(x)
-
-
-def norm(x):
-    if _is_symbolic(x):
-        return Norm(_ensure_expr(x))
-    return _alg.norm(x)
-
-
-def unit(x):
-    if _is_symbolic(x):
-        return Unit(_ensure_expr(x))
-    return _alg.unit(x)
-
-
-def inverse(x):
-    if _is_symbolic(x):
-        return Inverse(_ensure_expr(x))
-    return _alg.inverse(x)
-
-
-normalize = unit
-normalise = unit
 
 
 def ip(a, b, mode: str = "doran_lasenby"):
@@ -1010,12 +948,6 @@ def ip(a, b, mode: str = "doran_lasenby"):
     return _alg.ip(a, b, mode=mode)
 
 
-def squared(x):
-    if _is_symbolic(x):
-        return Squared(_ensure_expr(x))
-    return _alg.squared(x)
-
-
 def sandwich(r, x):
     if _is_symbolic(r) or _is_symbolic(x):
         re = _ensure_expr(r)
@@ -1026,16 +958,5 @@ def sandwich(r, x):
 
 sw = sandwich
 
-
-def even_grades(x):
-    if _is_symbolic(x):
-        return Even(_ensure_expr(x))
-    return _alg.even_grades(x)
-
-
-def odd_grades(x):
-    if _is_symbolic(x):
-        return Odd(_ensure_expr(x))
-    return _alg.odd_grades(x)
 
 
