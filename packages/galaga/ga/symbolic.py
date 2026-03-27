@@ -64,16 +64,10 @@ from __future__ import annotations
 from typing import Union
 import ga.algebra as _alg
 
-_SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
 
 # Unicode combining characters for postfix decorations.
 # These are appended directly after a character to modify its appearance.
 # E.g., "R" + _REVERSE → "R̃" (R with combining tilde above).
-_REVERSE = "\u0303"      # combining tilde: R̃
-_HAT = "\u0302"          # combining circumflex: x̂
-_INVOLUTE = "\u0302"     # same hat for involute (standard notation)
-_CONJUGATE = "\u0304"    # combining macron: x̄
-_DAGGER = "\u0020\u0334" # †
 
 
 def _coerce(x):
