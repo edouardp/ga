@@ -167,6 +167,73 @@ class TestRewriteFracInSup:
         assert emit(result) == r"\frac{a}{b} + \tilde{x}"
 
 
+# ── rewrite: collapse nested Parens ──
+
+class TestRewriteNestedParens:
+    def test_double_parens(self):
+        tree = Parens(Parens(Text("a")))
+        assert emit(rewrite(tree)) == r"\left(a\right)"
+
+    def test_triple_parens(self):
+        tree = Parens(Parens(Parens(Text("x"))))
+        assert emit(rewrite(tree)) == r"\left(x\right)"
+
+    def test_parens_around_non_parens_unchanged(self):
+        tree = Parens(Text("a+b"))
+        assert emit(rewrite(tree)) == r"\left(a+b\right)"
+
+    def test_parens_in_seq_collapsed(self):
+        tree = Seq([Parens(Parens(Text("a"))), Text("+"), Text("b")])
+        assert emit(rewrite(tree)) == r"\left(a\right)+b"
+
+
+# ── rewrite: hoist negation out of fractions ──
+
+class TestRewriteHoistNeg:
+    def test_neg_num_hoisted(self):
+        """\\frac{-a}{b} → -\\frac{a}{b}"""
+        tree = Frac(Seq([Text("-"), Text("a")]), Text("b"))
+        result = rewrite(tree)
+        assert emit(result) == r"-\frac{a}{b}"
+
+    def test_neg_text_hoisted(self):
+        """\\frac{-a}{2} where num is Text('-a') — no hoist (can't split Text)."""
+        tree = Frac(Text("-a"), Text("2"))
+        # Text node starting with - is not a structured negation, no hoist
+        assert emit(rewrite(tree)) == r"\frac{-a}{2}"
+
+    def test_no_neg_unchanged(self):
+        tree = Frac(Text("a"), Text("b"))
+        assert emit(rewrite(tree)) == r"\frac{a}{b}"
+
+    def test_neg_in_sup_frac_hoisted_before_slash(self):
+        """In superscript: frac becomes slash, neg hoists: -(a/b)? No — should be -a/b."""
+        tree = Sup(Text("e"), Frac(Seq([Text("-"), Text("a")]), Text("2")))
+        assert emit(rewrite(tree)) == r"e^{-a/2}"
+
+
+# ── rewrite: simplify frac with 1 ──
+
+class TestRewriteFracOne:
+    def test_frac_over_1(self):
+        """\\frac{a}{1} → a"""
+        tree = Frac(Text("a"), Text("1"))
+        assert emit(rewrite(tree)) == "a"
+
+    def test_frac_complex_over_1(self):
+        tree = Frac(Seq([Text("a"), Text("+"), Text("b")]), Text("1"))
+        assert emit(rewrite(tree)) == "a+b"
+
+    def test_frac_over_1_in_sup(self):
+        """In superscript, frac/1 simplifies before slash conversion."""
+        tree = Sup(Text("e"), Frac(Text("x"), Text("1")))
+        assert emit(rewrite(tree)) == "e^{x}"
+
+    def test_frac_normal_denom_unchanged(self):
+        tree = Frac(Text("a"), Text("2"))
+        assert emit(rewrite(tree)) == r"\frac{a}{2}"
+
+
 # ── rewrite: idempotent ──
 
 class TestRewriteIdempotent:
