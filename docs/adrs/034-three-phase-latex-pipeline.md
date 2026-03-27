@@ -8,11 +8,7 @@ deciders: edouard
 
 ## Context and Problem Statement
 
-The original LaTeX renderer was a single recursive function that walked
-the Expr tree and produced strings directly. Some typesetting decisions
-depend on context that isn't available during a single walk — e.g.
-`\frac` should become inline `/` when inside a superscript. A string-
-replace hack was used initially but was fragile.
+The original LaTeX renderer was a single recursive function that walked the Expr tree and produced strings directly. Some typesetting decisions depend on context that isn't available during a single walk — e.g. `\frac` should become inline `/` when inside a superscript. A string-replace hack was used initially but was fragile.
 
 ## Decision Outcome
 

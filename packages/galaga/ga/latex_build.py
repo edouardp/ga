@@ -118,7 +118,10 @@ def _build(node: Expr, n: Notation) -> LNode:
     # Prefix unary
     if rule.kind == "prefix" and hasattr(node, 'x'):
         inner = _wp(_build(node.x, n), node.x, 95)
-        return Seq([Text(rule.symbol), inner])
+        # LaTeX commands (e.g. \tilde) need a space before the operand
+        # to avoid running together: \tilde v not \tildev
+        sep = " " if rule.symbol.startswith("\\") and rule.symbol[-1:].isalpha() else ""
+        return Seq([Text(rule.symbol), inner], sep=sep)
 
     # Accent (combining diacritical or wide accent)
     if rule.kind == "accent" and hasattr(node, 'x'):
