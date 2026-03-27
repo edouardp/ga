@@ -133,6 +133,11 @@ def _build(node: Expr, n: Notation) -> LNode:
     # Postfix
     if rule.kind == "postfix" and hasattr(node, 'x'):
         inner = _wp(_build(node.x, n), node.x, 96)
+        # If the postfix symbol starts with ^ (superscript) and the child
+        # already rendered as a Sup, wrap in braces to avoid double-superscript:
+        # {e^{x}}^{\dagger} not e^{x}^{\dagger}
+        if rule.symbol.startswith("^") and isinstance(inner, Sup):
+            inner = Seq([Text("{"), inner, Text("}")])
         return Seq([inner, Text(rule.symbol)])
 
     # Wrap (delimiters around content)

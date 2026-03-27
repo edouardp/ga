@@ -20,6 +20,7 @@ def _():
 @app.cell
 def _():
     import marimo as mo
+
     return (mo,)
 
 
@@ -31,23 +32,49 @@ def _():
         Algebra, exp, log, dual, undual, inverse, reverse,
         complement, uncomplement,
     )
-    return np, gm, Algebra, exp, log, dual, undual, inverse, reverse, complement, uncomplement
+    from ga.notation import Notation, NotationRule
+
+    return (
+        Algebra,
+        Notation,
+        NotationRule,
+        complement,
+        dual,
+        exp,
+        gm,
+        inverse,
+        log,
+        np,
+        reverse,
+        undual,
+    )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""# LaTeX Render Tree Rewrites""")
+    mo.md(r"""
+    # LaTeX Render Tree Rewrites
+    """)
     return
 
 
 @app.cell
-def _(Algebra):
-    _alg = Algebra((1, 1, 1))
-    e1, e2, e3 = _alg.basis_vectors(lazy=True)
-    return e1, e2, e3, _alg
+def _(Notation, NotationRule):
+    n = Notation()  # start from default
+    n.set("Reverse", "unicode", NotationRule(kind="postfix", symbol="†"))
+    n.set("Reverse", "latex", NotationRule(kind="postfix", symbol=r"^\dagger"))
+    n.set("Reverse", "ascii", NotationRule(kind="postfix", symbol="dag"))
+    return (n,)
 
 
 @app.cell
+def _(Algebra, n):
+    alg = Algebra((1, 1, 1), notation=n)
+    e1, e2, e3 = alg.basis_vectors(lazy=True)
+    return alg, e1, e2, e3
+
+
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## Rewrite 1: Fractions become inline slash in superscripts
@@ -59,8 +86,8 @@ def _(mo):
 
 
 @app.cell
-def _(e1, e2, _alg, np, gm, exp):
-    _theta = _alg.scalar(np.radians(45)).name(latex=r"\theta")
+def _(alg, e1, e2, exp, gm, np):
+    _theta = alg.scalar(np.radians(45)).name(latex=r"\theta")
     _B = (e1 * e2).name("B")
     _R = exp((-_theta / 2) * _B)
 
@@ -77,8 +104,8 @@ def _(e1, e2, _alg, np, gm, exp):
 
 
 @app.cell
-def _(e1, _alg, np, gm, exp):
-    _phi = _alg.scalar(np.pi / 6).name(latex=r"\phi")
+def _(alg, e1, exp, gm, np):
+    _phi = alg.scalar(np.pi / 6).name(latex=r"\phi")
     _n = e1.name(latex=r"\hat{n}")
     _R2 = exp((-_phi / 4) * _n)
 
@@ -92,7 +119,7 @@ def _(e1, _alg, np, gm, exp):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     Meanwhile, fractions **outside** superscripts still render as proper
@@ -114,7 +141,7 @@ def _(e1, gm):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## Rewrite 2: Collapse nested parentheses
@@ -127,7 +154,7 @@ def _(mo):
 
 
 @app.cell
-def _(e1, gm, dual, undual, inverse, complement):
+def _(complement, dual, e1, gm, inverse, undual):
     _v = e1.name("v")
 
     with gm.doc() as _d:
@@ -146,7 +173,7 @@ def _(e1, gm, dual, undual, inverse, complement):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## Rewrite 3: Hoist negation out of fractions
@@ -159,8 +186,8 @@ def _(mo):
 
 
 @app.cell
-def _(e1, e2, _alg, np, gm, exp):
-    _alpha = _alg.scalar(np.radians(30)).name(latex=r"\alpha")
+def _(alg, e1, e2, exp, gm, np):
+    _alpha = alg.scalar(np.radians(30)).name(latex=r"\alpha")
     _B = (e1 * e2).name("B")
 
     with gm.doc() as _d:
@@ -175,7 +202,7 @@ def _(e1, e2, _alg, np, gm, exp):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## Rewrite 4: Simplify trivial denominators
@@ -203,7 +230,7 @@ def _(e1, gm):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ## Combined: all rewrites in a physics expression
@@ -214,8 +241,9 @@ def _(mo):
 
 
 @app.cell
-def _(e1, e2, e3, _alg, np, gm, exp, log, reverse):
-    _theta = _alg.scalar(np.radians(60)).name(latex=r"\theta")
+def _(alg, e1, e2, e3, exp, gm, log, np, reverse):
+    _theta = alg.scalar(np.radians(60)).name(latex=r"\theta")
+
     _B = (e1 * e2).name("B")
     _v = (3 * e1 + 4 * e2 + e3).name("v")
     _R = exp((-_theta / 2) * _B)
@@ -235,6 +263,25 @@ def _(e1, e2, e3, _alg, np, gm, exp, log, reverse):
         Log of rotor: {log(_R)} = {log(_R).eval()}
         """)
     _d.render()
+    return
+
+
+@app.cell
+def _(alg, e1, e2, e3, exp, np, reverse):
+    _theta = alg.scalar(np.radians(60)).name(latex=r"\theta")
+
+    _B = (e1 * e2).name("B")
+    _v = (3 * e1 + 4 * e2 + e3).name("v")
+    _R = exp((-_theta / 2) * _B)
+
+    _rotated = _R * _v * reverse(_R)
+
+    _rotated.latex()
+    return
+
+
+@app.cell
+def _():
     return
 
 

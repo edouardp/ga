@@ -221,5 +221,5 @@ class Notation:
         n = Notation()
         n.set("Reverse", "unicode", NotationRule(kind="postfix", symbol="†"))
         n.set("Reverse", "ascii", NotationRule(kind="postfix", symbol="dag"))
-        n.set("Reverse", "latex", NotationRule(kind="postfix", symbol="^\\dagger"))
+        n.set("Reverse", "latex", NotationRule(kind="postfix", symbol="^{\\dagger}"))
         return n
