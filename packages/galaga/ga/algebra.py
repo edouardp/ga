@@ -151,7 +151,7 @@ class Algebra:
                       If False (default), ``repr()`` uses ASCII for copy-paste.
     """
 
-    __slots__ = ("_sig", "_dim", "_n", "_mul_index", "_mul_sign", "_grade_masks", "_names", "_latex_names", "_repr_unicode", "_complement_sign", "_blades")
+    __slots__ = ("_sig", "_dim", "_n", "_mul_index", "_mul_sign", "_grade_masks", "_names", "_latex_names", "_repr_unicode", "_complement_sign", "_blades", "_notation")
 
     # Built-in naming presets: (code_names, unicode_names, latex_names)
     # code_names  → used in repr() (ASCII-safe)
@@ -172,7 +172,9 @@ class Algebra:
         ),
     }
 
-    def __init__(self, signature: tuple[int, ...], names: str | tuple[list[str], list[str]] | None = None, repr_unicode: bool = False):
+    def __init__(self, signature: tuple[int, ...], names: str | tuple[list[str], list[str]] | None = None, repr_unicode: bool = False, notation: 'Notation | None' = None):
+        from ga.notation import Notation
+        self._notation = notation or Notation()
         """Create a Clifford algebra from a metric signature.
 
         Args:
@@ -303,6 +305,11 @@ class Algebra:
     @property
     def dim(self) -> int:
         return self._dim
+
+    @property
+    def notation(self):
+        """The Notation object controlling symbolic rendering."""
+        return self._notation
 
     def basis_vectors(self, lazy: bool = False) -> tuple[Multivector, ...]:
         """Return the n basis 1-vectors (named + eager by default).
@@ -977,7 +984,7 @@ class Multivector:
             return self._name
         if self._is_lazy and self._expr is not None:
             from ga.render import render
-            return render(self._expr)
+            return render(self._expr, self.algebra._notation)
         return self._format(unicode=True)
 
     def __format__(self, spec: str) -> str:
@@ -992,14 +999,14 @@ class Multivector:
                 return self._name_unicode
             if self._is_lazy and self._expr is not None:
                 from ga.render import render
-                return render(self._expr)
+                return render(self._expr, self.algebra._notation)
             return self._format(unicode=True)
         if spec in ("ascii", "a"):
             if self._name is not None:
                 return self._name
             if self._is_lazy and self._expr is not None:
                 from ga.render import render
-                return render(self._expr)
+                return render(self._expr, self.algebra._notation)
             return self._format(unicode=False)
         # Numeric format spec — apply to each coefficient, no threshold
         alg = self.algebra

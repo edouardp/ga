@@ -857,7 +857,7 @@ class TestLatex:
     def test_involute(self, cl3):
         e1, _, _ = cl3.basis_vectors()
         v = sym(e1, "v")
-        assert sinvolute(v).latex() == r"v^\dagger"
+        assert sinvolute(v).latex() == r"\hat{v}"
 
     def test_conjugate(self, cl3):
         e1, _, _ = cl3.basis_vectors()

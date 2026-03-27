@@ -2,28 +2,16 @@
 
 A standalone visitor that walks an Expr tree and produces correctly
 parenthesized unicode or LaTeX output. Operation metadata (precedence,
-associativity, flattenability) is stored in a registry, not hardcoded
-per-node.
-
-Precedence levels (higher = binds tighter):
-    100  Atoms: Sym, Scalar
-     95  Postfix unary: Reverse, Involute, Conjugate, Dual, Undual,
-         Inverse, Squared
-     90  Prefix unary: Neg
-     80  Geometric product, ScalarMul, ScalarDiv
-     70  Wedge, contractions, inner products, Div
-     60  Add, Sub
-
-Bracket-style ops (Grade, Norm, Unit, Exp, Commutator family) have
-explicit delimiters so they never need precedence-based parens.
+associativity, flattenability) is stored in a registry. Rendering
+rules come from a Notation object (configurable per-algebra).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable
 
+from ga.notation import Notation, NotationRule
 from ga.symbolic import (
     Expr, Sym, Scalar,
     Gp, Op, Add, Sub, Neg, ScalarMul, ScalarDiv, Div,
@@ -35,10 +23,6 @@ from ga.symbolic import (
 )
 
 _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-_REVERSE = "\u0303"
-_INVOLUTE = "\u0302"
-_CONJUGATE = "\u0304"
-_HAT = "\u0302"
 
 # Subscript/superscript codepoint ranges
 _SUB_SUPER = set("₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔₕₖₗₘₙₚₛₜ"
@@ -46,12 +30,11 @@ _SUB_SUPER = set("₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔ�
 
 
 def _base_len(s: str) -> int:
-    """Count 'base' characters, ignoring combining marks and sub/superscripts."""
     import unicodedata
     n = 0
     for c in s:
         cat = unicodedata.category(c)
-        if cat.startswith("M"):  # combining marks (Mn, Mc, Me)
+        if cat.startswith("M"):
             continue
         if c in _SUB_SUPER:
             continue
@@ -60,12 +43,11 @@ def _base_len(s: str) -> int:
 
 
 def _is_single_char_name(s: str) -> bool:
-    """True if s is visually a single character (ignoring diacriticals/subscripts)."""
     return _base_len(s) == 1
 
 
 # ============================================================
-# Operation metadata
+# Precedence
 # ============================================================
 
 class Assoc(Enum):
@@ -76,74 +58,43 @@ class Assoc(Enum):
 
 @dataclass(frozen=True, slots=True)
 class OpInfo:
-    """Metadata for an expression node type."""
     prec: int
     assoc: Assoc = Assoc.NONE
-    flat: bool = False  # True if associative and can be flattened (a∧b∧c)
+    flat: bool = False
 
 
-# Registry: node type → metadata
 INFO: dict[type, OpInfo] = {
-    # Atoms
-    Sym:     OpInfo(100),
-    Scalar:  OpInfo(100),
-
-    # Postfix unary
-    Reverse:   OpInfo(95),
-    Involute:  OpInfo(95),
-    Conjugate: OpInfo(95),
-    Dual:      OpInfo(95),
-    Undual:    OpInfo(95),
-    Inverse:   OpInfo(95),
-    Squared:   OpInfo(95),
-
-    # Prefix unary
-    Neg:       OpInfo(90),
-    ScalarMul: OpInfo(80),
-    ScalarDiv: OpInfo(80),
-
-    # Binary multiplicative
-    Gp:  OpInfo(80, Assoc.LEFT, flat=True),
-    Op:  OpInfo(70, Assoc.LEFT, flat=True),
-    Lc:  OpInfo(70, Assoc.LEFT),
-    Rc:  OpInfo(70, Assoc.LEFT),
-    Hi:  OpInfo(70, Assoc.LEFT),
-    Dli: OpInfo(70, Assoc.LEFT),
-    Sp:  OpInfo(70, Assoc.LEFT),
-    Div: OpInfo(70, Assoc.LEFT),
-
-    # Additive
+    Sym: OpInfo(100), Scalar: OpInfo(100),
+    Reverse: OpInfo(95), Involute: OpInfo(95), Conjugate: OpInfo(95),
+    Dual: OpInfo(95), Undual: OpInfo(95), Inverse: OpInfo(95), Squared: OpInfo(95),
+    Neg: OpInfo(90), ScalarMul: OpInfo(80), ScalarDiv: OpInfo(80),
+    Gp: OpInfo(80, Assoc.LEFT, flat=True),
+    Op: OpInfo(70, Assoc.LEFT, flat=True),
+    Lc: OpInfo(70, Assoc.LEFT), Rc: OpInfo(70, Assoc.LEFT),
+    Hi: OpInfo(70, Assoc.LEFT), Dli: OpInfo(70, Assoc.LEFT),
+    Sp: OpInfo(70, Assoc.LEFT), Div: OpInfo(70, Assoc.LEFT),
     Add: OpInfo(60, Assoc.LEFT, flat=True),
     Sub: OpInfo(60, Assoc.LEFT),
-
-    # Bracket-style (explicit delimiters — never need outer parens)
-    Grade:           OpInfo(100),
-    Norm:            OpInfo(100),
-    Unit:            OpInfo(100),
-    Exp:             OpInfo(100),
-    Even:            OpInfo(100),
-    Odd:             OpInfo(100),
-    Commutator:      OpInfo(100),
-    Anticommutator:  OpInfo(100),
-    LieBracket:      OpInfo(100),
-    JordanProduct:   OpInfo(100),
+    Grade: OpInfo(100), Norm: OpInfo(100), Unit: OpInfo(100),
+    Exp: OpInfo(100), Even: OpInfo(100), Odd: OpInfo(100),
+    Commutator: OpInfo(100), Anticommutator: OpInfo(100),
+    LieBracket: OpInfo(100), JordanProduct: OpInfo(100),
 }
 
+_BINARY_CHILD_MIN = {
+    Gp: 80, Op: 81,
+    Lc: 71, Rc: 71, Hi: 71, Dli: 71, Sp: 71,
+}
 
-def _info(node: Expr) -> OpInfo:
-    return INFO.get(type(node), OpInfo(0))
+_NODE_NAME = {cls: cls.__name__ for cls in INFO}
 
 
-# ============================================================
-# Wrapping logic
-# ============================================================
+def _prec(node: Expr) -> int:
+    return INFO.get(type(node), OpInfo(0)).prec
+
 
 def _needs_wrap(child: Expr, min_prec: int, parent_type: type = None) -> bool:
-    """Does child need parens in a context requiring min_prec?
-
-    If parent is flattenable and child is the same type, no wrap needed.
-    """
-    ci = _info(child)
+    ci = INFO.get(type(child), OpInfo(0))
     if parent_type is not None:
         pi = INFO.get(parent_type)
         if pi and pi.flat and type(child) is parent_type:
@@ -163,87 +114,46 @@ def _wrap_latex(s: str, child: Expr, min_prec: int, parent_type: type = None) ->
     return s
 
 
-# ============================================================
-# Binary op symbols
-# ============================================================
-
-_BINARY_UNICODE = {
-    Op: "∧", Lc: "⌋", Rc: "⌊", Hi: "·", Dli: "·", Sp: "∗",
-}
-
-_BINARY_LATEX = {
-    Op: r" \wedge ", Lc: r" \;\lrcorner\; ", Rc: r" \;\llcorner\; ",
-    Hi: r" \cdot ", Dli: r" \cdot ", Sp: r" * ",
-}
-
-# Threshold for wrapping children of binary ops.
-# Children must have prec >= this to avoid wrapping.
-# For Gp (prec 80): children at 80+ are fine (Gp, ScalarMul).
-# For Op (prec 70): children must be > 80 to avoid ambiguity with ScalarMul.
-_BINARY_CHILD_MIN = {
-    Gp: 80,
-    Op: 81,  # ScalarMul (80) inside Op needs wrapping
-    Lc: 71, Rc: 71, Hi: 71, Dli: 71, Sp: 71,
-}
-
-
-# ============================================================
-# Postfix unary decorations
-# ============================================================
-
-_POSTFIX_UNICODE = {
-    Reverse: _REVERSE, Involute: _INVOLUTE, Conjugate: _CONJUGATE,
-    Dual: "⋆", Undual: "⋆⁻¹", Inverse: "⁻¹", Squared: "²",
-}
-
-# Combining diacriticals only work on single letters.
-# For compound expressions, use these prefix/wrap fallbacks instead.
-_COMPOUND_FALLBACK = {
-    Reverse:   ("~", None),      # ~(expr)
-    Involute:  ("inv(", ")"),     # inv(expr)
-    Conjugate: ("conj(", ")"),    # conj(expr)
-}
-
-_POSTFIX_LATEX_FMT = {
-    Involute:  r"{inner}^\dagger",
-    Dual:      r"{inner}^*",
-    Undual:    r"{inner}^{{*^{{-1}}}}",
-    Inverse:   r"{inner}^{{-1}}",
-    Squared:   r"{inner}^2",
-}
-
-
-def _latex_postfix(t: type, inner: str, node: Expr) -> str:
-    """Render postfix unary in LaTeX, using wide accents for compound expressions."""
-    is_atom = isinstance(node.x, (Sym, Scalar))
-    if t is Reverse:
-        return rf"\widetilde{{{inner}}}" if not is_atom else rf"\tilde{{{inner}}}"
-    if t is Conjugate:
-        return rf"\overline{{{inner}}}" if not is_atom else rf"\bar{{{inner}}}"
-    fmt = _POSTFIX_LATEX_FMT[t]
-    return fmt.format(inner=inner)
-
-
 def _has_multichar_name(node: Expr) -> bool:
-    """True if node is (or contains at the edge) a multi-char Sym name."""
     if isinstance(node, Sym):
         return not _is_single_char_name(node._name)
-    if isinstance(node, ScalarMul):
+    if isinstance(node, (ScalarMul, Neg)):
         return _has_multichar_name(node.x)
-    if isinstance(node, Neg):
-        return _has_multichar_name(node.x)
-    # Postfix unary — the decorated name might be multi-char visually
     if isinstance(node, (Reverse, Involute, Conjugate, Dual, Undual, Inverse, Squared)):
         return _has_multichar_name(node.x)
     return False
+
+
+# Default notation singleton
+_DEFAULT_NOTATION = Notation()
+
+
+# ============================================================
+# Rendering helpers
+# ============================================================
+
+def _render_accent_unicode(rule: NotationRule, inner: str, is_atom: bool) -> str:
+    if is_atom and rule.combining:
+        return f"{inner}{rule.combining}"
+    if rule.fallback_prefix:
+        return f"{rule.fallback_prefix}({inner})"
+    return f"{inner}{rule.combining}"
+
+
+def _render_accent_latex(rule: NotationRule, inner: str, is_atom: bool) -> str:
+    if is_atom:
+        return f"{rule.latex_cmd}{{{inner}}}"
+    return f"{rule.latex_wide_cmd}{{{inner}}}"
 
 
 # ============================================================
 # Unicode renderer
 # ============================================================
 
-def render(node: Expr) -> str:
+def render(node: Expr, notation: Notation | None = None) -> str:
+    n = notation or _DEFAULT_NOTATION
     t = type(node)
+    name = _NODE_NAME.get(t, "")
 
     # Atoms
     if t is Sym:
@@ -251,97 +161,80 @@ def render(node: Expr) -> str:
     if t is Scalar:
         return f"{node._value:g}"
 
-    # Prefix unary
-    if t is Neg:
-        inner = render(node.x)
-        return f"-{_wrap(inner, node.x, 61)}"
+    # ScalarMul / ScalarDiv — special handling
     if t is ScalarMul:
+        inner = render(node.x, n)
         if node.k == -1:
-            return f"-{_wrap(render(node.x), node.x, 61)}"
-        return f"{node.k:g}{_wrap(render(node.x), node.x, 61)}"
+            return f"-{_wrap(inner, node.x, 61)}"
+        return f"{node.k:g}{_wrap(inner, node.x, 61)}"
     if t is ScalarDiv:
-        inner = render(node.x)
+        inner = render(node.x, n)
         return f"{_wrap(inner, node.x, 70)}/{node.k:g}"
 
-    # Binary with infix symbol (wedge, contractions, inner products)
-    if t in _BINARY_UNICODE:
-        sym = _BINARY_UNICODE[t]
-        min_p = _BINARY_CHILD_MIN.get(t, 71)
-        left = _wrap(render(node.a), node.a, min_p, parent_type=t)
-        right = _wrap(render(node.b), node.b, min_p, parent_type=t)
-        return f"{left}{sym}{right}"
+    # Neg
+    if t is Neg:
+        inner = render(node.x, n)
+        return f"-{_wrap(inner, node.x, 61)}"
 
-    # Geometric product (juxtaposition — no symbol)
+    # Geometric product (juxtaposition with smart spacing)
     if t is Gp:
-        left = _wrap(render(node.a), node.a, 80, parent_type=Gp)
-        right = _wrap(render(node.b), node.b, 80, parent_type=Gp)
-        # Space if either immediate child has a multi-char name
+        left = _wrap(render(node.a, n), node.a, 80, parent_type=Gp)
+        right = _wrap(render(node.b, n), node.b, 80, parent_type=Gp)
         if _has_multichar_name(node.a) or _has_multichar_name(node.b):
             return f"{left} {right}"
         return f"{left}{right}"
 
-    # Div (unicode uses /)
+    # Div (unicode uses / with tight denom wrapping)
     if t is Div:
-        left = _wrap(render(node.a), node.a, 71)
-        right = _wrap(render(node.b), node.b, 95)  # denom needs tight wrapping
+        left = _wrap(render(node.a, n), node.a, 71)
+        right = _wrap(render(node.b, n), node.b, 95)
         return f"{left}/{right}"
 
-    # Addition / subtraction
+    # Add/Sub
     if t is Add:
-        left = _wrap(render(node.a), node.a, 60, parent_type=Add)
-        right = render(node.b)
-        return f"{left} + {right}"
+        left = _wrap(render(node.a, n), node.a, 60, parent_type=Add)
+        return f"{left} + {render(node.b, n)}"
     if t is Sub:
-        left = render(node.a)
-        right = _wrap(render(node.b), node.b, 61)
+        left = render(node.a, n)
+        right = _wrap(render(node.b, n), node.b, 61)
         return f"{left} - {right}"
 
-    # Postfix unary
-    if t in _POSTFIX_UNICODE:
-        suffix = _POSTFIX_UNICODE[t]
-        inner = render(node.x)
-        is_atom = isinstance(node.x, (Sym, Scalar))
-        if is_atom:
-            # Combining diacritical on single letter
-            return f"{inner}{suffix}"
-        elif t in _COMPOUND_FALLBACK:
-            # Combining chars don't work on compound expressions
-            prefix, close = _COMPOUND_FALLBACK[t]
-            wrapped = _wrap(inner, node.x, 95)
-            if close is not None:
-                return f"{prefix}{inner}{close}"
-            else:
-                return f"{prefix}{wrapped}"
-        else:
-            # Suffix chars (⋆, ⁻¹, ²) work fine on parens
-            return f"{_wrap(inner, node.x, 95)}{suffix}"
+    # Infix binary ops (Op, Lc, Rc, Hi, Dli, Sp)
+    rule = n.get(name, "unicode")
+    if rule and rule.kind == "infix":
+        min_p = _BINARY_CHILD_MIN.get(t, 71)
+        left = _wrap(render(node.a, n), node.a, min_p, parent_type=t)
+        right = _wrap(render(node.b, n), node.b, min_p, parent_type=t)
+        return f"{left}{rule.separator}{right}"
 
-    # Bracket-style (explicit delimiters)
-    if t is Grade:
-        sub = str(node.k).translate(_SUBSCRIPTS)
-        return f"⟨{render(node.x)}⟩{sub}"
-    if t is Norm:
-        return f"‖{render(node.x)}‖"
+    # Unit — special: hat for single-char atoms, fraction for compounds
     if t is Unit:
-        if isinstance(node.x, Sym) and len(str(node.x)) == 1:
-            return f"{render(node.x)}{_HAT}"
-        return f"{_wrap(render(node.x), node.x, 70)}/‖{render(node.x)}‖"
-    if t is Exp:
-        return f"exp({render(node.x)})"
-    if t is Even:
-        return f"⟨{render(node.x)}⟩₊"
-    if t is Odd:
-        return f"⟨{render(node.x)}⟩₋"
+        if isinstance(node.x, Sym) and _is_single_char_name(str(node.x)):
+            ur = n.get("Unit", "unicode")
+            if ur and ur.combining:
+                return f"{render(node.x, n)}{ur.combining}"
+        inner = render(node.x, n)
+        return f"{_wrap(inner, node.x, 70)}/‖{render(node.x, n)}‖"
 
-    # Commutator family
-    if t is Commutator:
-        return f"[{render(node.a)}, {render(node.b)}]"
-    if t is Anticommutator:
-        return f"{{{render(node.a)}, {render(node.b)}}}"
-    if t is LieBracket:
-        return f"½[{render(node.a)}, {render(node.b)}]"
-    if t is JordanProduct:
-        return f"½{{{render(node.a)}, {render(node.b)}}}"
+    # Accent unary (reverse, involute, conjugate)
+    if rule and rule.kind == "accent":
+        inner = render(node.x, n)
+        is_atom = isinstance(node.x, (Sym, Scalar))
+        return _render_accent_unicode(rule, inner, is_atom)
+
+    # Postfix unary (dual, inverse, squared, undual)
+    if rule and rule.kind == "postfix":
+        inner = render(node.x, n)
+        return f"{_wrap(inner, node.x, 95)}{rule.symbol}"
+
+    # Wrap (grade, norm, exp, commutators, etc.)
+    if rule and rule.kind == "wrap":
+        if t is Grade:
+            sub = str(node.k).translate(_SUBSCRIPTS)
+            return f"{rule.open}{render(node.x, n)}{rule.close}{sub}"
+        if t in (Commutator, Anticommutator, LieBracket, JordanProduct):
+            return f"{rule.open}{render(node.a, n)}, {render(node.b, n)}{rule.close}"
+        return f"{rule.open}{render(node.x, n)}{rule.close}"
 
     return str(node)
 
@@ -350,78 +243,82 @@ def render(node: Expr) -> str:
 # LaTeX renderer
 # ============================================================
 
-def render_latex(node: Expr) -> str:
+def render_latex(node: Expr, notation: Notation | None = None) -> str:
+    n = notation or _DEFAULT_NOTATION
     t = type(node)
+    name = _NODE_NAME.get(t, "")
 
     if t is Sym:
         return node._name_latex
     if t is Scalar:
         return f"{node._value:g}"
 
-    if t is Neg:
-        inner = render_latex(node.x)
-        return f"-{_wrap_latex(inner, node.x, 61)}"
     if t is ScalarMul:
+        inner = render_latex(node.x, n)
         if node.k == -1:
-            return f"-{_wrap_latex(render_latex(node.x), node.x, 61)}"
-        return f"{node.k:g} {_wrap_latex(render_latex(node.x), node.x, 61)}"
+            return f"-{_wrap_latex(inner, node.x, 61)}"
+        return f"{node.k:g} {_wrap_latex(inner, node.x, 61)}"
     if t is ScalarDiv:
-        return rf"\frac{{{render_latex(node.x)}}}{{{node.k:g}}}"
+        return rf"\frac{{{render_latex(node.x, n)}}}{{{node.k:g}}}"
 
-    if t in _BINARY_LATEX:
-        sep = _BINARY_LATEX[t]
-        min_p = _BINARY_CHILD_MIN.get(t, 71)
-        left = _wrap_latex(render_latex(node.a), node.a, min_p, parent_type=t)
-        right = _wrap_latex(render_latex(node.b), node.b, min_p, parent_type=t)
-        return f"{left}{sep}{right}"
+    if t is Neg:
+        inner = render_latex(node.x, n)
+        return f"-{_wrap_latex(inner, node.x, 61)}"
 
     if t is Gp:
-        left = _wrap_latex(render_latex(node.a), node.a, 80, parent_type=Gp)
-        right = _wrap_latex(render_latex(node.b), node.b, 80, parent_type=Gp)
+        left = _wrap_latex(render_latex(node.a, n), node.a, 80, parent_type=Gp)
+        right = _wrap_latex(render_latex(node.b, n), node.b, 80, parent_type=Gp)
         return f"{left} {right}"
 
     if t is Div:
-        return rf"\frac{{{render_latex(node.a)}}}{{{render_latex(node.b)}}}"
+        return rf"\frac{{{render_latex(node.a, n)}}}{{{render_latex(node.b, n)}}}"
 
     if t is Add:
-        left = _wrap_latex(render_latex(node.a), node.a, 60, parent_type=Add)
-        return f"{left} + {render_latex(node.b)}"
+        left = _wrap_latex(render_latex(node.a, n), node.a, 60, parent_type=Add)
+        return f"{left} + {render_latex(node.b, n)}"
     if t is Sub:
-        left = render_latex(node.a)
-        right = _wrap_latex(render_latex(node.b), node.b, 61)
+        left = render_latex(node.a, n)
+        right = _wrap_latex(render_latex(node.b, n), node.b, 61)
         return f"{left} - {right}"
 
-    if t is Reverse or t is Conjugate:
-        # Wide accents act as visual grouping — no parens needed
-        raw = render_latex(node.x)
-        return _latex_postfix(t, raw, node)
-    if t in _POSTFIX_LATEX_FMT:
-        inner = _wrap_latex(render_latex(node.x), node.x, 95)
-        return _latex_postfix(t, inner, node)
+    # Infix binary
+    rule = n.get(name, "latex")
+    if rule and rule.kind == "infix":
+        min_p = _BINARY_CHILD_MIN.get(t, 71)
+        left = _wrap_latex(render_latex(node.a, n), node.a, min_p, parent_type=t)
+        right = _wrap_latex(render_latex(node.b, n), node.b, min_p, parent_type=t)
+        return f"{left}{rule.separator}{right}"
 
-    if t is Grade:
-        return rf"\langle {render_latex(node.x)} \rangle_{{{node.k}}}"
-    if t is Norm:
-        return rf"\lVert {render_latex(node.x)} \rVert"
-    if t is Unit:
-        if isinstance(node.x, (Sym, Scalar)):
-            return rf"\hat{{{render_latex(node.x)}}}"
-        num = _wrap_latex(render_latex(node.x), node.x, 70)
-        return rf"\frac{{{num}}}{{{render_latex(Norm(node.x))}}}"
-    if t is Exp:
-        return rf"e^{{{render_latex(node.x)}}}"
-    if t is Even:
-        return rf"\langle {render_latex(node.x)} \rangle_{{\text{{even}}}}"
-    if t is Odd:
-        return rf"\langle {render_latex(node.x)} \rangle_{{\text{{odd}}}}"
 
-    if t is Commutator:
-        return rf"[{render_latex(node.a)},\, {render_latex(node.b)}]"
-    if t is Anticommutator:
-        return rf"\{{{render_latex(node.a)},\, {render_latex(node.b)}\}}"
-    if t is LieBracket:
-        return rf"\tfrac{{1}}{{2}}[{render_latex(node.a)},\, {render_latex(node.b)}]"
-    if t is JordanProduct:
-        return rf"\tfrac{{1}}{{2}}\{{{render_latex(node.a)},\, {render_latex(node.b)}\}}"
+    # Accent (reverse, involute, conjugate)
+    if rule and rule.kind == "accent":
+        is_atom = isinstance(node.x, (Sym, Scalar))
+        if t in (Reverse, Conjugate):
+            # Wide accents don't need parens
+            inner = render_latex(node.x, n)
+        else:
+            inner = _wrap_latex(render_latex(node.x, n), node.x, 95)
+        return _render_accent_latex(rule, inner, is_atom)
+
+    # Postfix
+    if rule and rule.kind == "postfix":
+        inner = _wrap_latex(render_latex(node.x, n), node.x, 95)
+        return f"{inner}{rule.symbol}"
+
+    # Wrap
+    if rule and rule.kind == "wrap":
+        if t is Grade:
+            return rf"{rule.open}{render_latex(node.x, n)}{rule.close}_{{{node.k}}}"
+        if t in (Commutator, Anticommutator, LieBracket, JordanProduct):
+            return rf"{rule.open}{render_latex(node.a, n)},\, {render_latex(node.b, n)}{rule.close}"
+        if t is Unit:
+            if isinstance(node.x, (Sym, Scalar)):
+                lr = n.get("Unit", "latex")
+                return rf"{lr.latex_cmd}{{{render_latex(node.x, n)}}}"
+            num = _wrap_latex(render_latex(node.x, n), node.x, 70)
+            return rf"\frac{{{num}}}{{{render_latex(Norm(node.x), n)}}}"
+        if t is Exp:
+            return rf"e^{{{render_latex(node.x, n)}}}"
+        return f"{rule.open}{render_latex(node.x, n)}{rule.close}"
 
     return str(node)
