@@ -241,14 +241,14 @@ def _(mo):
 
 
 @app.cell
-def _(alg, e1, e2, e3, exp, gm, log, np, reverse):
+def _(alg, e1, e2, e3, exp, gm, log, np):
     _theta = alg.scalar(np.radians(60)).name(latex=r"\theta")
 
     _B = (e1 * e2).name("B")
     _v = (3 * e1 + 4 * e2 + e3).name("v")
     _R = exp((-_theta / 2) * _B)
 
-    _rotated = _R * _v * reverse(_R)
+    _rotated = _R * _v * ~_R
 
     with gm.doc() as _d:
         _d.md(t"""

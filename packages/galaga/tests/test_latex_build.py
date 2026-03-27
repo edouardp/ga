@@ -142,6 +142,47 @@ class TestPostfixOnPostfix:
         assert _latex(Dual(Inverse(a))) == r"\left(a^{-1}\right)^*"
 
 
+class TestPostfixOnSup:
+    """Postfix symbols starting with ^ must brace-wrap Sup children."""
+
+    def test_postfix_dagger_on_exp(self):
+        """reverse(exp(a)) with dagger notation: {e^{a}}^{\\dagger}"""
+        from ga.notation import Notation, NotationRule
+        n = Notation()
+        n.set("Reverse", "latex", NotationRule(kind="postfix", symbol=r"^{\dagger}"))
+        from ga.latex_build import build
+        from ga.latex_emit import emit
+        from ga.latex_rewrite import rewrite
+        tree = build(Reverse(Exp(a)), n)
+        result = emit(rewrite(tree))
+        assert result == r"{e^{a}}^{\dagger}"
+
+    def test_postfix_star_on_exp(self):
+        """dual(exp(a)): {e^{a}}^*"""
+        result = _latex(Dual(Exp(a)))
+        assert result == r"{e^{a}}^*"
+
+    def test_postfix_inverse_on_exp(self):
+        """inverse(exp(a)): {e^{a}}^{-1}"""
+        result = _latex(Inverse(Exp(a)))
+        assert result == r"{e^{a}}^{-1}"
+
+    def test_postfix_squared_on_exp(self):
+        """squared(exp(a)): {e^{a}}^2"""
+        result = _latex(Squared(Exp(a)))
+        assert result == r"{e^{a}}^2"
+
+    def test_postfix_on_non_sup_no_braces(self):
+        """Postfix on a non-Sup node should NOT add extra braces."""
+        result = _latex(Dual(a))
+        assert result == "a^*"
+        assert "{a}" not in result
+
+    def test_complement_on_exp(self):
+        result = _latex(Complement(Exp(a)))
+        assert result == r"{e^{a}}^{\complement}"
+
+
 class TestWrap:
     def test_grade(self):
         assert _latex(Grade(a, 1)) == r"\langle a \rangle_{1}"
