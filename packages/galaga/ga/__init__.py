@@ -54,6 +54,7 @@ Design Principles
 
 from ga.algebra import (
     Algebra,
+    BasisBlade,
     Multivector,
     # Core operations
     gp,

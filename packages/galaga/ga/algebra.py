@@ -68,6 +68,60 @@ def _sign_of_reorder(a: int, b: int) -> int:
 _LETTER_SUBSCRIPTS = {"x": "ₓ", "y": "ᵧ"}
 
 
+class BasisBlade:
+    """Names for a single basis blade, indexed by bitmask.
+
+    Each blade has three name variants (ascii, unicode, latex) that can
+    be overridden individually. The Algebra holds one per bitmask.
+    """
+
+    __slots__ = ("_bitmask", "_ascii", "_unicode", "_latex")
+
+    def __init__(self, bitmask: int, ascii: str, unicode: str, latex: str):
+        self._bitmask = bitmask
+        self._ascii = ascii
+        self._unicode = unicode
+        self._latex = latex
+
+    @property
+    def ascii_name(self) -> str:
+        return self._ascii
+
+    @ascii_name.setter
+    def ascii_name(self, value: str):
+        self._ascii = value
+
+    @property
+    def unicode_name(self) -> str:
+        return self._unicode
+
+    @unicode_name.setter
+    def unicode_name(self, value: str):
+        self._unicode = value
+
+    @property
+    def latex_name(self) -> str:
+        return self._latex
+
+    @latex_name.setter
+    def latex_name(self, value: str):
+        self._latex = value
+
+    def rename(self, ascii: str | None = None, unicode: str | None = None,
+               latex: str | None = None) -> 'BasisBlade':
+        """Override one or more name variants. Returns self for chaining."""
+        if ascii is not None:
+            self._ascii = ascii
+        if unicode is not None:
+            self._unicode = unicode
+        if latex is not None:
+            self._latex = latex
+        return self
+
+    def __repr__(self) -> str:
+        return f"BasisBlade(0b{self._bitmask:b}, {self._ascii!r})"
+
+
 class Algebra:
     """Immutable Clifford algebra Cl(p,q,r) defined by a metric signature.
 
@@ -97,7 +151,7 @@ class Algebra:
                       If False (default), ``repr()`` uses ASCII for copy-paste.
     """
 
-    __slots__ = ("_sig", "_dim", "_n", "_mul_index", "_mul_sign", "_grade_masks", "_names", "_latex_names", "_repr_unicode", "_complement_sign")
+    __slots__ = ("_sig", "_dim", "_n", "_mul_index", "_mul_sign", "_grade_masks", "_names", "_latex_names", "_repr_unicode", "_complement_sign", "_blades")
 
     # Built-in naming presets: (code_names, unicode_names, latex_names)
     # code_names  → used in repr() (ASCII-safe)
@@ -189,6 +243,30 @@ class Algebra:
             comp_sign[s] = (-1) ** swaps
         self._complement_sign = comp_sign
 
+        # Build BasisBlade objects for every blade in the algebra
+        _SUBS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+        self._blades = {}
+        for idx in range(self._dim):
+            if idx == 0:
+                a, u, l = "1", "1", "1"
+            elif idx == self._dim - 1:
+                a, u, l = "I", "\U0001D470", "I"  # 𝑰
+            else:
+                if self._names is None:
+                    digits = "".join(str(k + 1) for k in range(self._n) if idx & (1 << k))
+                    a = "e" + digits
+                    u = "e" + digits.translate(_SUBS)
+                    l = f"e_{{{digits}}}"
+                else:
+                    code, uni = self._names
+                    a = "".join(code[k] for k in range(self._n) if idx & (1 << k))
+                    u = "".join(uni[k] for k in range(self._n) if idx & (1 << k))
+                    if self._latex_names is not None:
+                        l = " ".join(self._latex_names[k] for k in range(self._n) if idx & (1 << k))
+                    else:
+                        l = " ".join(code[k] for k in range(self._n) if idx & (1 << k))
+            self._blades[idx] = BasisBlade(idx, a, u, l)
+
     def _blade_product(self, a: int, b: int) -> tuple[int, float]:
         """Compute the geometric product of two basis blades given as bitmask indices.
 
@@ -235,28 +313,16 @@ class Algebra:
             lazy: If True, return named + lazy blades that build expression
                   trees when used in arithmetic.
         """
-        _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
         vecs = []
         for k in range(self._n):
+            bitmask = 1 << k
             data = np.zeros(self._dim)
-            data[1 << k] = 1.0
+            data[bitmask] = 1.0
             mv = Multivector(self, data)
-            # Compute names for all three formats
-            if self._names is not None:
-                ascii_name = self._names[0][k]
-                unicode_name = self._names[1][k]
-            else:
-                ascii_name = f"e{k+1}"
-                unicode_name = "e" + str(k+1).translate(_SUBSCRIPTS)
-            if self._latex_names is not None:
-                latex_name = self._latex_names[k]
-            elif self._names is None:
-                latex_name = f"e_{{{k+1}}}"
-            else:
-                latex_name = ascii_name
-            mv._name = ascii_name
-            mv._name_unicode = unicode_name
-            mv._name_latex = latex_name
+            bb = self._blades[bitmask]
+            mv._name = bb.ascii_name
+            mv._name_unicode = bb.unicode_name
+            mv._name_latex = bb.latex_name
             mv._is_lazy = lazy
             vecs.append(mv)
         return tuple(vecs)
@@ -266,9 +332,10 @@ class Algebra:
         data = np.zeros(self._dim)
         data[self._dim - 1] = 1.0
         mv = Multivector(self, data)
-        mv._name = "I"
-        mv._name_unicode = "𝑰"
-        mv._name_latex = "I"
+        bb = self._blades[self._dim - 1]
+        mv._name = bb.ascii_name
+        mv._name_unicode = bb.unicode_name
+        mv._name_latex = bb.latex_name
         return mv
 
     @property
@@ -312,9 +379,10 @@ class Algebra:
                 data = np.zeros(self._dim)
                 data[bitmask] = 1.0
                 mv = Multivector(self, data)
-                mv._name = name
-                mv._name_unicode = self._blade_name(bitmask, unicode=True)
-                mv._name_latex = self._blade_latex(bitmask)
+                bb = self._blades[bitmask]
+                mv._name = bb.ascii_name
+                mv._name_unicode = bb.unicode_name
+                mv._name_latex = bb.latex_name
                 return mv
         # Default e-index parsing (digit-by-digit, only valid for n <= 9)
         if not name.startswith("e"):
@@ -333,9 +401,10 @@ class Algebra:
         data = np.zeros(self._dim)
         data[bitmask] = 1.0
         mv = Multivector(self, data)
-        mv._name = name
-        mv._name_unicode = self._blade_name(bitmask, unicode=True)
-        mv._name_latex = self._blade_latex(bitmask)
+        bb = self._blades[bitmask]
+        mv._name = bb.ascii_name
+        mv._name_unicode = bb.unicode_name
+        mv._name_latex = bb.latex_name
         return mv
 
     def _parse_blade_name(self, name: str, code_names: list[str]) -> int | None:
@@ -391,35 +460,34 @@ class Algebra:
     def _blade_name(self, index: int, unicode: bool = False) -> str:
         if index == 0:
             return ""
-        # Pseudoscalar gets special name
-        if index == self._dim - 1:
-            return "𝑰" if unicode else "I"
-        if self._names is None:
-            # Default e1, e₁ scheme
-            digits = "".join(str(k + 1) for k in range(self._n) if index & (1 << k))
-            if unicode:
-                return "e" + digits.translate(self._SUBSCRIPTS)
-            return "e" + digits
-        # Custom names: concatenate per-vector names for the blade
-        src = self._names[1] if unicode else self._names[0]
-        parts = [src[k] for k in range(self._n) if index & (1 << k)]
-        return "".join(parts)
+        bb = self._blades[index]
+        return bb.unicode_name if unicode else bb.ascii_name
 
     def _blade_latex(self, index: int) -> str:
         if index == 0:
             return ""
-        if index == self._dim - 1:
-            return "I"
-        if self._names is None:
-            digits = "".join(str(k + 1) for k in range(self._n) if index & (1 << k))
-            return f"e_{{{digits}}}"
-        if self._latex_names is not None:
-            parts = [self._latex_names[k] for k in range(self._n) if index & (1 << k)]
-            return " ".join(parts)
-        # Fallback: use code names
-        src = self._names[0]
-        parts = [src[k] for k in range(self._n) if index & (1 << k)]
-        return " ".join(parts)
+        return self._blades[index].latex_name
+
+    def get_basis_blade(self, mv_or_index) -> BasisBlade:
+        """Look up a BasisBlade by multivector or bitmask index.
+
+        Returns the BasisBlade object, which can be renamed::
+
+            alg.get_basis_blade(e1 ^ e2).rename(latex=r"e_{12}")
+            alg.get_basis_blade(0b011).rename(ascii="B12")
+
+        Args:
+            mv_or_index: A Multivector (must be a basis blade) or an int bitmask.
+        """
+        if isinstance(mv_or_index, int):
+            return self._blades[mv_or_index]
+        mv = mv_or_index
+        if hasattr(mv, 'data'):
+            nonzero = np.nonzero(np.abs(mv.data) > 1e-12)[0]
+            if len(nonzero) != 1:
+                raise ValueError("Not a basis blade — has multiple nonzero components")
+            return self._blades[int(nonzero[0])]
+        raise TypeError(f"Expected Multivector or int, got {type(mv_or_index)}")
 
     def __repr__(self) -> str:
         """Short signature notation, e.g. ``Cl(3,0)`` or ``Cl(1,3)``."""

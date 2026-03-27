@@ -1585,3 +1585,57 @@ class TestIsBlade:
     def test_zero(self, cl3):
         from ga import is_basis_blade
         assert not is_basis_blade(cl3.scalar(0.0))
+
+
+class TestBasisBladeRename:
+    """Tests for BasisBlade class and get_basis_blade() renaming."""
+
+    def test_get_basis_blade_by_mv(self):
+        from ga import Algebra
+        alg = Algebra((1, 1, 1))
+        e1, e2, _ = alg.basis_vectors()
+        bb = alg.get_basis_blade(e1 ^ e2)
+        assert bb.ascii_name == "e12"
+
+    def test_get_basis_blade_by_index(self):
+        from ga import Algebra
+        alg = Algebra((1, 1, 1))
+        bb = alg.get_basis_blade(0b011)
+        assert bb.ascii_name == "e12"
+
+    def test_rename_affects_rendering(self):
+        from ga import Algebra
+        alg = Algebra((1, 1, 1))
+        alg.get_basis_blade(0b011).rename(unicode="B₁₂", latex=r"\mathbf{B}_{12}")
+        e1, e2, _ = alg.basis_vectors()
+        result = e1 ^ e2
+        assert str(result) == "B₁₂"
+        assert result.latex() == r"\mathbf{B}_{12}"
+
+    def test_rename_pseudoscalar(self):
+        from ga import Algebra
+        alg = Algebra((1, 1, 1))
+        alg.get_basis_blade(alg.pseudoscalar()).rename(unicode="I₃")
+        assert str(alg.pseudoscalar()) == "I₃"
+
+    def test_rename_basis_vector(self):
+        from ga import Algebra
+        alg = Algebra((1, 1, 1))
+        alg.get_basis_blade(0b001).rename(unicode="x", ascii="x", latex="x")
+        e1, _, _ = alg.basis_vectors()
+        assert str(e1) == "x"
+
+    def test_get_non_blade_raises(self):
+        from ga import Algebra
+        alg = Algebra((1, 1, 1))
+        e1, e2, _ = alg.basis_vectors()
+        with pytest.raises(ValueError, match="Not a basis blade"):
+            alg.get_basis_blade(e1 + e2)
+
+    def test_rename_chaining(self):
+        from ga import Algebra
+        alg = Algebra((1, 1, 1))
+        alg.get_basis_blade(0b011).rename(ascii="B12").rename(latex=r"\beta_{12}")
+        bb = alg.get_basis_blade(0b011)
+        assert bb.ascii_name == "B12"
+        assert bb.latex_name == r"\beta_{12}"
