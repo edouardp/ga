@@ -1753,6 +1753,8 @@ grade_involution = involute
 normalize = unit
 normalise = unit
 norm_squared = norm2
+magnitude_squared = norm2
+mag2 = norm2
 
 
 def ip(a: Multivector, b: Multivector, mode: str = "doran_lasenby") -> Multivector:

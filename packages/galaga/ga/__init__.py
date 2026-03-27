@@ -98,6 +98,8 @@ from ga.algebra import (
     sandwich,
     sw,
     norm_squared,
+    magnitude_squared,
+    mag2,
     exp,
     log,
     project,
@@ -167,6 +169,8 @@ __all__ = [
     "normalize",
     "normalise",
     "norm_squared",
+    "magnitude_squared",
+    "mag2",
     "ip",
     "inner_product",
 ]
