@@ -268,3 +268,33 @@ class TestCopy:
         n2 = n.copy()
         n2.set("Reverse", "unicode", NotationRule(kind="postfix", symbol="†"))
         assert n.get("Reverse", "unicode").kind == "accent"  # original unchanged
+
+
+class TestPresets:
+    def test_default_preset(self):
+        n = Notation.default()
+        assert n.get("Reverse", "unicode").kind == "accent"
+
+    def test_hestenes_reverse_is_dagger(self):
+        n = Notation.hestenes()
+        r = n.get("Reverse", "unicode")
+        assert r.kind == "postfix"
+        assert r.symbol == "†"
+
+    def test_hestenes_latex_dagger(self):
+        n = Notation.hestenes()
+        r = n.get("Reverse", "latex")
+        assert "dagger" in r.symbol
+
+    def test_doran_lasenby_reverse_is_tilde(self):
+        n = Notation.doran_lasenby()
+        r = n.get("Reverse", "unicode")
+        assert r.kind == "accent"
+        assert r.combining == "\u0303"
+
+    def test_preset_with_algebra(self):
+        from ga import Algebra, reverse
+        alg = Algebra((1, 1, 1), notation=Notation.hestenes())
+        e1, _, _ = alg.basis_vectors(lazy=True)
+        v = e1.name("v")
+        assert str(reverse(v)) == "v†"

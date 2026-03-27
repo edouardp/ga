@@ -590,6 +590,26 @@ grade(R * v * ~R, 1)   # returns lazy Multivector with expr tree
 grade(e1 + e2, 1)      # returns eager Multivector
 ```
 
+### Notation
+
+Override how operations render — per-algebra:
+
+```python
+from ga.notation import Notation, NotationRule
+
+# Use Hestenes convention (reverse as dagger)
+alg = Algebra((1, 1, 1), notation=Notation.hestenes())
+e1, e2, _ = alg.basis_vectors(lazy=True)
+v = e1.name("v")
+print(reverse(v))   # v†
+
+# Or override individual rules
+alg.notation.set("Reverse", "unicode", NotationRule(kind="postfix", symbol="†"))
+alg.notation.set("Dual", "unicode", NotationRule(kind="prefix", symbol="*"))
+```
+
+Built-in presets: `Notation.default()`, `Notation.hestenes()`, `Notation.doran_lasenby()`.
+
 ### Simplification
 
 `simplify()` applies algebraic rewrite rules to expression trees:

@@ -161,3 +161,41 @@ class Notation:
         for name, fmts in self._rules.items():
             n._rules[name] = {k: copy.copy(v) for k, v in fmts.items()}
         return n
+
+    @staticmethod
+    def default() -> Notation:
+        """Default notation — the library's built-in conventions."""
+        return Notation()
+
+    @staticmethod
+    def doran_lasenby() -> Notation:
+        """Doran & Lasenby ("Geometric Algebra for Physicists") conventions.
+
+        - Reverse: tilde (same as default)
+        - Grade involution: hat (same as default)
+        - Conjugate: overline (same as default)
+        - Dual: I⁻¹x (prefix with pseudoscalar inverse)
+        - Inner product: dot (same as default)
+        """
+        n = Notation()
+        # D&L use tilde for reverse — same as default
+        # D&L use dagger for Clifford conjugate in some contexts
+        n.set("Conjugate", "unicode", NotationRule(
+            kind="accent", combining="\u0304", fallback_prefix="conj"))
+        n.set("Conjugate", "latex", NotationRule(
+            kind="accent", latex_cmd=r"\bar", latex_wide_cmd=r"\overline"))
+        return n
+
+    @staticmethod
+    def hestenes() -> Notation:
+        """Hestenes & Sobczyk ("Clifford Algebra to Geometric Calculus") conventions.
+
+        - Reverse: dagger †
+        - Grade involution: hat (same as default)
+        - Dual: star (same as default)
+        """
+        n = Notation()
+        n.set("Reverse", "unicode", NotationRule(kind="postfix", symbol="†"))
+        n.set("Reverse", "ascii", NotationRule(kind="postfix", symbol="dag"))
+        n.set("Reverse", "latex", NotationRule(kind="postfix", symbol="^\\dagger"))
+        return n
