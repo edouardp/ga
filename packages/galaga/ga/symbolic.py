@@ -770,62 +770,66 @@ def sym(mv: _alg.Multivector, name: str | None = None, grade: int | None = None)
 # These detect lazy Multivector arguments and build Expr trees.
 # With plain eager Multivectors, they delegate to ga.algebra.
 
-def _make_binary_dropin(node_cls, alg_func):
 # --- Generated drop-in replacements ---
 # Each drop-in checks if any argument is a lazy MV (via _is_symbolic).
 # If so, it builds the corresponding Expr tree node.
 # If not, it delegates directly to ga.algebra with zero overhead.
-# This is the bridge between the numeric and symbolic layers.    """Generate a binary drop-in that builds node_cls for symbolic args."""
+# This is the bridge between the numeric and symbolic layers.
+#
+# The factories take a string name instead of a direct function reference
+# so that ga.algebra doesn't need to be fully loaded when symbolic.py
+# is first imported (avoiding circular import issues).
+
+def _make_binary_dropin(node_cls, func_name):
+    """Generate a binary drop-in that builds node_cls for symbolic args."""
     def dropin(a, b):
         if _is_symbolic(a) or _is_symbolic(b):
             return node_cls(_ensure_expr(a), _ensure_expr(b))
-        return alg_func(a, b)
-    dropin.__name__ = alg_func.__name__
-    dropin.__doc__ = alg_func.__doc__
+        return getattr(_alg, func_name)(a, b)
+    dropin.__name__ = func_name
     return dropin
 
 
-def _make_unary_dropin(node_cls, alg_func):
+def _make_unary_dropin(node_cls, func_name):
     """Generate a unary drop-in that builds node_cls for symbolic args."""
     def dropin(x):
         if _is_symbolic(x):
             return node_cls(_ensure_expr(x))
-        return alg_func(x)
-    dropin.__name__ = alg_func.__name__
-    dropin.__doc__ = alg_func.__doc__
+        return getattr(_alg, func_name)(x)
+    dropin.__name__ = func_name
     return dropin
 
 
 # Binary drop-ins
-gp = _make_binary_dropin(Gp, _alg.gp)
-op = _make_binary_dropin(Op, _alg.op)
-left_contraction = _make_binary_dropin(Lc, _alg.left_contraction)
-right_contraction = _make_binary_dropin(Rc, _alg.right_contraction)
-hestenes_inner = _make_binary_dropin(Hi, _alg.hestenes_inner)
-doran_lasenby_inner = _make_binary_dropin(Dli, _alg.doran_lasenby_inner)
+gp = _make_binary_dropin(Gp, 'gp')
+op = _make_binary_dropin(Op, 'op')
+left_contraction = _make_binary_dropin(Lc, 'left_contraction')
+right_contraction = _make_binary_dropin(Rc, 'right_contraction')
+hestenes_inner = _make_binary_dropin(Hi, 'hestenes_inner')
+doran_lasenby_inner = _make_binary_dropin(Dli, 'doran_lasenby_inner')
 dorst_inner = doran_lasenby_inner
-scalar_product = _make_binary_dropin(Sp, _alg.scalar_product)
-commutator = _make_binary_dropin(Commutator, _alg.commutator)
-anticommutator = _make_binary_dropin(Anticommutator, _alg.anticommutator)
-lie_bracket = _make_binary_dropin(LieBracket, _alg.lie_bracket)
-jordan_product = _make_binary_dropin(JordanProduct, _alg.jordan_product)
-regressive_product = _make_binary_dropin(Regressive, _alg.regressive_product)
+scalar_product = _make_binary_dropin(Sp, 'scalar_product')
+commutator = _make_binary_dropin(Commutator, 'commutator')
+anticommutator = _make_binary_dropin(Anticommutator, 'anticommutator')
+lie_bracket = _make_binary_dropin(LieBracket, 'lie_bracket')
+jordan_product = _make_binary_dropin(JordanProduct, 'jordan_product')
+regressive_product = _make_binary_dropin(Regressive, 'regressive_product')
 meet = regressive_product
 
 # Unary drop-ins
-reverse = _make_unary_dropin(Reverse, _alg.reverse)
-involute = _make_unary_dropin(Involute, _alg.involute)
-conjugate = _make_unary_dropin(Conjugate, _alg.conjugate)
-dual = _make_unary_dropin(Dual, _alg.dual)
-undual = _make_unary_dropin(Undual, _alg.undual)
-complement = _make_unary_dropin(Complement, _alg.complement)
-uncomplement = _make_unary_dropin(Uncomplement, _alg.uncomplement)
-norm = _make_unary_dropin(Norm, _alg.norm)
-unit = _make_unary_dropin(Unit, _alg.unit)
-inverse = _make_unary_dropin(Inverse, _alg.inverse)
-squared = _make_unary_dropin(Squared, _alg.squared)
-even_grades = _make_unary_dropin(Even, _alg.even_grades)
-odd_grades = _make_unary_dropin(Odd, _alg.odd_grades)
+reverse = _make_unary_dropin(Reverse, 'reverse')
+involute = _make_unary_dropin(Involute, 'involute')
+conjugate = _make_unary_dropin(Conjugate, 'conjugate')
+dual = _make_unary_dropin(Dual, 'dual')
+undual = _make_unary_dropin(Undual, 'undual')
+complement = _make_unary_dropin(Complement, 'complement')
+uncomplement = _make_unary_dropin(Uncomplement, 'uncomplement')
+norm = _make_unary_dropin(Norm, 'norm')
+unit = _make_unary_dropin(Unit, 'unit')
+inverse = _make_unary_dropin(Inverse, 'inverse')
+squared = _make_unary_dropin(Squared, 'squared')
+even_grades = _make_unary_dropin(Even, 'even_grades')
+odd_grades = _make_unary_dropin(Odd, 'odd_grades')
 
 normalize = unit
 normalise = unit
