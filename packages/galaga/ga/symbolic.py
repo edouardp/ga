@@ -275,6 +275,12 @@ class Scalar(Expr):
 # Generated Expr subclasses
 # ============================================================
 
+# --- Generated Expr subclasses ---
+# Most binary/unary Expr nodes are identical: __init__ coerces args,
+# eval() delegates to the corresponding ga.algebra function.
+# Instead of 22 hand-written classes, we generate them from a table.
+# This eliminates ~150 lines of boilerplate and ensures consistency.
+
 def _make_binary_expr(name, alg_func_name):
     """Generate a binary Expr subclass."""
     def __init__(self, a, b):
@@ -762,7 +768,11 @@ def sym(mv: _alg.Multivector, name: str | None = None, grade: int | None = None)
 # With plain eager Multivectors, they delegate to ga.algebra.
 
 def _make_binary_dropin(node_cls, alg_func):
-    """Generate a binary drop-in that builds node_cls for symbolic args."""
+# --- Generated drop-in replacements ---
+# Each drop-in checks if any argument is a lazy MV (via _is_symbolic).
+# If so, it builds the corresponding Expr tree node.
+# If not, it delegates directly to ga.algebra with zero overhead.
+# This is the bridge between the numeric and symbolic layers.    """Generate a binary drop-in that builds node_cls for symbolic args."""
     def dropin(a, b):
         if _is_symbolic(a) or _is_symbolic(b):
             return node_cls(_ensure_expr(a), _ensure_expr(b))

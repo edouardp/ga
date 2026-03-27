@@ -20,6 +20,11 @@ NOTEBOOKS = [
     "aharonov_bohm.py",
     "one_g_travel_calculator.py",
     "twin_paradox.py",
+    "relativistic_rocket_equation.py",
+    "thomas_precession.py",
+    "em_waves_sta.py",
+    "robot_kinematics_pga.py",
+    "rotors_from_reflections.py",
 ]
 
 

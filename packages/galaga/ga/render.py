@@ -1,8 +1,29 @@
 """Precedence-aware tree-walking renderer for symbolic expressions.
 
-Walks an Expr tree and produces correctly parenthesized unicode or LaTeX.
-Rendering rules come from a Notation object. Precedence metadata is in
-the OpInfo registry.
+This is the single source of truth for how Expr trees become strings.
+Both Multivector.__str__() and .latex() delegate here for lazy MVs.
+
+Architecture:
+  - OpInfo registry: each Expr node type has a precedence level, associativity,
+    and flattenability flag. This drives parenthesization decisions.
+  - Notation object: holds rendering rules (symbol, kind) for each node type
+    in each format (ascii/unicode/latex). Configurable per-algebra.
+  - render() / render_latex(): recursive visitors that walk the tree,
+    look up rules from Notation, and wrap children in parens based on OpInfo.
+
+Why a standalone module?
+  The original design had each Expr node implement its own __str__() and
+  _latex__(). This led to 16 parenthesization bugs because each node
+  independently decided whether children needed wrapping. Centralizing
+  the logic here with a precedence table fixed all of them.
+
+Why not just use precedence numbers?
+  Some operations need special handling beyond simple precedence:
+  - Gp (geometric product): juxtaposition with smart spacing for multi-char names
+  - Div: unicode uses / with tight denom wrapping, LaTeX uses \\frac{}{}
+  - Unit: hat accent for single-char atoms, fraction for compounds
+  - Grade: subscript suffix after closing delimiter
+  These are handled as explicit cases before the generic rule dispatch.
 """
 
 from __future__ import annotations
@@ -22,6 +43,10 @@ from ga.symbolic import (
 )
 
 _SUBSCRIPTS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+# Characters that don't count toward "visual width" — used to decide
+# whether a rendered name is single-char (for Gp spacing and accent decisions).
+# Subscripts, superscripts, and combining marks are ignored.
+
 _SUB_SUPER = set("₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₒₓₔₕₖₗₘₙₚₛₜ⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱ")
 
 # --- Precedence ---
@@ -36,6 +61,11 @@ class OpInfo:
     prec: int
     assoc: Assoc = Assoc.NONE
     flat: bool = False
+
+# --- Precedence registry ---
+# Higher prec = binds tighter. A child is wrapped if its prec < parent's threshold.
+# flat=True means the op is associative: same-type children skip wrapping
+# (e.g. Gp(Gp(a,b),c) → "abc", Op(Op(a,b),c) → "a∧b∧c")
 
 INFO: dict[type, OpInfo] = {
     Sym: OpInfo(100), Scalar: OpInfo(100),

@@ -867,6 +867,11 @@ Interactive [marimo](https://marimo.io) notebooks in `examples/`:
 - **`aharonov_bohm.py`** — Holonomy-first Aharonov-Bohm notebook using internal phase rotors
 - **`one_g_travel_calculator.py`** — Relativistic 1g travel calculator with accelerate, coast, decelerate, and Earth-vs-ship time
 - **`twin_paradox.py`** — Worldline and proper-time notebook for the twin paradox
+- **`relativistic_rocket_equation.py`** — Rapidity-first rocket equation notebook with burn and coast analysis
+- **`thomas_precession.py`** — Non-collinear boost composition and residual Thomas-Wigner rotation
+- **`em_waves_sta.py`** — Plane-wave electromagnetic fields and null invariants in STA
+- **`robot_kinematics_pga.py`** — Two-link planar robot kinematics with PGA-style motors
+- **`rotors_from_reflections.py`** — Reflection composition notebook showing how rotors arise geometrically
 
 ```bash
 uv run marimo edit examples/quantum_physics.py

@@ -1,15 +1,30 @@
 """Configurable notation rules for symbolic rendering.
 
+GA has many competing notations — reverse alone can be written as ~x, x̃,
+x†, x^†, x^R, or rev(x). Different textbooks and communities use different
+conventions. This module lets users choose.
+
 Each GA operation has rendering rules for three formats (ascii, unicode, latex).
-The `Notation` class holds these rules and can be overridden per-algebra.
+The Notation class holds these rules and can be overridden per-algebra.
+The renderer (ga.render) queries the Notation object instead of hardcoded tables.
 
 Rule kinds:
-    prefix:        "-x", "~x", "inv(x)"
-    postfix:       "x†", "x⁻¹", "x²"
-    accent:        "x̃" (combining char for atoms, fallback for compounds)
-    infix:         "a∧b", "a·b", "a + b"
-    wrap:          "⟨x⟩₁", "‖x‖", "exp(x)"
-    juxtaposition: "ab" (no symbol, smart spacing)
+    prefix:        "-x", "*v"           — symbol prepended to operand
+    postfix:       "x†", "x⁻¹", "x²"   — symbol appended to operand
+    accent:        "x̃" / "~(a+b)"      — combining char for atoms, prefix fallback for compounds
+    infix:         "a∧b", "a·b"         — symbol between two operands
+    function:      "rev(x)", "wedge(a,b)" — function call style
+    wrap:          "⟨x⟩₁", "‖x‖"       — open/close delimiters around content
+    juxtaposition: "ab"                 — no symbol, smart spacing for multi-char names
+
+Why per-algebra?
+    Different algebras may use different conventions (e.g. STA uses dagger
+    for reverse, while Euclidean GA uses tilde). Each Algebra holds its own
+    Notation instance.
+
+Why three formats?
+    ASCII is for code/logs, unicode for terminals/REPL, LaTeX for notebooks.
+    They can be overridden independently.
 """
 
 from __future__ import annotations
@@ -67,6 +82,11 @@ def _wrap(uni_open: str, uni_close: str, latex_open: str, latex_close: str,
         "latex": NotationRule(kind="wrap", open=latex_open, close=latex_close),
     }
 
+
+# Default rendering rules for every Expr node type.
+# Keyed by class name (string) → format → NotationRule.
+# These match the library's built-in conventions. Users override via
+# Notation.set() or by passing a preset to Algebra(notation=...).
 
 _DEFAULTS: dict[str, dict[str, NotationRule]] = {
     # Accent (combining char for atoms, prefix fallback for compounds)

@@ -1,14 +1,30 @@
 """BasisBlade — named basis blade in a Clifford algebra.
 
-Each blade has three name variants (ascii, unicode, latex) that can
-be overridden individually. The Algebra holds one per bitmask.
+Each basis blade in an algebra (e₁, e₁₂, e₁₂₃, etc.) has three display
+name variants: ascii, unicode, and latex. These are stored in BasisBlade
+objects, one per bitmask, held by the Algebra.
+
+Why three variants?
+  - ASCII: safe for logs, CI, copy-paste into code
+  - Unicode: pretty terminal/REPL output (subscripts, Greek letters)
+  - LaTeX: notebook rendering via _repr_latex_()
+
+Why mutable?
+  Users need to rename blades after algebra construction — e.g. renaming
+  the pseudoscalar to "I", or bivectors to angular momentum components.
+  Renaming is live: it affects all existing Multivectors immediately
+  because rendering reads from BasisBlade at render time, not from
+  cached names on the Multivector.
 """
 
 from __future__ import annotations
 
 
 class BasisBlade:
-    """Names for a single basis blade, indexed by bitmask."""
+    """Names for a single basis blade, indexed by bitmask.
+
+    The bitmask encodes which basis vectors are present: e.g. e₁₃ = 0b101.
+    """
 
     __slots__ = ("_bitmask", "_ascii", "_unicode", "_latex")
 
