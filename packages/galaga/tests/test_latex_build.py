@@ -264,3 +264,114 @@ class TestPrecedence:
         """Frac not inside Sup should remain \\frac."""
         expr = ScalarDiv(a, 2)
         assert _latex(expr) == r"\frac{a}{2}"
+
+
+class TestPrefixSpacing:
+    """Regression: prefix LaTeX commands must not run into the operand."""
+
+    def test_latex_command_gets_space(self):
+        from ga.notation import Notation, NotationRule
+        n = Notation()
+        n.set("Reverse", "latex", NotationRule(kind="prefix", symbol=r"\tilde"))
+        from ga.latex_build import build
+        from ga.latex_emit import emit
+        from ga.latex_rewrite import rewrite
+        assert emit(rewrite(build(Reverse(a), n))) == r"\tilde a"
+
+    def test_latex_command_compound_gets_space(self):
+        from ga.notation import Notation, NotationRule
+        n = Notation()
+        n.set("Reverse", "latex", NotationRule(kind="prefix", symbol=r"\tilde"))
+        from ga.latex_build import build
+        from ga.latex_emit import emit
+        from ga.latex_rewrite import rewrite
+        assert emit(rewrite(build(Reverse(Add(a, b)), n))) == r"\tilde \left(a + b\right)"
+
+    def test_non_command_prefix_no_space(self):
+        """Prefix '-' should NOT get a space."""
+        assert _latex(Neg(a)) == "-a"
+
+    def test_prefix_ending_in_brace_no_space(self):
+        from ga.notation import Notation, NotationRule
+        n = Notation()
+        n.set("Reverse", "latex", NotationRule(kind="prefix", symbol=r"{\sim}"))
+        from ga.latex_build import build
+        from ga.latex_emit import emit
+        from ga.latex_rewrite import rewrite
+        assert emit(rewrite(build(Reverse(a), n))) == r"{\sim}a"
+
+
+class TestSuperscriptKind:
+    """Regression: superscript notation kind."""
+
+    def _render(self, expr, symbol):
+        from ga.notation import Notation, NotationRule
+        from ga.latex_build import build
+        from ga.latex_emit import emit
+        from ga.latex_rewrite import rewrite
+        n = Notation()
+        n.set("Reverse", "latex", NotationRule(kind="superscript", symbol=symbol))
+        return emit(rewrite(build(expr, n)))
+
+    def test_simple_atom(self):
+        assert self._render(Reverse(a), r"\dagger") == r"a^{\dagger}"
+
+    def test_compound(self):
+        result = self._render(Reverse(Add(a, b)), r"\dagger")
+        assert result == r"\left(a + b\right)^{\dagger}"
+
+    def test_on_exp_braces(self):
+        """Sup-on-Sup must brace-wrap."""
+        result = self._render(Reverse(Exp(a)), r"\dagger")
+        assert result == r"{e^{a}}^{\dagger}"
+
+    def test_custom_symbol(self):
+        assert self._render(Reverse(a), "R") == "a^{R}"
+
+
+class TestEndToEndLatex:
+    """End-to-end: real Algebra objects through the full pipeline."""
+
+    def test_exp_frac_slash(self):
+        """exp(-θ/2 B) uses slash not frac in superscript."""
+        import numpy as np
+        from ga import Algebra, exp
+        alg = Algebra((1, 1, 1))
+        e1, e2, _ = alg.basis_vectors(lazy=True)
+        th = alg.scalar(np.radians(45)).name(latex=r"\theta")
+        B = (e1 * e2).name("B")
+        R = exp((-th / 2) * B)
+        latex = R.latex()
+        assert "/" in latex
+        assert r"\frac" not in latex
+
+    def test_neg_hoisted_in_exp(self):
+        """Negation hoists before slash in superscript."""
+        import numpy as np
+        from ga import Algebra, exp
+        alg = Algebra((1, 1, 1))
+        e1, e2, _ = alg.basis_vectors(lazy=True)
+        th = alg.scalar(1.0).name(latex=r"\theta")
+        B = (e1 * e2).name("B")
+        latex = exp((-th / 2) * B).latex()
+        assert latex.startswith("e^{-")
+
+    def test_complement_lazy(self):
+        """complement() stays symbolic on lazy MVs."""
+        from ga import Algebra, complement
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors(lazy=True)
+        v = e1.name("v")
+        c = complement(v)
+        assert c._is_lazy
+        assert r"\complement" in c.latex()
+
+    def test_log_lazy(self):
+        """log() stays symbolic on lazy MVs."""
+        from ga import Algebra, exp, log
+        alg = Algebra((1, 1, 1))
+        e1, e2, _ = alg.basis_vectors(lazy=True)
+        B = (e1 * e2).name("B")
+        R = exp(B)
+        latex = log(R).latex()
+        assert r"\log" in latex
