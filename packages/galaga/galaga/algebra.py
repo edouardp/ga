@@ -589,6 +589,22 @@ class Multivector:
             _name=None, _name_latex=None, _name_unicode=None,
         )
 
+    def display(self) -> str:
+        """Return a LaTeX string showing name = expression = value, omitting duplicates."""
+        parts = []
+        name_latex = self.latex() if self._name is not None else None
+        reveal_latex = self.reveal().latex() if self._is_lazy and self._expr is not None else None
+        eval_latex = self.eval().latex()
+
+        if name_latex is not None:
+            parts.append(name_latex)
+        if reveal_latex is not None and reveal_latex != name_latex:
+            parts.append(reveal_latex)
+        if eval_latex not in parts:
+            parts.append(eval_latex)
+
+        return " \\quad = \\quad ".join(parts)
+
     def _to_expr(self):
         """Convert this MV to an Expr node for use in expression trees.
 

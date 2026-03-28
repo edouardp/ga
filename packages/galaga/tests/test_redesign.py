@@ -1945,3 +1945,43 @@ class TestReveal:
         r1 = v.reveal()
         r2 = r1.reveal()
         assert str(r1) == str(r2)
+
+
+class TestDisplay:
+    def test_named_lazy_with_expr(self):
+        alg = Algebra((1, 1, 1))
+        e1, e2, _ = alg.basis_vectors(lazy=True)
+        B = (e1 ^ e2).name(latex=r"\mathbf{B}")
+        result = B.display()
+        assert r"\quad = \quad" in result
+        assert r"\mathbf{B}" in result
+        assert "e_{12}" in result
+
+    def test_named_eager_no_expr(self):
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors()
+        v = e1.name("v")
+        result = v.display()
+        assert result == r"v \quad = \quad e_{1}"
+
+    def test_anonymous_eager_single_value(self):
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors()
+        result = e1.eval().display()
+        assert r"\quad" not in result
+        assert "e_{1}" in result
+
+    def test_anonymous_lazy_expr_and_value(self):
+        alg = Algebra((1, 1, 1))
+        e1, e2, _ = alg.basis_vectors(lazy=True)
+        expr = e1 ^ e2
+        result = expr.display()
+        assert r"\quad = \quad" in result
+        assert "e_{12}" in result
+
+    def test_no_duplicate_parts(self):
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors()
+        v = e1.name(latex="e_{1}")
+        result = v.display()
+        assert result.count("e_{1}") == 1
