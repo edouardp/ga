@@ -613,12 +613,17 @@ class Multivector:
         """Return a LaTeX-renderable object showing name = expression = value, omitting duplicates."""
         parts = []
         name_latex = self.latex() if self._name is not None else None
-        reveal_latex = self.reveal().latex() if self._is_lazy and self._expr is not None else None
         eval_latex = self.eval().latex()
+
+        reveal_latex = None
+        if self._is_lazy and self._expr is not None:
+            r_latex = self.reveal().latex()
+            if r_latex != name_latex and r_latex != eval_latex:
+                reveal_latex = r_latex
 
         if name_latex is not None:
             parts.append(name_latex)
-        if reveal_latex is not None and reveal_latex != name_latex:
+        if reveal_latex is not None:
             parts.append(reveal_latex)
         if eval_latex not in parts:
             parts.append(eval_latex)
@@ -630,14 +635,21 @@ class Multivector:
 
         Named MVs become Sym nodes (so they appear by name in trees).
         Anonymous lazy MVs use their stored expr tree.
-        Anonymous eager MVs become Sym nodes with their string representation.
+        Anonymous eager MVs become Sym nodes with their string representation,
+        using the algebra's LaTeX name for single basis blades.
         """
         if self._name is not None:
             return _sym.Sym(self, self._name_unicode or self._name,
                        name_latex=self._name_latex, name_ascii=self._name)
         if self._expr is not None:
             return self._expr
-        return _sym.Sym(self, str(self))
+        # For single basis blades, use the algebra's LaTeX name
+        display = str(self)
+        latex_name = display
+        nonzero = np.flatnonzero(np.abs(self.data) > 1e-12)
+        if len(nonzero) == 1 and abs(abs(self.data[nonzero[0]]) - 1.0) < 1e-12:
+            latex_name = self.algebra._blade_latex(int(nonzero[0]))
+        return _sym.Sym(self, display, name_latex=latex_name)
 
     # --- Operator overloads ---
 
