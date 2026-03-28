@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.1 (2026-03-28)
+
+### Packaging & Infrastructure
+
+- Renamed `packages/gamo` to `packages/galaga_marimo` for consistency
+- Fixed project URLs to point to correct GitHub repository
+- Lowered numpy minimum to `>=1.24` for broader compatibility
+- Pinned galaga-marimo dependencies (`galaga>=0.1.0`, `marimo>=0.21.1`)
+- Removed workspace-only `[tool.uv.sources]` from galaga-marimo
+- Added `py.typed` marker for type checker support
+- Added publish scripts, Makefile, and automated release workflow
+
+
 ## 0.1.0 (2026-03-28)
 
 Initial release.
