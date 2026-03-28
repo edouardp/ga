@@ -2,7 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ROOT="$SCRIPT_DIR/.."
+source "$SCRIPT_DIR/publish-guard.sh"
+
 PKG="$ROOT/packages/galaga"
 DIST="$ROOT/dist"
 

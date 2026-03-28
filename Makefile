@@ -1,4 +1,4 @@
-.PHONY: test test-galaga test-galaga-marimo build check clean publish-test publish-prod
+.PHONY: test test-galaga test-galaga-marimo build check clean release-patch release-minor release-major
 
 test: test-galaga test-galaga-marimo
 
@@ -23,10 +23,11 @@ check: build
 clean:
 	rm -rf dist/ packages/galaga_marimo/dist/
 
-publish-test: 
-	./scripts/publish-galaga.sh --test
-	./scripts/publish-galaga-marimo.sh --test
+release-patch:
+	./scripts/release.sh patch
 
-publish-prod:
-	./scripts/publish-galaga.sh
-	./scripts/publish-galaga-marimo.sh
+release-minor:
+	./scripts/release.sh minor
+
+release-major:
+	./scripts/release.sh major
