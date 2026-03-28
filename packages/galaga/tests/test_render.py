@@ -41,16 +41,20 @@ from galaga.render import render, render_latex
 
 class TestAtoms:
     def test_sym(self, syms):
+        """Render a named symbol as its name."""
         a, _, _ = syms
         assert render(a) == "a"
 
     def test_scalar_int(self):
+        """Scalar int renders as integer."""
         assert render(Scalar(3)) == "3"
 
     def test_scalar_float(self):
+        """Scalar float renders with decimal."""
         assert render(Scalar(2.5)) == "2.5"
 
     def test_scalar_neg(self):
+        """Negative scalar renders with minus."""
         assert render(Scalar(-1)) == "-1"
 
 
@@ -60,18 +64,22 @@ class TestAtoms:
 
 class TestNeg:
     def test_neg_atom(self, syms):
+        """Neg of atom: -a."""
         a, _, _ = syms
         assert render(Neg(a)) == "-a"
 
     def test_neg_sum(self, syms):
+        """Neg of sum wraps in parens."""
         a, b, _ = syms
         assert render(Neg(Add(a, b))) == "-(a + b)"
 
     def test_neg_product(self, syms):
+        """Neg of product: no parens needed."""
         a, b, _ = syms
         assert render(Neg(Gp(a, b))) == "-ab"
 
     def test_double_neg(self, syms):
+        """Double negation: --a."""
         a, _, _ = syms
         assert render(Neg(Neg(a))) == "--a"
 
@@ -82,22 +90,27 @@ class TestNeg:
 
 class TestScalarMulDiv:
     def test_scalar_mul(self, syms):
+        """ScalarMul renders as coefficient prefix."""
         a, _, _ = syms
         assert render(ScalarMul(3, a)) == "3a"
 
     def test_scalar_mul_neg1(self, syms):
+        """ScalarMul by -1 renders as -a."""
         a, _, _ = syms
         assert render(ScalarMul(-1, a)) == "-a"
 
     def test_scalar_mul_sum(self, syms):
+        """ScalarMul of sum wraps in parens."""
         a, b, _ = syms
         assert render(ScalarMul(2, Add(a, b))) == "2(a + b)"
 
     def test_scalar_div(self, syms):
+        """ScalarDiv renders as a/n."""
         a, _, _ = syms
         assert render(ScalarDiv(a, 2)) == "a/2"
 
     def test_scalar_div_sum(self, syms):
+        """ScalarDiv of sum wraps numerator."""
         a, b, _ = syms
         assert render(ScalarDiv(Add(a, b), 2)) == "(a + b)/2"
 
@@ -108,22 +121,27 @@ class TestScalarMulDiv:
 
 class TestGp:
     def test_two_atoms(self, syms):
+        """Two atoms juxtaposed: ab."""
         a, b, _ = syms
         assert render(Gp(a, b)) == "ab"
 
     def test_three_atoms(self, syms):
+        """Three atoms: abc."""
         a, b, c = syms
         assert render(Gp(Gp(a, b), c)) == "abc"
 
     def test_sum_left(self, syms):
+        """Sum on left of gp gets parens."""
         a, b, c = syms
         assert render(Gp(Add(a, b), c)) == "(a + b)c"
 
     def test_sum_right(self, syms):
+        """Sum on right of gp gets parens."""
         a, b, c = syms
         assert render(Gp(a, Add(b, c))) == "a(b + c)"
 
     def test_sum_both(self, syms):
+        """Sums on both sides get parens."""
         a, b, c = syms
         assert render(Gp(Add(a, b), Add(b, c))) == "(a + b)(b + c)"
 
@@ -133,6 +151,7 @@ class TestGp:
         assert render(Gp(Op(a, b), c)) == "(a∧b)c"
 
     def test_gp_of_wedge_right(self, syms):
+        """Wedge on right of gp gets parens."""
         a, b, c = syms
         assert render(Gp(a, Op(b, c))) == "a(b∧c)"
 
@@ -143,30 +162,37 @@ class TestGp:
 
 class TestOp:
     def test_two_atoms(self, syms):
+        """Two atoms juxtaposed: ab."""
         a, b, _ = syms
         assert render(Op(a, b)) == "a∧b"
 
     def test_sum_in_wedge(self, syms):
+        """Sum in wedge gets parens."""
         a, b, c = syms
         assert render(Op(Add(a, b), c)) == "(a + b)∧c"
 
     def test_scalar_mul_in_wedge(self, syms):
+        """ScalarMul in wedge gets parens."""
         a, b, _ = syms
         assert render(Op(ScalarMul(2, a), b)) == "(2a)∧b"
 
     def test_scalar_mul_of_wedge(self, syms):
+        """ScalarMul of wedge: no parens."""
         a, b, _ = syms
         assert render(ScalarMul(2, Op(a, b))) == "2a∧b"
 
     def test_associative_left(self, syms):
+        """Left-nested wedge: no parens."""
         a, b, c = syms
         assert render(Op(Op(a, b), c)) == "a∧b∧c"
 
     def test_associative_right(self, syms):
+        """Right-nested wedge: no parens."""
         a, b, c = syms
         assert render(Op(a, Op(b, c))) == "a∧b∧c"
 
     def test_associative_both(self, syms):
+        """Both-nested wedge: no parens."""
         a, b, c = syms
         d = Sym(syms[0]._mv, "d")
         assert render(Op(Op(a, b), Op(c, d))) == "a∧b∧c∧d"
@@ -178,18 +204,22 @@ class TestOp:
 
 class TestAddSub:
     def test_add(self, syms):
+        """Add renders with +."""
         a, b, _ = syms
         assert render(Add(a, b)) == "a + b"
 
     def test_sub(self, syms):
+        """Sub renders with -."""
         a, b, _ = syms
         assert render(Sub(a, b)) == "a - b"
 
     def test_add_three(self, syms):
+        """Chained add: a + b + c."""
         a, b, c = syms
         assert render(Add(Add(a, b), c)) == "a + b + c"
 
     def test_sub_of_sum(self, syms):
+        """Sub of sum wraps RHS in parens."""
         a, b, c = syms
         # a - (b + c) — the RHS needs parens because subtraction
         assert render(Sub(a, Add(b, c))) == "a - (b + c)"
@@ -201,70 +231,87 @@ class TestAddSub:
 
 class TestPostfixUnary:
     def test_reverse_atom(self, syms):
+        """Reverse of atom uses combining tilde."""
         a, _, _ = syms
         assert render(Reverse(a)) == "a\u0303"
 
     def test_reverse_sum(self, syms):
+        """Reverse of sum uses \widetilde."""
         a, b, _ = syms
         assert render(Reverse(Add(a, b))) == "~(a + b)"
 
     def test_reverse_product(self, syms):
+        """Reverse of product uses ~ prefix."""
         a, b, _ = syms
         assert render(Reverse(Gp(a, b))) == "~(ab)"
 
     def test_involute_atom(self, syms):
+        """Involute of atom uses combining circumflex."""
         a, _, _ = syms
         assert render(Involute(a)) == "a\u0302"
 
     def test_involute_sum(self, syms):
+        """Involute of sum uses inv() fallback."""
         a, b, _ = syms
         assert render(Involute(Add(a, b))) == "inv(a + b)"
 
     def test_conjugate_atom(self, syms):
+        """Conjugate of atom uses combining overline."""
         a, _, _ = syms
         assert render(Conjugate(a)) == "a\u0304"
 
     def test_conjugate_sum(self, syms):
+        """Conjugate of sum uses conj() fallback."""
         a, b, _ = syms
         assert render(Conjugate(Add(a, b))) == "conj(a + b)"
 
     def test_dual_atom(self, syms):
+        """Dual of atom: a⋆."""
         a, _, _ = syms
         assert render(Dual(a)) == "a⋆"
 
     def test_dual_sum(self, syms):
+        """Dual of sum wraps in parens."""
         a, b, _ = syms
         assert render(Dual(Add(a, b))) == "(a + b)⋆"
 
     def test_dual_product(self, syms):
+        """Dual of product wraps in parens."""
         a, b, _ = syms
         assert render(Dual(Gp(a, b))) == "(ab)⋆"
 
     def test_undual_atom(self, syms):
+        """Undual of atom: a⋆⁻¹."""
         a, _, _ = syms
         assert render(Undual(a)) == "a⋆⁻¹"
 
     def test_inverse_atom(self, syms):
+        """Inverse of atom: a⁻¹."""
         a, _, _ = syms
         assert render(Inverse(a)) == "a⁻¹"
 
     def test_inverse_sum(self, syms):
+        """Inverse of sum wraps in parens."""
         a, b, _ = syms
         assert render(Inverse(Add(a, b))) == "(a + b)⁻¹"
 
     def test_inverse_product(self, syms):
+        """Inverse of product wraps in \left(\right)."""
         a, b, _ = syms
         assert render(Inverse(Gp(a, b))) == "(ab)⁻¹"
 
     def test_squared_atom(self, syms):
+        """Squared of atom: a²."""
         a, _, _ = syms
         assert render(Squared(a)) == "a²"
 
     def test_squared_sum(self, syms):
+        """Squared of sum wraps in \left(\right)."""
         a, b, _ = syms
         assert render(Squared(Add(a, b))) == "(a + b)²"
 
     def test_squared_product(self, syms):
+        """Squared of product wraps in parens."""
         a, b, _ = syms
         assert render(Squared(Gp(a, b))) == "(ab)²"
 
@@ -275,30 +322,37 @@ class TestPostfixUnary:
 
 class TestBracketOps:
     def test_grade(self, syms):
+        """Grade renders with ⟨⟩ and subscript."""
         a, _, _ = syms
         assert render(Grade(a, 1)) == "⟨a⟩₁"
 
     def test_grade_of_sum(self, syms):
+        """Grade of sum: no extra parens needed."""
         a, b, _ = syms
         assert render(Grade(Add(a, b), 2)) == "⟨a + b⟩₂"
 
     def test_norm(self, syms):
+        """Norm renders with ‖‖."""
         a, _, _ = syms
         assert render(Norm(a)) == "‖a‖"
 
     def test_unit_atom(self, syms):
+        """Unit of atom uses combining circumflex."""
         a, _, _ = syms
         assert render(Unit(a)) == "a\u0302"
 
     def test_unit_sum(self, syms):
+        """Unit of sum: (x)/‖x‖."""
         a, b, _ = syms
         assert render(Unit(Add(a, b))) == "(a + b)/‖a + b‖"
 
     def test_exp(self, syms):
+        """Exp renders as exp(...)."""
         a, _, _ = syms
         assert render(Exp(a)) == "exp(a)"
 
     def test_exp_sum(self, syms):
+        """Exp of sum: exp(a + b)."""
         a, b, _ = syms
         assert render(Exp(Add(a, b))) == "exp(a + b)"
 
@@ -309,26 +363,32 @@ class TestBracketOps:
 
 class TestInnerProducts:
     def test_left_contraction(self, syms):
+        """Left contraction: a⌋b."""
         a, b, _ = syms
         assert render(Lc(a, b)) == "a⌋b"
 
     def test_right_contraction(self, syms):
+        """Right contraction: a⌊b."""
         a, b, _ = syms
         assert render(Rc(a, b)) == "a⌊b"
 
     def test_hestenes(self, syms):
+        """Hestenes inner: a·b."""
         a, b, _ = syms
         assert render(Hi(a, b)) == "a·b"
 
     def test_doran_lasenby(self, syms):
+        """Doran-Lasenby inner: a·b."""
         a, b, _ = syms
         assert render(Dli(a, b)) == "a·b"
 
     def test_scalar_product(self, syms):
+        """Scalar product: a∗b."""
         a, b, _ = syms
         assert render(Sp(a, b)) == "a∗b"
 
     def test_contraction_of_sum(self, syms):
+        """Contraction of sum wraps in parens."""
         a, b, c = syms
         assert render(Lc(Add(a, b), c)) == "(a + b)⌋c"
 
@@ -339,18 +399,22 @@ class TestInnerProducts:
 
 class TestCommutators:
     def test_commutator(self, syms):
+        """Commutator: [a, b]."""
         a, b, _ = syms
         assert render(Commutator(a, b)) == "[a, b]"
 
     def test_anticommutator(self, syms):
+        """Anticommutator: {a, b}."""
         a, b, _ = syms
         assert render(Anticommutator(a, b)) == "{a, b}"
 
     def test_lie_bracket(self, syms):
+        """Lie bracket: ½[a, b]."""
         a, b, _ = syms
         assert render(LieBracket(a, b)) == "½[a, b]"
 
     def test_jordan_product(self, syms):
+        """Jordan product: ½{a, b}."""
         a, b, _ = syms
         assert render(JordanProduct(a, b)) == "½{a, b}"
 
@@ -361,18 +425,22 @@ class TestCommutators:
 
 class TestDiv:
     def test_div_atoms(self, syms):
+        """Div of atoms: a/b."""
         a, b, _ = syms
         assert render(Div(a, b)) == "a/b"
 
     def test_div_sum_numerator(self, syms):
+        """Div with sum numerator wraps it."""
         a, b, c = syms
         assert render(Div(Add(a, b), c)) == "(a + b)/c"
 
     def test_div_sum_denominator(self, syms):
+        """Div with sum denominator wraps it."""
         a, b, c = syms
         assert render(Div(a, Add(b, c))) == "a/(b + c)"
 
     def test_div_product_denominator(self, syms):
+        """Div with product denominator wraps it."""
         a, b, c = syms
         assert render(Div(a, Gp(b, c))) == "a/(bc)"
 
@@ -390,6 +458,7 @@ class TestCompositions:
         assert render(expr) == expected
 
     def test_sandwich_named(self, alg):
+        """Named sandwich: RvR̃."""
         e1, e2, _ = alg.basis_vectors()
         R = Sym(e1 * e2, "R")
         v = Sym(e1, "v")
@@ -397,43 +466,51 @@ class TestCompositions:
         assert render(expr) == "RvR\u0303"
 
     def test_reverse_of_sum_in_product(self, syms):
+        """~(a+b) * c."""
         a, b, c = syms
         expr = Gp(Reverse(Add(a, b)), c)
         assert render(expr) == "~(a + b)c"
 
     def test_product_times_reverse_sum(self, syms):
+        """c * ~(a+b)."""
         a, b, c = syms
         expr = Gp(c, Reverse(Add(a, b)))
         assert render(expr) == "c~(a + b)"
 
     def test_sum_sandwich(self, syms):
+        """(a+b)c~(a+b)."""
         a, b, c = syms
         expr = Gp(Gp(Add(a, b), c), Reverse(Add(a, b)))
         assert render(expr) == "(a + b)c~(a + b)"
 
     def test_scalar_mul_in_exp(self, syms):
+        """exp(-ab/2)."""
         a, b, _ = syms
         expr = Exp(ScalarDiv(Neg(Gp(a, b)), 2))
         assert render(expr) == "exp(-ab/2)"
 
     def test_grade_of_sandwich(self, syms):
+        """⟨RvR̃⟩₁."""
         a, b, _ = syms
         R, v = a, b
         expr = Grade(Gp(Gp(R, v), Reverse(R)), 1)
         assert render(expr) == "⟨aba\u0303⟩₁"
 
     def test_nested_reverse(self, syms):
+        """Reverse of reverse."""
         a, _, _ = syms
         expr = Reverse(Reverse(a))
         s = render(expr)
         assert "a" in s
 
     def test_wedge_plus_scalar_wedge(self, syms):
+        """a∧b + 2b∧c."""
         a, b, c = syms
         expr = Add(Op(a, b), ScalarMul(2, Op(b, c)))
         assert render(expr) == "a∧b + 2b∧c"
 
     def test_neg_scalar_mul_in_product(self, syms):
+        """(-a)b."""
         a, b, _ = syms
         expr = Gp(ScalarMul(-1, a), b)
         assert render(expr) == "(-a)b" or render(expr) == "-ab"
@@ -445,58 +522,72 @@ class TestCompositions:
 
 class TestLatex:
     def test_sym(self, syms):
+        """Sym renders its name."""
         a, _, _ = syms
         assert render_latex(a) == "a"
 
     def test_gp(self, syms):
+        """Gp renders with space in LaTeX."""
         a, b, _ = syms
         assert render_latex(Gp(a, b)) == "a b"
 
     def test_wedge(self, syms):
+        """Op renders with \wedge."""
         a, b, _ = syms
         assert render_latex(Op(a, b)) == r"a \wedge b"
 
     def test_add(self, syms):
+        """Add renders with +."""
         a, b, _ = syms
         assert render_latex(Add(a, b)) == "a + b"
 
     def test_reverse(self, syms):
+        """Reverse renders as \tilde."""
         a, _, _ = syms
         assert render_latex(Reverse(a)) == r"\tilde{a}"
 
     def test_reverse_sum(self, syms):
+        """Reverse of sum uses \widetilde."""
         a, b, _ = syms
         assert render_latex(Reverse(Add(a, b))) == r"\widetilde{a + b}"
 
     def test_grade(self, syms):
+        """Grade renders with ⟨⟩ and subscript."""
         a, _, _ = syms
         assert render_latex(Grade(a, 1)) == r"\langle a \rangle_{1}"
 
     def test_scalar_div(self, syms):
+        """ScalarDiv renders as a/n."""
         a, _, _ = syms
         assert render_latex(ScalarDiv(a, 2)) == r"\frac{a}{2}"
 
     def test_div(self, syms):
+        """Div renders as \frac."""
         a, b, _ = syms
         assert render_latex(Div(a, b)) == r"\frac{a}{b}"
 
     def test_exp(self, syms):
+        """Exp renders as exp(...)."""
         a, _, _ = syms
         assert render_latex(Exp(a)) == r"e^{a}"
 
     def test_squared(self, syms):
+        """Squared renders as ^2."""
         a, _, _ = syms
         assert render_latex(Squared(a)) == "a^2"
 
     def test_squared_sum(self, syms):
+        """Squared of sum wraps in \left(\right)."""
         a, b, _ = syms
         assert render_latex(Squared(Add(a, b))) == r"\left(a + b\right)^2"
 
     def test_inverse_product(self, syms):
+        """Inverse of product wraps in \left(\right)."""
         a, b, _ = syms
         assert render_latex(Inverse(Gp(a, b))) == r"\left(a b\right)^{-1}"
 
     def test_sandwich_latex(self, alg):
+        """Sandwich in LaTeX."""
         e1, e2, _ = alg.basis_vectors()
         R = Sym(e1 * e2, "R")
         v = Sym(e1, "v")
@@ -646,16 +737,19 @@ class TestMixedInfixPostfixLatex:
     """LaTeX versions of mixed precedence cases."""
 
     def test_reverse_of_gp_latex(self, syms):
+        """~(ab) in LaTeX uses \widetilde."""
         a, b, _ = syms
         expr = Reverse(Gp(a, b))
         assert render_latex(expr) == r"\widetilde{a b}"
 
     def test_inverse_of_gp_latex(self, syms):
+        """(ab)⁻¹ in LaTeX."""
         a, b, _ = syms
         expr = Inverse(Gp(a, b))
         assert render_latex(expr) == r"\left(a b\right)^{-1}"
 
     def test_sandwich_latex(self, alg):
+        """Sandwich in LaTeX."""
         e1, e2, _ = alg.basis_vectors()
         R = Sym(e1 * e2, "R")
         v = Sym(e1, "v")
@@ -663,11 +757,13 @@ class TestMixedInfixPostfixLatex:
         assert render_latex(expr) == r"R v \tilde{R}"
 
     def test_dual_of_sum_latex(self, syms):
+        """(a+b)* in LaTeX."""
         a, b, _ = syms
         expr = Dual(Add(a, b))
         assert render_latex(expr) == r"\left(a + b\right)^*"
 
     def test_conjugate_of_sum_latex(self, syms):
+        """Conjugate of sum in LaTeX uses \overline."""
         a, b, _ = syms
         expr = Conjugate(Add(a, b))
         assert render_latex(expr) == r"\overline{a + b}"
@@ -690,6 +786,7 @@ class TestNotationOverrideRendering:
         assert render(Dual(v), alg.notation) == "*v"
 
     def test_prefix_unary_dual_latex(self, alg):
+        """Prefix dual override in LaTeX."""
         from galaga.notation import NotationRule
         from galaga.render import render_latex
         alg.notation.set("Dual", "latex", NotationRule(kind="prefix", symbol="*"))
@@ -734,6 +831,7 @@ class TestNotationOverrideRendering:
         assert render(Op(a, b), alg.notation) == "wedge(a, b)"
 
     def test_function_binary_latex(self, alg):
+        """Function-style wedge in LaTeX."""
         from galaga.notation import NotationRule
         from galaga.render import render_latex
         alg.notation.set("Op", "latex", NotationRule(kind="function", symbol="wedge"))
@@ -777,21 +875,25 @@ class TestNotationOverrideRendering:
 
 class TestRegressive:
     def test_regressive_unicode(self, syms):
+        """Regressive product: a∨b."""
         from galaga.symbolic import Regressive
         a, b, _ = syms
         assert render(Regressive(a, b)) == "a∨b"
 
     def test_regressive_latex(self, syms):
+        """Regressive in LaTeX: \vee."""
         from galaga.symbolic import Regressive
         a, b, _ = syms
         assert render_latex(Regressive(a, b)) == r"a \vee b"
 
     def test_regressive_associative(self, syms):
+        """Regressive is associative: a∨b∨c."""
         from galaga.symbolic import Regressive
         a, b, c = syms
         assert render(Regressive(Regressive(a, b), c)) == "a∨b∨c"
 
     def test_regressive_sum_needs_parens(self, syms):
+        """Sum in regressive gets parens."""
         from galaga.symbolic import Regressive
         a, b, c = syms
         assert render(Regressive(Add(a, b), c)) == "(a + b)∨c"

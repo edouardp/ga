@@ -9,12 +9,15 @@ from galaga.latex_rewrite import rewrite
 
 class TestEmitText:
     def test_plain(self):
+        """Text node emits its content."""
         assert emit(Text("x")) == "x"
 
     def test_latex_command(self):
+        """Text node preserves LaTeX commands."""
         assert emit(Text(r"\alpha")) == r"\alpha"
 
     def test_empty(self):
+        """Empty Text emits empty string."""
         assert emit(Text("")) == ""
 
 
@@ -22,21 +25,27 @@ class TestEmitText:
 
 class TestEmitSeq:
     def test_two_children(self):
+        """Seq concatenates children."""
         assert emit(Seq([Text("a"), Text("b")])) == "ab"
 
     def test_separator(self):
+        """Seq uses separator between children."""
         assert emit(Seq([Text("a"), Text("b")], sep=" + ")) == "a + b"
 
     def test_three_children(self):
+        """Seq handles three children with separator."""
         assert emit(Seq([Text("a"), Text("b"), Text("c")], sep=", ")) == "a, b, c"
 
     def test_single_child(self):
+        """Seq with one child emits just that child."""
         assert emit(Seq([Text("x")])) == "x"
 
     def test_empty(self):
+        """Empty Text emits empty string."""
         assert emit(Seq([])) == ""
 
     def test_nested(self):
+        """Nested Seq nodes compose correctly."""
         inner = Seq([Text("x"), Text("y")], sep=" ")
         assert emit(Seq([inner, Text("z")], sep="+")) == "x y+z"
 
@@ -45,12 +54,15 @@ class TestEmitSeq:
 
 class TestEmitFrac:
     def test_simple(self):
+        """Frac emits \frac{num}{den}."""
         assert emit(Frac(Text("a"), Text("b"))) == r"\frac{a}{b}"
 
     def test_small(self):
+        """Small frac emits \tfrac."""
         assert emit(Frac(Text("a"), Text("b"), small=True)) == r"\tfrac{a}{b}"
 
     def test_nested_num(self):
+        """Frac with compound numerator."""
         inner = Seq([Text("x"), Text("+"), Text("y")])
         assert emit(Frac(inner, Text("2"))) == r"\frac{x+y}{2}"
 
@@ -59,13 +71,16 @@ class TestEmitFrac:
 
 class TestEmitSup:
     def test_simple(self):
+        """Frac emits \frac{num}{den}."""
         assert emit(Sup(Text("e"), Text("x"))) == "e^{x}"
 
     def test_complex_base(self):
+        """Sup with parenthesized base."""
         base = Parens(Text("a+b"))
         assert emit(Sup(base, Text("2"))) == r"\left(a+b\right)^{2}"
 
     def test_complex_exp(self):
+        """Sup with compound exponent."""
         exp = Seq([Text("-"), Text(r"\theta")])
         assert emit(Sup(Text("e"), exp)) == r"e^{-\theta}"
 
@@ -84,9 +99,11 @@ class TestEmitSup:
 
 class TestEmitParens:
     def test_simple(self):
+        """Frac emits \frac{num}{den}."""
         assert emit(Parens(Text("x"))) == r"\left(x\right)"
 
     def test_nested(self):
+        """Nested Seq nodes compose correctly."""
         inner = Parens(Text("a"))
         assert emit(Parens(inner)) == r"\left(\left(a\right)\right)"
 
@@ -95,15 +112,19 @@ class TestEmitParens:
 
 class TestEmitCommand:
     def test_tilde(self):
+        """Command emits \tilde{x}."""
         assert emit(Command(r"\tilde", Text("x"))) == r"\tilde{x}"
 
     def test_widetilde(self):
+        """Command emits \widetilde{...}."""
         assert emit(Command(r"\widetilde", Text("a+b"))) == r"\widetilde{a+b}"
 
     def test_hat(self):
+        """Command emits \hat{v}."""
         assert emit(Command(r"\hat", Text("v"))) == r"\hat{v}"
 
     def test_operatorname(self):
+        """Command emits \operatorname{...}."""
         assert emit(Command(r"\operatorname", Text("rev"))) == r"\operatorname{rev}"
 
 
@@ -117,6 +138,7 @@ class TestEmitDeepNesting:
         assert emit(s) == r"e^{\frac{\theta}{2}}"
 
     def test_command_around_frac(self):
+        """Command wrapping a Frac."""
         f = Frac(Text("a"), Text("b"))
         c = Command(r"\widetilde", f)
         assert emit(c) == r"\widetilde{\frac{a}{b}}"
@@ -126,12 +148,14 @@ class TestEmitDeepNesting:
 
 class TestRewriteFracInSup:
     def test_frac_becomes_slash_in_sup(self):
+        """Rewrite converts frac to slash in superscripts."""
         f = Frac(Text(r"\theta"), Text("2"))
         s = Sup(Text("e"), f)
         result = rewrite(s)
         assert emit(result) == r"e^{\theta/2}"
 
     def test_frac_outside_sup_unchanged(self):
+        """Frac outside Sup is not rewritten."""
         f = Frac(Text("a"), Text("b"))
         result = rewrite(f)
         assert emit(result) == r"\frac{a}{b}"
@@ -153,6 +177,7 @@ class TestRewriteFracInSup:
         assert emit(result) == r"\frac{e^{a/2}}{b}"
 
     def test_already_small_in_sup_becomes_slash(self):
+        """Small frac in sup also becomes slash."""
         f = Frac(Text("a"), Text("b"), small=True)
         s = Sup(Text("e"), f)
         result = rewrite(s)
@@ -181,18 +206,22 @@ class TestRewriteFracInSup:
 
 class TestRewriteNestedParens:
     def test_double_parens(self):
+        """Nested Parens collapse to single."""
         tree = Parens(Parens(Text("a")))
         assert emit(rewrite(tree)) == r"\left(a\right)"
 
     def test_triple_parens(self):
+        """Triple-nested Parens collapse to single."""
         tree = Parens(Parens(Parens(Text("x"))))
         assert emit(rewrite(tree)) == r"\left(x\right)"
 
     def test_parens_around_non_parens_unchanged(self):
+        """Single Parens is not collapsed."""
         tree = Parens(Text("a+b"))
         assert emit(rewrite(tree)) == r"\left(a+b\right)"
 
     def test_parens_in_seq_collapsed(self):
+        """Nested Parens inside Seq collapse."""
         tree = Seq([Parens(Parens(Text("a"))), Text("+"), Text("b")])
         assert emit(rewrite(tree)) == r"\left(a\right)+b"
 
@@ -213,6 +242,7 @@ class TestRewriteHoistNeg:
         assert emit(rewrite(tree)) == r"\frac{-a}{2}"
 
     def test_no_neg_unchanged(self):
+        """Frac without negation is unchanged."""
         tree = Frac(Text("a"), Text("b"))
         assert emit(rewrite(tree)) == r"\frac{a}{b}"
 
@@ -231,6 +261,7 @@ class TestRewriteFracOne:
         assert emit(rewrite(tree)) == "a"
 
     def test_frac_complex_over_1(self):
+        """Compound numerator over 1 simplifies."""
         tree = Frac(Seq([Text("a"), Text("+"), Text("b")]), Text("1"))
         assert emit(rewrite(tree)) == "a+b"
 
@@ -240,6 +271,7 @@ class TestRewriteFracOne:
         assert emit(rewrite(tree)) == "e^{x}"
 
     def test_frac_normal_denom_unchanged(self):
+        """Frac with non-1 denominator is unchanged."""
         tree = Frac(Text("a"), Text("2"))
         assert emit(rewrite(tree)) == r"\frac{a}{2}"
 
@@ -248,6 +280,7 @@ class TestRewriteFracOne:
 
 class TestRewriteIdempotent:
     def test_double_rewrite(self):
+        """Rewrite is idempotent."""
         f = Frac(Text(r"\theta"), Text("2"))
         s = Sup(Text("e"), f)
         r1 = rewrite(s)

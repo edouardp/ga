@@ -57,6 +57,7 @@ NOTEBOOKS = [
 
 
 def test_new_example_notebooks_compile():
+    """Verify every listed example notebook is valid Python and has marimo boilerplate."""
     for notebook in NOTEBOOKS:
         source = (EXAMPLES / notebook).read_text()
         if sys.version_info >= (3, 14):
@@ -67,6 +68,7 @@ def test_new_example_notebooks_compile():
 
 
 def test_new_example_notebooks_use_lazy_teaching_pattern():
+    """Check notebooks use lazy basis vectors, galaga_marimo import, eval(), and gm.md."""
     for notebook in NOTEBOOKS:
         source = (EXAMPLES / notebook).read_text()
         assert "basis_vectors(lazy=True)" in source

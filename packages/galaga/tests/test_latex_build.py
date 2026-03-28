@@ -41,104 +41,135 @@ theta = _sym("θ", latex=r"\theta")
 
 class TestAtoms:
     def test_sym(self):
+        """Sym renders its name."""
         assert _latex(a) == "a"
 
     def test_sym_latex_name(self):
+        """Sym with latex name uses it."""
         assert _latex(theta) == r"\theta"
 
     def test_scalar(self):
+        """Scalar renders as number."""
         assert _latex(Scalar(3.14)) == "3.14"
 
     def test_scalar_int(self):
+        """Integer scalar renders without decimal."""
         assert _latex(Scalar(2)) == "2"
 
 
 class TestArithmetic:
     def test_add(self):
+        """Add renders with +."""
         assert _latex(Add(a, b)) == "a + b"
 
     def test_sub(self):
+        """Sub renders with -."""
         assert _latex(Sub(a, b)) == "a - b"
 
     def test_neg(self):
+        """Neg renders with prefix -."""
         assert _latex(Neg(a)) == "-a"
 
     def test_neg_add(self):
+        """Neg of sum wraps in parens."""
         assert _latex(Neg(Add(a, b))) == r"-\left(a + b\right)"
 
     def test_scalar_mul(self):
+        """ScalarMul renders as coefficient."""
         assert _latex(ScalarMul(3, a)) == "3 a"
 
     def test_scalar_mul_neg1(self):
+        """ScalarMul by -1 renders as -a."""
         assert _latex(ScalarMul(-1, a)) == "-a"
 
     def test_scalar_div(self):
+        """ScalarDiv renders as \frac."""
         assert _latex(ScalarDiv(a, 2)) == r"\frac{a}{2}"
 
     def test_div(self):
+        """Div renders as \frac."""
         assert _latex(Div(a, b)) == r"\frac{a}{b}"
 
 
 class TestProducts:
     def test_gp(self):
+        """Gp renders as juxtaposition with space."""
         assert _latex(Gp(a, b)) == "a b"
 
     def test_op(self):
+        """Op renders with \wedge."""
         assert _latex(Op(a, b)) == r"a \wedge b"
 
     def test_lc(self):
+        """Lc renders with \lrcorner."""
         assert _latex(Lc(a, b)) == r"a \;\lrcorner\; b"
 
     def test_rc(self):
+        """Rc renders with \llcorner."""
         assert _latex(Rc(a, b)) == r"a \;\llcorner\; b"
 
     def test_regressive(self):
+        """Regressive renders with \vee."""
         assert _latex(Regressive(a, b)) == r"a \vee b"
 
 
 class TestUnary:
     def test_reverse(self):
+        """Reverse renders as \tilde."""
         assert _latex(Reverse(a)) == r"\tilde{a}"
 
     def test_reverse_compound(self):
+        """Reverse of compound uses \widetilde."""
         assert _latex(Reverse(Add(a, b))) == r"\widetilde{a + b}"
 
     def test_involute(self):
+        """Involute renders as \hat."""
         assert _latex(Involute(a)) == r"\hat{a}"
 
     def test_conjugate(self):
+        """Conjugate renders as \bar."""
         assert _latex(Conjugate(a)) == r"\bar{a}"
 
     def test_conjugate_compound(self):
+        """Conjugate of compound uses \overline."""
         assert _latex(Conjugate(Add(a, b))) == r"\overline{a + b}"
 
     def test_dual(self):
+        """Dual renders as ^*."""
         assert _latex(Dual(a)) == "a^*"
 
     def test_undual(self):
+        """Undual renders as ^{*^{-1}}."""
         assert _latex(Undual(a)) == "a^{*^{-1}}"
 
     def test_complement(self):
+        """Complement renders as ^{\complement}."""
         assert _latex(Complement(a)) == r"a^{\complement}"
 
     def test_uncomplement(self):
+        """Uncomplement renders as ^{\complement^{-1}}."""
         assert _latex(Uncomplement(a)) == r"a^{\complement^{-1}}"
 
     def test_inverse(self):
+        """Inverse renders as ^{-1}."""
         assert _latex(Inverse(a)) == "a^{-1}"
 
     def test_squared(self):
+        """Squared renders as ^2."""
         assert _latex(Squared(a)) == "a^2"
 
 
 class TestPostfixOnPostfix:
     def test_undual_of_dual(self):
+        """Undual of dual wraps inner in parens."""
         assert _latex(Undual(Dual(a))) == r"\left(a^*\right)^{*^{-1}}"
 
     def test_inverse_of_dual(self):
+        """Inverse of dual wraps inner in parens."""
         assert _latex(Inverse(Dual(a))) == r"\left(a^*\right)^{-1}"
 
     def test_dual_of_inverse(self):
+        """Dual of inverse wraps inner in parens."""
         assert _latex(Dual(Inverse(a))) == r"\left(a^{-1}\right)^*"
 
 
@@ -191,27 +222,34 @@ class TestPostfixOnSup:
         assert "{a}" not in result
 
     def test_complement_on_exp(self):
+        """Complement of exp brace-wraps."""
         result = _latex(Complement(Exp(a)))
         assert result == r"{e^{a}}^{\complement}"
 
 
 class TestWrap:
     def test_grade(self):
+        """Grade renders with \langle \rangle."""
         assert _latex(Grade(a, 1)) == r"\langle a \rangle_{1}"
 
     def test_norm(self):
+        """Norm renders with \lVert."""
         assert _latex(Norm(a)) == r"\lVert a \rVert"
 
     def test_even(self):
+        """Even renders with \text{even} subscript."""
         assert _latex(Even(a)) == r"\langle a \rangle_{\text{even}}"
 
     def test_odd(self):
+        """Odd renders with \text{odd} subscript."""
         assert _latex(Odd(a)) == r"\langle a \rangle_{\text{odd}}"
 
     def test_unit_atom(self):
+        """Unit of atom renders as \hat."""
         assert _latex(Unit(a)) == r"\hat{a}"
 
     def test_unit_compound(self):
+        """Unit of compound uses \widehat."""
         result = _latex(Unit(Add(a, b)))
         # Unit of compound uses wide hat accent
         assert r"\widehat" in result
@@ -219,6 +257,7 @@ class TestWrap:
 
 class TestExp:
     def test_simple(self):
+        """Exp renders as e^{...}."""
         assert _latex(Exp(a)) == "e^{a}"
 
     def test_exp_with_frac_uses_tfrac(self):
@@ -227,6 +266,7 @@ class TestExp:
         assert _latex(expr) == r"e^{\theta/2}"
 
     def test_exp_with_product_and_frac(self):
+        """Exp with product and frac uses slash, not \\frac."""
         expr = Exp(Gp(ScalarDiv(Neg(theta), 2), b))
         result = _latex(expr)
         assert "/" in result
@@ -235,17 +275,21 @@ class TestExp:
 
 class TestLog:
     def test_simple(self):
+        """Exp renders as e^{...}."""
         assert _latex(Log(a)) == r"\log\left(a\right)"
 
     def test_log_of_exp(self):
+        """Log of exp: \\log(e^{a})."""
         assert _latex(Log(Exp(a))) == r"\log\left(e^{a}\right)"
 
 
 class TestCommutator:
     def test_commutator(self):
+        """Commutator renders with brackets."""
         assert _latex(Commutator(a, b)) == r"[a,\, b]"
 
     def test_anticommutator(self):
+        """Anticommutator renders with braces."""
         result = _latex(Anticommutator(a, b))
         # Should have braces or similar
         assert "a" in result and "b" in result
@@ -253,10 +297,12 @@ class TestCommutator:
 
 class TestPrecedence:
     def test_add_in_gp(self):
+        """Sum in gp gets parenthesized."""
         expr = Gp(Add(a, b), a)
         assert _latex(expr) == r"\left(a + b\right) a"
 
     def test_gp_in_add(self):
+        """Product in sum needs no parens."""
         expr = Add(Gp(a, b), a)
         assert _latex(expr) == "a b + a"
 
@@ -270,6 +316,7 @@ class TestPrefixSpacing:
     """Regression: prefix LaTeX commands must not run into the operand."""
 
     def test_latex_command_gets_space(self):
+        """LaTeX command prefix gets trailing space."""
         from galaga.notation import Notation, NotationRule
         n = Notation()
         n.set("Reverse", "latex", NotationRule(kind="prefix", symbol=r"\tilde"))
@@ -279,6 +326,7 @@ class TestPrefixSpacing:
         assert emit(rewrite(build(Reverse(a), n))) == r"\tilde a"
 
     def test_latex_command_compound_gets_space(self):
+        """LaTeX command prefix before parens gets space."""
         from galaga.notation import Notation, NotationRule
         n = Notation()
         n.set("Reverse", "latex", NotationRule(kind="prefix", symbol=r"\tilde"))
@@ -292,6 +340,7 @@ class TestPrefixSpacing:
         assert _latex(Neg(a)) == "-a"
 
     def test_prefix_ending_in_brace_no_space(self):
+        """Prefix ending in } has no space."""
         from galaga.notation import Notation, NotationRule
         n = Notation()
         n.set("Reverse", "latex", NotationRule(kind="prefix", symbol=r"{\sim}"))
@@ -314,9 +363,11 @@ class TestSuperscriptKind:
         return emit(rewrite(build(expr, n)))
 
     def test_simple_atom(self):
+        """Superscript on atom: a^{symbol}."""
         assert self._render(Reverse(a), r"\dagger") == r"a^{\dagger}"
 
     def test_compound(self):
+        """Superscript on compound wraps in parens."""
         result = self._render(Reverse(Add(a, b)), r"\dagger")
         assert result == r"\left(a + b\right)^{\dagger}"
 
@@ -326,6 +377,7 @@ class TestSuperscriptKind:
         assert result == r"{e^{a}}^{\dagger}"
 
     def test_custom_symbol(self):
+        """Custom superscript symbol."""
         assert self._render(Reverse(a), "R") == "a^{R}"
 
 
