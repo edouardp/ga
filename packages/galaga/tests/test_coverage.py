@@ -1296,9 +1296,7 @@ class TestSimplify:
     def test_double_neg(self, cl3):
         """simplify(--x) = x."""
         v = sym(cl3.basis_vectors()[0], "v")
-        from galaga.symbolic import Neg
-
-        assert str(simplify(Neg(Neg(v)))) == "v"
+        assert str(simplify(-(-v))) == "v"  # noqa: B002
 
     def test_mul_identity_right(self, cl3):
         """simplify(x*1) = x."""
