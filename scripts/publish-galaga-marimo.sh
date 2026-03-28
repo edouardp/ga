@@ -13,8 +13,12 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-echo "==> Running tests"
-uv run pytest "$PKG/tests/" -v
+echo "==> Running tests (Python 3.14 venv)"
+TMPVENV=$(mktemp -d)/gamo-test
+uv venv "$TMPVENV" --python 3.14
+uv pip install --python "$TMPVENV/bin/python" -e "$ROOT/packages/galaga" -e "$PKG" pytest
+"$TMPVENV/bin/pytest" "$PKG/tests/" -v
+rm -rf "$TMPVENV"
 
 echo "==> Cleaning old builds"
 rm -rf "$PKG/dist"

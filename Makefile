@@ -6,7 +6,11 @@ test-galaga:
 	uv run pytest packages/galaga/tests/ -v
 
 test-galaga-marimo:
-	uv run pytest packages/galaga_marimo/tests/ -v
+	@TMPVENV=$$(mktemp -d)/gamo-test && \
+	uv venv "$$TMPVENV" --python 3.14 && \
+	uv pip install --python "$$TMPVENV/bin/python" -e packages/galaga -e packages/galaga_marimo pytest && \
+	"$$TMPVENV/bin/pytest" packages/galaga_marimo/tests/ -v && \
+	rm -rf "$$TMPVENV"
 
 build:
 	cd packages/galaga && uv build
