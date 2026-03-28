@@ -1,0 +1,37 @@
+---
+status: accepted
+date: 2026-03-29
+deciders: edouard
+---
+
+# ADR-040: Pyrefly for Type Checking
+
+## Context and Problem Statement
+
+The codebase uses dynamic patterns (isinstance dispatch, optional fields,
+union parameters) that work correctly at runtime but have no static type
+verification. Type errors could be introduced silently.
+
+## Decision Outcome
+
+Use Pyrefly (Meta's Rust-based type checker) as a non-blocking warning.
+Currently 138 errors, mostly from untyped Expr/LNode subclass dispatch.
+
+### Why Pyrefly over Mypy
+
+- Faster (Rust-based)
+- Better error messages
+- Active development by Meta
+- Used in the reference project (hello_world_api_lambda_container)
+
+### Path to Zero Errors
+
+See `docs/PYREFLY_STATUS.md` for the full breakdown. The main fix is adding
+type stubs to the `Expr` and `LNode` base classes (~85% of errors).
+
+### Consequences
+
+- Good, because it surfaces real type safety issues
+- Good, because non-blocking means it doesn't slow development
+- Bad, because 138 errors is tech debt until addressed
+- Goal: make blocking once errors reach zero
