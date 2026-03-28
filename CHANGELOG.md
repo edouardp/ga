@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 (2026-03-28)
+
+### Added
+
+- `Multivector.display()` — returns a LaTeX string showing the progression
+  from name to expression to numeric value (e.g. `R = e^{-B/2} = 0.878 - 0.479 e_{12}`),
+  automatically omitting duplicate parts.
+
+
 ## 0.2.0 (2026-03-28)
 
 ### Breaking Changes
