@@ -1,4 +1,4 @@
-# ga — Geometric Algebra for Python
+# galaga — Geometric Algebra for Python
 
 A numeric geometric algebra library with a stable, programmer-first API.
 
@@ -13,7 +13,7 @@ A numeric geometric algebra library with a stable, programmer-first API.
 ## Install
 
 ```bash
-uv add numpy   # only dependency
+pip install galaga
 ```
 
 ## Quick Start
@@ -352,22 +352,13 @@ sta.blade("g0g1")        # γ₀γ₁
 
 ## Display
 
-`str()` uses unicode, `repr()` uses ASCII by default:
+`str()` and `repr()` both use unicode by default:
 
 ```python
 mv = 3 + 2*e1 - e3
 
 str(mv)     # '3 + 2e₁ - e₃'
-repr(mv)    # '3 + 2e1 - e3'
-```
-
-To make `repr()` use unicode too (nicer in IPython/REPL), pass `repr_unicode=True`:
-
-```python
-alg = Algebra((1, 1, 1), repr_unicode=True)
-e1, e2, e3 = alg.basis_vectors()
-
-repr(3*e1 + 4*e2)  # '3e₁ + 4e₂'
+repr(mv)    # '3 + 2e₁ - e₃'
 ```
 
 The pseudoscalar always displays as `I` / `𝑰`:
@@ -491,9 +482,9 @@ Full rendering table:
 |---|---|---|
 | Geometric product | `R * v * ~R` | `RvR̃` |
 | Wedge | `a ^ b` | `a∧b` |
-| Left contraction | `a \| b` | `a⌋b` |
+| Left contraction | `left_contraction(a, b)` | `a⌋b` |
 | Right contraction | `right_contraction(a, b)` | `a⌊b` |
-| Doran–Lasenby inner | `doran_lasenby_inner(a, b)` | `A·B` |
+| Doran–Lasenby inner | `a \| b` | `A·B` |
 | Hestenes inner | `hestenes_inner(a, b)` | `A·B` |
 | Scalar product | `scalar_product(a, b)` | `A∗B` |
 | Reverse | `~R` | `R̃` |
@@ -547,7 +538,7 @@ Concrete `Multivector` objects also have `.latex()`:
 
 ```python
 v = 3*e1 + 4*e2
-v.latex()  # 3 e_{12}
+v.latex()  # 3 e_{1} + 4 e_{2}
 ```
 
 Full LaTeX rendering table:
@@ -578,7 +569,7 @@ Full LaTeX rendering table:
 
 ### Drop-in Functions
 
-The symbolic module provides drop-in replacements for all `ga` functions. They detect lazy `Multivector` or `Expr` arguments and build trees; with plain eager `Multivector` arguments they delegate to the numeric core:
+The symbolic module provides drop-in replacements for all `galaga` functions. They detect lazy `Multivector` or `Expr` arguments and build trees; with plain eager `Multivector` arguments they delegate to the numeric core:
 
 ```python
 from galaga.symbolic import gp, grade, reverse
@@ -825,8 +816,8 @@ In 3D Euclidean space, the Lie bracket of bivectors is isomorphic to the vector 
 | `hestenes_inner(a, b)` | Hestenes inner product |
 | `scalar_product(a, b)` | Scalar product |
 | `ip(a, b, mode=...)` | Unified inner product dispatcher |
-| `commutator(a, b)` | `(ab - ba) / 2` |
-| `anticommutator(a, b)` | `(ab + ba) / 2` |
+| `commutator(a, b)` | `ab - ba` |
+| `anticommutator(a, b)` | `ab + ba` |
 | `reverse(x)` | Reverse `x̃` |
 | `involute(x)` | Grade involution `x̂` |
 | `conjugate(x)` | Clifford conjugate `x̄` |
@@ -928,11 +919,11 @@ uv run marimo edit examples/quantum_physics.py
 ## Testing
 
 ```bash
-uv run pytest tests/ -v                          # run all tests
-uv run pytest tests/ --cov=ga --cov-report=term  # with coverage
+uv run pytest packages/galaga/tests/ -v                                    # run all tests
+uv run pytest packages/galaga/tests/ --cov=galaga --cov-report=term        # with coverage
 ```
 
-845 tests, 98% coverage. Tests include:
+1200+ tests. Tests include:
 - Algebraic identities (associativity, distributivity, reverse-of-product)
 - Golden tests for Cl(2,0), Cl(3,0), Cl(1,3)
 - All five inner products with mixed-grade cases where they diverge
