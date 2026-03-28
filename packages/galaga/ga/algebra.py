@@ -69,7 +69,11 @@ _LETTER_SUBSCRIPTS = {"x": "ₓ", "y": "ᵧ"}
 
 
 from ga.basis_blade import BasisBlade
+from ga.latex_symbols import LatexSymbols
 from ga.lazy import lazy_unary, lazy_binary
+from ga.notation import Notation
+import ga.render as _render
+import ga.symbolic as _sym
 
 
 class Algebra:
@@ -123,7 +127,6 @@ class Algebra:
     }
 
     def __init__(self, signature: tuple[int, ...], names: str | tuple[list[str], list[str]] | None = None, repr_unicode: bool = False, notation: 'Notation | None' = None):
-        from ga.notation import Notation
         self._notation = notation or Notation()
         """Create a Clifford algebra from a metric signature.
 
@@ -516,7 +519,6 @@ class Multivector:
             raise ValueError("At least one of label or latex must be provided")
         # Auto-derive unicode/ascii from latex if not explicitly given
         if latex is not None and (unicode is None or ascii is None):
-            from ga.latex_symbols import LatexSymbols
             result = LatexSymbols().lookup(latex)
             if result is not None:
                 uni_derived, asc_derived = result
@@ -533,15 +535,13 @@ class Multivector:
             self._grade = self.homogeneous_grade()
         # Build a Sym expr so .anon() can reveal the name-based tree
         if self._expr is None:
-            from ga.symbolic import Sym
-            self._expr = Sym(self, self._name_unicode,
+            self._expr = _sym.Sym(self, self._name_unicode,
                              name_latex=self._name_latex, name_ascii=self._name)
         return self
 
     def anon(self) -> Multivector:
         """Remove the display name in-place. Preserves lazy/eager. Returns self."""
-        from ga.symbolic import Sym
-        if isinstance(self._expr, Sym) and self._expr._name == (self._name_unicode or self._name):
+        if isinstance(self._expr, _sym.Sym) and self._expr._name == (self._name_unicode or self._name):
             self._expr = None
         self._name = None
         self._name_latex = None
@@ -586,13 +586,12 @@ class Multivector:
         Anonymous lazy MVs use their stored expr tree.
         Anonymous eager MVs become Sym nodes with their string representation.
         """
-        from ga.symbolic import Sym
         if self._name is not None:
-            return Sym(self, self._name_unicode or self._name,
+            return _sym.Sym(self, self._name_unicode or self._name,
                        name_latex=self._name_latex, name_ascii=self._name)
         if self._expr is not None:
             return self._expr
-        return Sym(self, str(self))
+        return _sym.Sym(self, str(self))
 
     # --- Operator overloads ---
 
@@ -617,52 +616,43 @@ class Multivector:
         return mv
 
     def __add__(self, other):
-        from ga.symbolic import Expr as SymExpr
-        if isinstance(other, SymExpr):
-            from ga.symbolic import Add
-            return Add(self._to_expr(), other)
+        if isinstance(other, _sym.Expr):
+            return _sym.Add(self._to_expr(), other)
         if isinstance(other, (int, float)):
             d = self.data.copy()
             d[0] += other
             if self._is_lazy:
-                from ga.symbolic import Add, Scalar, _ensure_expr
-                return self._lazy_result(d, Add(self._to_expr(), Scalar(other)))
+                return self._lazy_result(d, _sym.Add(self._to_expr(), _sym.Scalar(other)))
             return Multivector(self.algebra, d)
         self._check_same(other)
         if self._is_any_lazy(other):
-            from ga.symbolic import Add
             return self._lazy_result(
                 self.data + other.data,
-                Add(self._to_expr(), other._to_expr()),
+                _sym.Add(self._to_expr(), other._to_expr()),
             )
         return Multivector(self.algebra, self.data + other.data)
 
     def __radd__(self, other):
         if isinstance(other, (int, float)) and self._is_lazy:
-            from ga.symbolic import Add, Scalar
             d = self.data.copy()
             d[0] += other
-            return self._lazy_result(d, Add(Scalar(other), self._to_expr()))
+            return self._lazy_result(d, _sym.Add(_sym.Scalar(other), self._to_expr()))
         return self.__add__(other)
 
     def __sub__(self, other):
-        from ga.symbolic import Expr as SymExpr
-        if isinstance(other, SymExpr):
-            from ga.symbolic import Sub
-            return Sub(self._to_expr(), other)
+        if isinstance(other, _sym.Expr):
+            return _sym.Sub(self._to_expr(), other)
         if isinstance(other, (int, float)):
             d = self.data.copy()
             d[0] -= other
             if self._is_lazy:
-                from ga.symbolic import Sub, Scalar
-                return self._lazy_result(d, Sub(self._to_expr(), Scalar(other)))
+                return self._lazy_result(d, _sym.Sub(self._to_expr(), _sym.Scalar(other)))
             return Multivector(self.algebra, d)
         self._check_same(other)
         if self._is_any_lazy(other):
-            from ga.symbolic import Sub
             return self._lazy_result(
                 self.data - other.data,
-                Sub(self._to_expr(), other._to_expr()),
+                _sym.Sub(self._to_expr(), other._to_expr()),
             )
         return Multivector(self.algebra, self.data - other.data)
 
@@ -671,49 +661,42 @@ class Multivector:
             d = -self.data.copy()
             d[0] += other
             if self._is_lazy:
-                from ga.symbolic import Sub, Scalar
-                return self._lazy_result(d, Sub(Scalar(other), self._to_expr()))
+                return self._lazy_result(d, _sym.Sub(_sym.Scalar(other), self._to_expr()))
             return Multivector(self.algebra, d)
         return NotImplemented
 
     def __neg__(self):
         if self._is_lazy:
-            from ga.symbolic import Neg
-            return self._lazy_result(-self.data, Neg(self._to_expr()))
+            return self._lazy_result(-self.data, _sym.Neg(self._to_expr()))
         return Multivector(self.algebra, -self.data)
 
     def __mul__(self, other):
         """Geometric product (a * b) or scalar multiplication."""
         if isinstance(other, (int, float)):
             if self._is_lazy:
-                from ga.symbolic import ScalarMul
                 return self._lazy_result(
                     self.data * other,
-                    ScalarMul(other, self._to_expr()),
+                    _sym.ScalarMul(other, self._to_expr()),
                 )
             return Multivector(self.algebra, self.data * other)
-        # Handle Expr operands (e.g. Scalar(1) from symbolic module)
-        from ga.symbolic import Expr as SymExpr
-        if isinstance(other, SymExpr):
-            from ga.symbolic import Gp, _ensure_expr
-            return Gp(self._to_expr(), other)
+        # Handle Expr operands (e.g. _sym.Scalar(1) from symbolic module)
+        if isinstance(other, _sym.Expr):
+            return _sym.Gp(self._to_expr(), other)
         self._check_same(other)
         if self._is_any_lazy(other):
-            from ga.symbolic import Gp
             return self._lazy_result(
                 gp(Multivector(self.algebra, self.data),
                    Multivector(other.algebra, other.data)).data,
-                Gp(self._to_expr(), other._to_expr()),
+                _sym.Gp(self._to_expr(), other._to_expr()),
             )
         return gp(self, other)
 
     def __rmul__(self, other):
         if isinstance(other, (int, float)):
             if self._is_lazy:
-                from ga.symbolic import ScalarMul
                 return self._lazy_result(
                     self.data * other,
-                    ScalarMul(other, self._to_expr()),
+                    _sym.ScalarMul(other, self._to_expr()),
                 )
             return Multivector(self.algebra, self.data * other)
         if isinstance(other, Multivector):
@@ -722,52 +705,44 @@ class Multivector:
 
     def __xor__(self, other):
         """Outer product (a ^ b)."""
-        from ga.symbolic import Expr as SymExpr
-        if isinstance(other, SymExpr):
-            from ga.symbolic import Op
-            return Op(self._to_expr(), other)
+        if isinstance(other, _sym.Expr):
+            return _sym.Op(self._to_expr(), other)
         if isinstance(other, Multivector) and self._is_any_lazy(other):
-            from ga.symbolic import Op
             result = op(Multivector(self.algebra, self.data),
                         Multivector(other.algebra, other.data))
             return self._lazy_result(
                 result.data,
-                Op(self._to_expr(), other._to_expr()),
+                _sym.Op(self._to_expr(), other._to_expr()),
             )
         return op(self, other)
 
     def __or__(self, other):
         """Doran–Lasenby inner product (a | b)."""
-        from ga.symbolic import Expr as SymExpr
-        if isinstance(other, SymExpr):
-            from ga.symbolic import Dli
-            return Dli(self._to_expr(), other)
+        if isinstance(other, _sym.Expr):
+            return _sym.Dli(self._to_expr(), other)
         if isinstance(other, Multivector) and self._is_any_lazy(other):
-            from ga.symbolic import Dli
             result = doran_lasenby_inner(
                 Multivector(self.algebra, self.data),
                 Multivector(other.algebra, other.data))
             return self._lazy_result(
                 result.data,
-                Dli(self._to_expr(), other._to_expr()),
+                _sym.Dli(self._to_expr(), other._to_expr()),
             )
         return doran_lasenby_inner(self, other)
 
     def __invert__(self):
         """Reverse (~a)."""
         if self._is_lazy:
-            from ga.symbolic import Reverse as SymReverse
             result = reverse(Multivector(self.algebra, self.data))
-            return self._lazy_result(result.data, SymReverse(self._to_expr()))
+            return self._lazy_result(result.data, _sym.Reverse(self._to_expr()))
         return reverse(self)
 
     def __truediv__(self, other):
         if isinstance(other, (int, float)):
             if self._is_lazy:
-                from ga.symbolic import ScalarDiv
                 return self._lazy_result(
                     self.data / other,
-                    ScalarDiv(self._to_expr(), other),
+                    _sym.ScalarDiv(self._to_expr(), other),
                 )
             return Multivector(self.algebra, self.data / other)
         if isinstance(other, Multivector):
@@ -778,10 +753,9 @@ class Multivector:
                     raise ZeroDivisionError("Division by zero scalar multivector")
                 # If either side is lazy, build a Div tree
                 if self._is_any_lazy(other):
-                    from ga.symbolic import Div
                     return self._lazy_result(
                         self.data / s,
-                        Div(self._to_expr(), other._to_expr()),
+                        _sym.Div(self._to_expr(), other._to_expr()),
                     )
                 return Multivector(self.algebra, self.data / s)
             return self * inverse(other)
@@ -851,9 +825,8 @@ class Multivector:
     def inv(self) -> Multivector:
         """Inverse: x⁻¹"""
         if self._is_lazy:
-            from ga.symbolic import Inverse as SymInverse
             result = inverse(Multivector(self.algebra, self.data))
-            return self._lazy_result(result.data, SymInverse(self._to_expr()))
+            return self._lazy_result(result.data, _sym.Inverse(self._to_expr()))
         return inverse(self)
 
     @property
@@ -865,10 +838,9 @@ class Multivector:
     def sq(self) -> Multivector:
         """Squared: x²"""
         if self._is_lazy:
-            from ga.symbolic import Squared as SymSquared
             result = gp(Multivector(self.algebra, self.data),
                         Multivector(self.algebra, self.data))
-            return self._lazy_result(result.data, SymSquared(self._to_expr()))
+            return self._lazy_result(result.data, _sym.Squared(self._to_expr()))
         return gp(self, self)
 
     @property
@@ -933,8 +905,7 @@ class Multivector:
         if self._name is not None:
             return self._name
         if self._is_lazy and self._expr is not None:
-            from ga.render import render
-            return render(self._expr, self.algebra._notation)
+            return _render.render(self._expr, self.algebra._notation)
         return self._format(unicode=True)
 
     def __format__(self, spec: str) -> str:
@@ -948,15 +919,13 @@ class Multivector:
             if self._name_unicode is not None:
                 return self._name_unicode
             if self._is_lazy and self._expr is not None:
-                from ga.render import render
-                return render(self._expr, self.algebra._notation)
+                return _render.render(self._expr, self.algebra._notation)
             return self._format(unicode=True)
         if spec in ("ascii", "a"):
             if self._name is not None:
                 return self._name
             if self._is_lazy and self._expr is not None:
-                from ga.render import render
-                return render(self._expr, self.algebra._notation)
+                return _render.render(self._expr, self.algebra._notation)
             return self._format(unicode=False)
         # Numeric format spec — apply to each coefficient, no threshold
         alg = self.algebra
@@ -997,8 +966,7 @@ class Multivector:
             raw = self._name
         # Anonymous lazy → delegate to renderer
         elif self._is_lazy and self._expr is not None and coeff_format is None:
-            from ga.render import render_latex
-            raw = render_latex(self._expr, self.algebra._notation)
+            raw = _render.render_latex(self._expr, self.algebra._notation)
         else:
             # Eager anonymous → existing coefficient rendering
             alg = self.algebra
@@ -1239,18 +1207,16 @@ def scalar_product(a: Multivector, b: Multivector) -> Multivector:
 def commutator(a: Multivector, b: Multivector) -> Multivector:
     """Commutator: ab - ba."""
     if a._is_lazy or b._is_lazy:
-        from ga.symbolic import Commutator as SymCommutator
         result = gp(Multivector(a.algebra, a.data), Multivector(b.algebra, b.data)) - gp(Multivector(b.algebra, b.data), Multivector(a.algebra, a.data))
-        return a._lazy_result(result.data, SymCommutator(a._to_expr(), b._to_expr()))
+        return a._lazy_result(result.data, _sym.Commutator(a._to_expr(), b._to_expr()))
     return gp(a, b) - gp(b, a)
 
 
 def anticommutator(a: Multivector, b: Multivector) -> Multivector:
     """Anticommutator: ab + ba."""
     if a._is_lazy or b._is_lazy:
-        from ga.symbolic import Anticommutator as SymAnticommutator
         result = gp(Multivector(a.algebra, a.data), Multivector(b.algebra, b.data)) + gp(Multivector(b.algebra, b.data), Multivector(a.algebra, a.data))
-        return a._lazy_result(result.data, SymAnticommutator(a._to_expr(), b._to_expr()))
+        return a._lazy_result(result.data, _sym.Anticommutator(a._to_expr(), b._to_expr()))
     return gp(a, b) + gp(b, a)
 
 
@@ -1261,9 +1227,8 @@ def lie_bracket(a: Multivector, b: Multivector) -> Multivector:
     with clean structure constants: [Bᵢ, Bⱼ] = εᵢⱼₖ Bₖ.
     """
     if a._is_lazy or b._is_lazy:
-        from ga.symbolic import LieBracket as SymLieBracket
         result = commutator(Multivector(a.algebra, a.data), Multivector(b.algebra, b.data)) * 0.5
-        return a._lazy_result(result.data, SymLieBracket(a._to_expr(), b._to_expr()))
+        return a._lazy_result(result.data, _sym.LieBracket(a._to_expr(), b._to_expr()))
     return commutator(a, b) * 0.5
 
 
@@ -1274,9 +1239,8 @@ def jordan_product(a: Multivector, b: Multivector) -> Multivector:
     this equals the inner product: a ∘ b = a · b.
     """
     if a._is_lazy or b._is_lazy:
-        from ga.symbolic import JordanProduct as SymJordanProduct
         result = anticommutator(Multivector(a.algebra, a.data), Multivector(b.algebra, b.data)) * 0.5
-        return a._lazy_result(result.data, SymJordanProduct(a._to_expr(), b._to_expr()))
+        return a._lazy_result(result.data, _sym.JordanProduct(a._to_expr(), b._to_expr()))
     return anticommutator(a, b) * 0.5
 
 
@@ -1336,15 +1300,14 @@ def conjugate(x: Multivector) -> Multivector:
 def grade(x: Multivector, k: int | str) -> Multivector:
     """Extract grade-k component, or 'even'/'odd' for parity selection."""
     if x._is_lazy:
-        from ga.symbolic import Grade as SymGrade, Even, Odd
         if k == "even":
             result = even_grades(Multivector(x.algebra, x.data))
-            return x._lazy_result(result.data, Even(x._to_expr()))
+            return x._lazy_result(result.data, _sym.Even(x._to_expr()))
         if k == "odd":
             result = odd_grades(Multivector(x.algebra, x.data))
-            return x._lazy_result(result.data, Odd(x._to_expr()))
+            return x._lazy_result(result.data, _sym.Odd(x._to_expr()))
         result = grade(Multivector(x.algebra, x.data), k)
-        return x._lazy_result(result.data, SymGrade(x._to_expr(), k))
+        return x._lazy_result(result.data, _sym.Grade(x._to_expr(), k))
     if k == "even":
         return even_grades(x)
     if k == "odd":
@@ -1468,10 +1431,9 @@ def norm2(x: Multivector) -> float:
 def norm(x: Multivector):
     """Norm: sqrt(|norm2(x)|). Returns float for eager, lazy scalar MV for lazy."""
     if x._is_lazy:
-        from ga.symbolic import Norm as SymNorm
         val = float(np.sqrt(abs(norm2(x))))
         result = x.algebra.scalar(val)
-        return x._lazy_result(result.data, SymNorm(x._to_expr()))
+        return x._lazy_result(result.data, _sym.Norm(x._to_expr()))
     return float(np.sqrt(abs(norm2(x))))
 
 
