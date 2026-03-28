@@ -849,63 +849,87 @@ In 3D Euclidean space, the Lie bracket of bivectors is isomorphic to the vector 
 
 Interactive [marimo](https://marimo.io) notebooks in `examples/`:
 
-- **`naming_demo.py`** — Naming and evaluation API: `.name()`, `.anon()`, `.lazy()`, `.eager()`, real-world examples
-- **`lazy_blades_demo.py`** — Lazy basis blades: `basis_vectors(lazy=True)` for fully symbolic workflows
-- **`latex_naming_demo.py`** — LaTeX-driven naming across physics domains (QM, STA, PGA)
+### `basics/` — Library Features
+
+- **`naming_demo.py`** — `.name()`, `.anon()`, `.lazy()`, `.eager()`, real-world examples
+- **`lazy_blades_demo.py`** — `basis_vectors(lazy=True)` for fully symbolic workflows
+- **`latex_naming_demo.py`** — LaTeX-driven naming across physics domains
 - **`rendering_gallery.py`** — Visual gallery of all expression types with LaTeX rendering
-- **`symbolic_demo.py`** — Symbolic expression trees, rendering, simplification, LaTeX output
-- **`spacetime_algebra.py`** — Spacetime Algebra Cl(1,3): boosts, rotations, EM field, Thomas–Wigner rotation
-- **`quantum_physics.py`** — Quantum spin-½: Bloch sphere, measurement, Stern–Gerlach, Larmor precession
-- **`pga_demo.py`** — Projective GA Cl(3,0,1): translations, reflections, motors, screw interpolation
-- **`special_relativity_lazy.py`** — Lazy STA walkthrough of boosts, Minkowski diagrams, and rapidity addition
-- **`electromagnetism_lazy.py`** — Faraday bivector construction, invariants, and boosted field components
-- **`quantum_spin_lazy.py`** — Lazy Pauli-blade construction of spin states and Stern-Gerlach probabilities
-- **`pauli_equation_toy.py`** — Toy Pauli-equation notebook for spin precession as rotor evolution
-- **`optics_polarisation_lazy.py`** — Polariser projectors and wave-plate rotors in 2D GA
-- **`pga_geometry_constructions.py`** — PGA point-line-triangle constructions with lazy joins
-- **`planar_kinematics_lazy.py`** — Rotor-based planar rigid-body kinematics and trajectory plotting
-- **`coupled_oscillators_modes.py`** — Normal modes as a basis change in configuration-space GA
+- **`symbolic_demo.py`** — Expression trees, rendering, simplification, LaTeX output
+- **`notation_demo.py`** — Notation presets and overrides
+- **`dynamic_notation.py`** — Runtime notation switching
+- **`latex_rewrites_demo.py`** — LaTeX rewrite pipeline demo
+- **`galaga_marimo_demo.py`** — galaga-marimo t-string rendering demo
+- **`blade_renaming.py`** — Basis blade renaming API
+
+### `algebra/` — Core GA Operations
+
 - **`exterior_algebra_intuition.py`** — Wedge-product intuition for oriented length, area, and volume
-- **`duality_and_complements.py`** — Side-by-side notebook for metric duality vs combinatorial complements
-- **`aharonov_bohm.py`** — Holonomy-first Aharonov-Bohm notebook using internal phase rotors
-- **`one_g_travel_calculator.py`** — Relativistic 1g travel calculator with accelerate, coast, decelerate, and Earth-vs-ship time
-- **`twin_paradox.py`** — Worldline and proper-time notebook for the twin paradox
-- **`relativistic_rocket_equation.py`** — Rapidity-first rocket equation notebook with burn and coast analysis
-- **`thomas_precession.py`** — Non-collinear boost composition and residual Thomas-Wigner rotation
-- **`em_waves_sta.py`** — Plane-wave electromagnetic fields and null invariants in STA
-- **`robot_kinematics_pga.py`** — Two-link planar robot kinematics with PGA-style motors
-- **`rotors_from_reflections.py`** — Reflection composition notebook showing how rotors arise geometrically
-- **`pauli_matrices_vs_ga.py`** — Side-by-side comparison of Pauli matrices/spinors and Cl(3,0) rotors/vectors
-- **`dirac_matrices_vs_sta.py`** — Side-by-side comparison of Dirac gamma matrices and STA boosts/vectors
-- **`maxwell_equations_sta.py`** — Maxwell’s equations in compact STA form with field splits and wave invariants
-- **`thin_lens_and_rays_pga.py`** — Thin-lens image construction notebook with projective optics geometry
-- **`quantum_gates_ga.py`** — Single-qubit gates as Bloch-sphere rotations in Cl(3,0)
-- **`kepler_orbits_ga.py`** — Kepler orbit and hodograph notebook with explicit orbital bivectors
-- **`qubits_and_superposition_ga.py`** — Intro to qubits and superposition via rotors and Bloch vectors
-- **`measurement_and_interference_ga.py`** — Phase, recombination, and interference explained with GA rotors
-- **`single_qubit_circuits_ga.py`** — Small single-qubit circuit builder using rotor composition
-- **`grover_search_ga.py`** — Grover search visualized as repeated rotations in a two-state search plane
-- **`deutsch_jozsa_ga.py`** — Deutsch-Jozsa interference notebook with oracle phases and recombination
-- **`bell_states_and_correlations.py`** — Bell singlet correlation notebook with geometric measurement-axis comparison
-- **`lorentz_force_sta.py`** — Qualitative Lorentz-force motion notebook in the STA field picture
-- **`camera_geometry_pga.py`** — Simple pinhole camera geometry and image-plane intersections
-- **`null_geometry_sta.py`** — Null vectors, light cones, and observer geometry in STA
-- **`quantum_teleportation_ga.py`** — Geometric teaching notebook for teleportation as Bloch-vector correction
-- **`phase_estimation_geometry.py`** — Phase estimation taught as repeated rotor-angle accumulation
-- **`screw_motion_pga.py`** — Screw-motion notebook combining rotation and axial drift in PGA style
-- **`fresnel_polarisation_ga.py`** — Fresnel reflection notebook using GA polarisation decomposition
-- **`projectors_ga.py`** — Projection and rejection onto lines and planes using GA blades
-- **`inner_product_family.py`** — Comparison notebook for the library’s inner-product family
-- **`involutions_and_grade_ops.py`** — Reverse, involute, conjugate, grade projection, and even/odd decomposition
-- **`norms_units_inverses.py`** — Squared values, norms, unitization, and inverses on vectors and bivectors
-- **`commutator_lie_jordan.py`** — Symmetric and antisymmetric product splits through named operations
-- **`duality_and_subspaces.py`** — Duality operations combined with project/reject/reflect examples
-- **`exp_log_rotors.py`** — Rotor exponentials and logarithms from bivector generators
-- **`sandwich_products.py`** — Reflections and rotor sandwiches in one focused notebook
-- **`meets_joins_pga.py`** — Small projective joins notebook using PGA complement patterns
+- **`inner_product_family.py`** — Comparison of the library's inner-product family
+- **`commutator_lie_jordan.py`** — Symmetric and antisymmetric product splits
+- **`involutions_and_grade_ops.py`** — Reverse, involute, conjugate, grade projection, even/odd
+- **`norms_units_inverses.py`** — Norms, unitization, and inverses
+- **`duality_and_complements.py`** — Metric duality vs combinatorial complements
+- **`duality_and_subspaces.py`** — Duality with project/reject/reflect
+- **`projectors_ga.py`** — Projection and rejection onto lines and planes
+- **`exp_log_rotors.py`** — Rotor exponentials and logarithms
+- **`rotor_demo.py`** — Rotor construction and rotation
+- **`rotors_from_reflections.py`** — How rotors arise from reflection composition
+- **`sandwich_products.py`** — Reflections and rotor sandwiches
+- **`meets_joins_pga.py`** — Projective joins using PGA complement patterns
+
+### `physics/` — Classical Physics
+
+- **`special_relativity_lazy.py`** — Boosts, Minkowski diagrams, rapidity addition
+- **`twin_paradox.py`** — Worldline and proper-time twin paradox
+- **`relativistic_rocket_equation.py`** — Rapidity-first rocket equation with burn and coast
+- **`one_g_travel_calculator.py`** — Relativistic 1g travel calculator
+- **`thomas_precession.py`** — Non-collinear boost composition and Thomas-Wigner rotation
+- **`kepler_orbits_ga.py`** — Kepler orbit and hodograph with orbital bivectors
+- **`coupled_oscillators_modes.py`** — Normal modes in configuration-space GA
+- **`planar_kinematics_lazy.py`** — Rotor-based planar rigid-body kinematics
+- **`robot_kinematics_pga.py`** — Two-link planar robot with PGA-style motors
+- **`polarisation.py`** — Polarisation states and Jones calculus in GA
+- **`optics_polarisation_lazy.py`** — Polariser projectors and wave-plate rotors
+- **`fresnel_polarisation_ga.py`** — Fresnel reflection with GA polarisation decomposition
+
+### `quantum/` — Quantum Mechanics
+
+- **`quantum_physics.py`** — Spin-½: Bloch sphere, measurement, Stern–Gerlach, Larmor precession
+- **`qubits_and_superposition_ga.py`** — Qubits and superposition via rotors and Bloch vectors
+- **`quantum_gates_ga.py`** — Single-qubit gates as Bloch-sphere rotations
+- **`single_qubit_circuits_ga.py`** — Single-qubit circuit builder using rotor composition
+- **`quantum_spin_lazy.py`** — Lazy Pauli-blade spin states and Stern-Gerlach probabilities
+- **`measurement_and_interference_ga.py`** — Phase, recombination, and interference
+- **`pauli_equation_toy.py`** — Spin precession as rotor evolution
+- **`aharonov_bohm.py`** — Holonomy-first Aharonov-Bohm with internal phase rotors
+- **`bell_states_and_correlations.py`** — Bell singlet correlations with geometric measurement axes
+- **`quantum_teleportation_ga.py`** — Teleportation as Bloch-vector correction
+- **`grover_search_ga.py`** — Grover search as repeated rotations in a search plane
+- **`deutsch_jozsa_ga.py`** — Deutsch-Jozsa interference with oracle phases
+- **`phase_estimation_geometry.py`** — Phase estimation as repeated rotor-angle accumulation
+
+### `pga/` — Projective Geometric Algebra
+
+- **`pga_demo.py`** — Cl(3,0,1): translations, reflections, motors, screw interpolation
+- **`pga_geometry_constructions.py`** — Point-line-triangle constructions with lazy joins
+- **`camera_geometry_pga.py`** — Pinhole camera geometry and image-plane intersections
+- **`thin_lens_and_rays_pga.py`** — Thin-lens image construction with projective optics
+- **`screw_motion_pga.py`** — Screw-motion combining rotation and axial drift
+
+### `spacetime/` — Spacetime Algebra
+
+- **`spacetime_algebra.py`** — Cl(1,3): boosts, rotations, EM field, Thomas–Wigner rotation
+- **`pauli_matrices_vs_ga.py`** — Pauli matrices/spinors vs Cl(3,0) rotors/vectors
+- **`dirac_matrices_vs_sta.py`** — Dirac gamma matrices vs STA boosts/vectors
+- **`electromagnetism_lazy.py`** — Faraday bivector, invariants, boosted field components
+- **`em_waves_sta.py`** — Plane-wave EM fields and null invariants
+- **`maxwell_equations_sta.py`** — Maxwell's equations in compact STA form
+- **`lorentz_force_sta.py`** — Lorentz-force motion in the STA field picture
+- **`null_geometry_sta.py`** — Null vectors, light cones, and observer geometry
 
 ```bash
-uv run marimo edit examples/quantum_physics.py
+uv run marimo edit examples/quantum/quantum_physics.py
 ```
 
 ## Internals
