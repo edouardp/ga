@@ -643,13 +643,8 @@ class Multivector:
                        name_latex=self._name_latex, name_ascii=self._name)
         if self._expr is not None:
             return self._expr
-        # For single basis blades, use the algebra's LaTeX name
         display = str(self)
-        latex_name = display
-        nonzero = np.flatnonzero(np.abs(self.data) > 1e-12)
-        if len(nonzero) == 1 and abs(abs(self.data[nonzero[0]]) - 1.0) < 1e-12:
-            latex_name = self.algebra._blade_latex(int(nonzero[0]))
-        return _sym.Sym(self, display, name_latex=latex_name)
+        return _sym.Sym(self, display, name_latex=self.latex())
 
     # --- Operator overloads ---
 
