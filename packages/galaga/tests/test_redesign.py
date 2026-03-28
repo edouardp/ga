@@ -1949,39 +1949,49 @@ class TestReveal:
 
 class TestDisplay:
     def test_named_lazy_with_expr(self):
+        """Named lazy MV shows all three: name = expression = numeric value."""
         alg = Algebra((1, 1, 1))
         e1, e2, _ = alg.basis_vectors(lazy=True)
         B = (e1 ^ e2).name(latex=r"\mathbf{B}")
         result = B.display()
+        # Expect: \mathbf{B} \quad = \quad e₁ ∧ e₂ \quad = \quad e_{12}
         assert r"\quad = \quad" in result
         assert r"\mathbf{B}" in result
         assert "e_{12}" in result
 
     def test_named_eager_no_expr(self):
+        """Named eager MV has no expression tree, so shows: name = value."""
         alg = Algebra((1, 1, 1))
         e1, _, _ = alg.basis_vectors()
         v = e1.name("v")
         result = v.display()
+        # Expect: v \quad = \quad e_{1}
         assert result == r"v \quad = \quad e_{1}"
 
     def test_anonymous_eager_single_value(self):
+        """Anonymous eager MV has no name or expression — just the value."""
         alg = Algebra((1, 1, 1))
         e1, _, _ = alg.basis_vectors()
         result = e1.eval().display()
+        # Expect: e_{1}  (no equals signs)
         assert r"\quad" not in result
         assert "e_{1}" in result
 
     def test_anonymous_lazy_expr_and_value(self):
+        """Anonymous lazy MV shows: expression = value."""
         alg = Algebra((1, 1, 1))
         e1, e2, _ = alg.basis_vectors(lazy=True)
         expr = e1 ^ e2
         result = expr.display()
+        # Expect: e₁ ∧ e₂ \quad = \quad e_{12}
         assert r"\quad = \quad" in result
         assert "e_{12}" in result
 
     def test_no_duplicate_parts(self):
+        """When name and value are identical, only show it once."""
         alg = Algebra((1, 1, 1))
         e1, _, _ = alg.basis_vectors()
         v = e1.name(latex="e_{1}")
         result = v.display()
+        # Name is e_{1}, value is e_{1} — should appear only once
         assert result.count("e_{1}") == 1
