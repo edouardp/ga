@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.8 (2026-03-29)
+
+### Added
+
+- `scalar_sqrt()` is now symbolic — renders as `√(...)` in unicode and
+  `\sqrt{...}` in LaTeX. Works with `display()` and `gm.md()`.
+- `scalar_sqrt()` accepts plain `int`/`float` as well as `Multivector`.
+- Release process documentation (`docs/RELEASE_PROCESS.md`).
+
+### Fixed
+
+- Auto-fix markdown lint in release script after changelog edit.
+
 ## 0.3.7 (2026-03-29)
 
 ### Added
