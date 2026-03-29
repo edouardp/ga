@@ -2330,3 +2330,52 @@ class TestDisplay:
         d = e1.display()
         assert callable(getattr(d, "latex", None))
         assert callable(getattr(d, "_repr_latex_", None))
+
+
+class TestCopyAs:
+    """copy_as() — non-mutating named copy."""
+
+    def test_returns_new_object(self):
+        """copy_as returns a different object."""
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors(lazy=True)
+        v = e1 + e1
+        w = v.copy_as("w")
+        assert v is not w
+
+    def test_original_unchanged(self):
+        """Original MV is not mutated."""
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors(lazy=True)
+        v = e1 + e1
+        v.copy_as("w")
+        assert v._name is None
+
+    def test_copy_is_named(self):
+        """Copy has the given name."""
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors(lazy=True)
+        w = (e1 + e1).copy_as("w")
+        assert str(w) == "w"
+
+    def test_latex_kwarg(self):
+        """copy_as with latex= sets latex name."""
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors(lazy=True)
+        w = (e1 + e1).copy_as(latex=r"\mathbf{w}")
+        assert r"\mathbf{w}" in w.latex()
+
+    def test_same_data(self):
+        """Copy has same numeric data."""
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors(lazy=True)
+        v = e1 + e1
+        w = v.copy_as("w")
+        assert np.allclose(v.data, w.data)
+
+    def test_preserves_laziness(self):
+        """Copy is lazy (name() sets lazy)."""
+        alg = Algebra((1, 1, 1))
+        e1, _, _ = alg.basis_vectors(lazy=True)
+        w = (e1 + e1).copy_as("w")
+        assert w._is_lazy

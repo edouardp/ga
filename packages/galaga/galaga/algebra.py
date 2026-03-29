@@ -645,6 +645,17 @@ class Multivector:
             _name_unicode=None,
         )
 
+    def copy_as(
+        self,
+        label: str | None = None,
+        *,
+        latex: str | None = None,
+        unicode: str | None = None,
+        ascii: str | None = None,
+    ) -> Multivector:
+        """Return a named copy. Like .name() but non-mutating."""
+        return self._copy_with().name(label, latex=latex, unicode=unicode, ascii=ascii)
+
     def display(self) -> _DisplayResult:
         """Return a LaTeX-renderable object showing name = expression = value, omitting duplicates."""
         parts = []
