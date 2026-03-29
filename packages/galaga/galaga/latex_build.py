@@ -26,6 +26,7 @@ from galaga.expr import (
     Scalar,
     ScalarDiv,
     ScalarMul,
+    Sqrt,
     Sub,
     Sym,
     Unit,
@@ -202,6 +203,8 @@ def _build(node: Expr, n: Notation) -> LNode:
             return Sup(Text("e"), _build(node.x, n))
         if t is Log:
             return Seq([Text(r"\log\left("), _build(node.x, n), Text(r"\right)")])
+        if t is Sqrt:
+            return Command(r"\sqrt", _build(node.x, n))
         # Generic wrap
         return Seq([Text(rule.open), _build(node.x, n), Text(rule.close)])
 

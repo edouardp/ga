@@ -146,6 +146,7 @@ _DEFAULTS: dict[str, dict[str, NotationRule]] = {
     },
     "Exp": _wrap("exp(", ")", "e^{", "}"),
     "Log": _wrap("log(", ")", r"\log\left(", r"\right)"),
+    "Sqrt": _wrap("√(", ")", r"\sqrt{", "}"),
     "Even": _wrap("⟨", "⟩₊", r"\langle ", r" \rangle_{\text{even}}"),
     "Odd": _wrap("⟨", "⟩₋", r"\langle ", r" \rangle_{\text{odd}}"),
     "Commutator": _wrap("[", "]", "[", "]"),

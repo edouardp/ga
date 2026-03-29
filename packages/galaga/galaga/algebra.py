@@ -1426,6 +1426,7 @@ def scalar(x: Multivector) -> float:
     return float(x.data[0])
 
 
+@lazy_unary("Sqrt")
 def scalar_sqrt(x: Multivector) -> Multivector:
     """Square root of a scalar multivector. Raises if x has non-scalar components."""
     if not is_scalar(x):

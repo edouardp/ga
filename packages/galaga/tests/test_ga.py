@@ -913,3 +913,47 @@ class TestScalarSqrt:
         alg = Algebra((1, 1, 1))
         v = alg.vector([3, 4, 0])
         assert np.isclose(scalar(scalar_sqrt(alg.scalar(norm2(v)))), norm(v))
+
+
+class TestScalarSqrtSymbolic:
+    """scalar_sqrt() symbolic rendering."""
+
+    def test_lazy_builds_tree(self):
+        """scalar_sqrt of lazy MV returns lazy with Sqrt expr."""
+        alg = Algebra((1, 1, 1))
+        s = alg.scalar(9.0).name("s")
+        result = scalar_sqrt(s)
+        assert result._is_lazy
+        assert result._expr is not None
+
+    def test_unicode_rendering(self):
+        """Renders as √(s) in unicode."""
+        alg = Algebra((1, 1, 1))
+        s = alg.scalar(9.0).name("s")
+        assert "√" in str(scalar_sqrt(s))
+
+    def test_latex_rendering(self):
+        """Renders as \\sqrt{s} in LaTeX."""
+        alg = Algebra((1, 1, 1))
+        s = alg.scalar(9.0).name("s")
+        assert r"\sqrt{s}" in scalar_sqrt(s).latex()
+
+    def test_compound_expression(self):
+        """√(m² + p²) renders correctly."""
+        alg = Algebra((1, 1, 1))
+        m = alg.scalar(3.0).name("m")
+        p = alg.scalar(4.0).name("p")
+        E = scalar_sqrt(m**2 + p**2)
+        assert r"\sqrt" in E.latex()
+        assert np.isclose(scalar(E.eval()), 5.0)
+
+    def test_display_dedup(self):
+        """display() shows name = expr = value without duplicates."""
+        alg = Algebra((1, 1, 1))
+        m = alg.scalar(3.0).name("m")
+        p = alg.scalar(4.0).name("p")
+        E = scalar_sqrt(m**2 + p**2).name("E")
+        d = E.display().latex()
+        assert "E" in d
+        assert r"\sqrt" in d
+        assert "5" in d

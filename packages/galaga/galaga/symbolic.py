@@ -47,6 +47,7 @@ from galaga.expr import (  # noqa: F401
     ScalarDiv,
     ScalarMul,
     Sp,
+    Sqrt,
     Squared,
     Sub,
     Sym,

@@ -219,6 +219,7 @@ Exp = _make_unary_expr("Exp", "exp")
 Log = _make_unary_expr("Log", "log")
 Even = _make_unary_expr("Even", "even_grades")
 Odd = _make_unary_expr("Odd", "odd_grades")
+Sqrt = _make_unary_expr("Sqrt", "scalar_sqrt")
 
 
 # ── Hand-written nodes (need custom eval or extra fields) ──
