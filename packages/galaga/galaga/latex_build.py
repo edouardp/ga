@@ -38,6 +38,14 @@ from galaga.render import _CHILD_MIN, _COMMA_BINARY, _NAME, _needs_wrap
 _DEFAULT = Notation()
 
 
+def _is_single_latex_glyph(s: str) -> bool:
+    """True if s renders as a single glyph in LaTeX (e.g. 'R', '\\theta', '\\mathbf{F}')."""
+    if len(s) <= 1:
+        return True
+    # LaTeX commands render as single glyphs: \theta, \alpha, \mathbf{X}, etc.
+    return s.startswith("\\")
+
+
 def build(node: Expr, notation: Notation | None = None) -> LNode:
     """Build an LNode tree from an Expr tree."""
     n = notation or _DEFAULT
@@ -148,12 +156,14 @@ def _build(node: Expr, n: Notation) -> LNode:
 
     # Accent (combining diacritical or wide accent)
     if rule.kind == "accent" and hasattr(node, "x"):
-        is_atom = isinstance(node.x, (Sym, Scalar))
+        # Use narrow accent (\tilde) for single-glyph names, wide (\widetilde) otherwise.
+        # LaTeX commands like \theta, \mathbf{F} render as single glyphs.
+        is_single_glyph = isinstance(node.x, Sym) and _is_single_latex_glyph(node.x._name_latex or node.x._name)
         if t in (Reverse, Conjugate):
             inner = _build(node.x, n)
         else:
             inner = _wp(_build(node.x, n), node.x, 95)
-        cmd = rule.latex_cmd if is_atom else rule.latex_wide_cmd
+        cmd = rule.latex_cmd if is_single_glyph else rule.latex_wide_cmd
         return Command(cmd, inner)
 
     # Postfix

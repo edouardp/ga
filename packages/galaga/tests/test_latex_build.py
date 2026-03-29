@@ -467,3 +467,33 @@ class TestEndToEndLatex:
         R = exp(B)
         latex = log(R).latex()
         assert r"\log" in latex
+
+
+class TestAccentWidth:
+    """LaTeX accents use narrow (\\tilde) for single glyphs, wide (\\widetilde) for multi-char."""
+
+    def test_single_char_narrow(self):
+        """Single letter uses \\tilde."""
+        assert _latex(Reverse(a)) == r"\tilde{a}"
+
+    def test_multi_char_wide(self):
+        """Multi-letter name uses \\widetilde."""
+        ab = _sym("AB")
+        assert _latex(Reverse(ab)) == r"\widetilde{AB}"
+
+    def test_latex_command_narrow(self):
+        """LaTeX command like \\theta is a single glyph — uses \\tilde."""
+        assert _latex(Reverse(theta)) == r"\tilde{\theta}"
+
+    def test_compound_expr_wide(self):
+        """Compound expression uses \\widetilde."""
+        assert _latex(Reverse(Add(a, b))) == r"\widetilde{a + b}"
+
+    def test_conjugate_single_narrow(self):
+        """Conjugate single char uses \\bar."""
+        assert _latex(Conjugate(a)) == r"\bar{a}"
+
+    def test_conjugate_multi_wide(self):
+        """Conjugate multi-char uses \\overline."""
+        ab = _sym("AB")
+        assert _latex(Conjugate(ab)) == r"\overline{AB}"
