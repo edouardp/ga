@@ -1426,9 +1426,27 @@ def scalar(x: Multivector) -> float:
     return float(x.data[0])
 
 
-@lazy_unary("Sqrt")
-def scalar_sqrt(x: Multivector) -> Multivector:
-    """Square root of a scalar multivector. Raises if x has non-scalar components."""
+def scalar_sqrt(x) -> Multivector:
+    """Square root of a scalar multivector or number.
+
+    Accepts a Multivector or a plain number (int/float). Numbers are
+    coerced to scalar MVs if possible, otherwise np.sqrt is used.
+    """
+    if isinstance(x, (int, float)):
+        if x < 0:
+            raise ValueError(f"scalar_sqrt of negative value {x}")
+        # No algebra context — but if we got here from a plain number,
+        # just return a float. The user can wrap it if needed.
+        return x.__class__(np.sqrt(x))
+    if not isinstance(x, Multivector):
+        raise TypeError(f"scalar_sqrt expects a Multivector or number, got {type(x).__name__}")
+    # Lazy path
+    if x._is_lazy:
+        import galaga.symbolic as sym
+
+        result = scalar_sqrt(Multivector(x.algebra, x.data))
+        return x._lazy_result(result.data, sym.Sqrt(x._to_expr()))
+    # Eager path
     if not is_scalar(x):
         raise ValueError("scalar_sqrt requires a pure scalar multivector")
     s = float(x.data[0])

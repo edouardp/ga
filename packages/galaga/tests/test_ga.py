@@ -914,6 +914,24 @@ class TestScalarSqrt:
         v = alg.vector([3, 4, 0])
         assert np.isclose(scalar(scalar_sqrt(alg.scalar(norm2(v)))), norm(v))
 
+    def test_accepts_float(self):
+        """scalar_sqrt(9.0) returns 3.0."""
+        assert np.isclose(scalar_sqrt(9.0), 3.0)
+
+    def test_accepts_int(self):
+        """scalar_sqrt(16) returns 4."""
+        assert scalar_sqrt(16) == 4
+
+    def test_float_negative_raises(self):
+        """scalar_sqrt(-1.0) raises ValueError."""
+        with pytest.raises(ValueError, match="negative"):
+            scalar_sqrt(-1.0)
+
+    def test_bad_type_raises(self):
+        """scalar_sqrt('hello') raises TypeError."""
+        with pytest.raises(TypeError):
+            scalar_sqrt("hello")
+
 
 class TestScalarSqrtSymbolic:
     """scalar_sqrt() symbolic rendering."""
