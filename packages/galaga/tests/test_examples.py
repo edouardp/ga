@@ -59,7 +59,7 @@ def test_rotations_from_bivectors_notebook_uses_gm_md_only_for_interpolated_mark
     """Static explanatory sections should use marimo markdown rather than gm.md()."""
     source = (ROOT / "examples" / "algebra" / "rotations_from_bivectors.py").read_text()
 
-    assert source.count("gm.md(t\"\"\"") == 2
+    assert source.count('gm.md(t"""') == 2
     assert 'mo.md(r"""' in source
     assert "# Rotations from Bivectors" in source
     assert "## Domain Grounding" in source

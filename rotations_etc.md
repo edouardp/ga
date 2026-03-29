@@ -1,4 +1,4 @@
-So vectors create bivectors. And bivectors are generators of rotors. And rotors apply rotations to objects via the sandwhich product. 
+So vectors create bivectors. And bivectors are generators of rotors. And rotors apply rotations to objects via the sandwhich product.
 
 Yes — that chain is essentially right. The nice thing is that **each step is doing something very specific geometrically**, not just algebraically.
 
@@ -147,7 +147,7 @@ If you want, next step we can:
 - map this directly to **Pauli matrices / SU(2)** (your earlier thread), or
 - show how this extends cleanly to **translations → motors (CGA/PGA)**, which fixes the “translate → rotate → translate back” issue you hit earlier.
 
-What is precise terminology for all those steps, objects, actions. 
+What is precise terminology for all those steps, objects, actions.
 
 Good instinct — there *is* a precise vocabulary for each step, and using it consistently clears up a lot of confusion (especially around “rotation”, “generator”, etc.).
 
@@ -368,9 +368,9 @@ If you compress everything:
 The *real* hierarchy is:
 
 ```
-Vectors → reflections  
-Reflections → versors  
-Even versors → rotors  
+Vectors → reflections
+Reflections → versors
+Even versors → rotors
 Rotors → rotations (via conjugation)
 ```
 

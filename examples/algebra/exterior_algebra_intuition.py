@@ -101,7 +101,7 @@ def _(angle, dual, e1, e2, gm, length, norm, np):
     wedge = (u ^ v)
     area = norm(wedge)
     pseudo_cross = dual(wedge)
-    
+
     gm.md(t"""
     {u} = {u.eval()}
 

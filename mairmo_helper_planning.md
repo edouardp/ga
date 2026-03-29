@@ -4,7 +4,7 @@
 
 Yes — a separate marimo helper library is a good fit for this.
 
-The key idea is: **do not let `mo.md(f"...")` stringify rich objects first**. Instead, make your helper accept a **t-string `Template`**, inspect each interpolation before it becomes text, and then decide whether each value should become plain text, inline LaTeX, block LaTeX, HTML, or a marimo object. Python 3.14 t-strings are designed for exactly this kind of custom string processing: they return a `Template` object from `string.templatelib` instead of a final `str`, so a library can see the literal chunks and the interpolated values before combining them. marimo’s markdown API also supports rich interpolation, including `Html` objects and `mo.as_html(...)`, which makes this design practical. 
+The key idea is: **do not let `mo.md(f"...")` stringify rich objects first**. Instead, make your helper accept a **t-string `Template`**, inspect each interpolation before it becomes text, and then decide whether each value should become plain text, inline LaTeX, block LaTeX, HTML, or a marimo object. Python 3.14 t-strings are designed for exactly this kind of custom string processing: they return a `Template` object from `string.templatelib` instead of a final `str`, so a library can see the literal chunks and the interpolated values before combining them. marimo’s markdown API also supports rich interpolation, including `Html` objects and `mo.as_html(...)`, which makes this design practical.
 
 ## Proposed library shape
 
@@ -56,7 +56,7 @@ This matters because `Template` preserves:
 - the literal string parts
 - each interpolation’s value
 - the original expression text
-- any conversion / format spec metadata exposed by the interpolation object. 
+- any conversion / format spec metadata exposed by the interpolation object.
 
 That means your helper can inspect `{R}` while it is still the actual rotor object, not already collapsed into a string.
 
@@ -147,7 +147,7 @@ These wrappers are useful for edge cases and make the system predictable.
 
 ## Recommended formatting semantics
 
-T-strings also preserve conversion and format-spec information for interpolations, so you can use that as part of the API surface. 
+T-strings also preserve conversion and format-spec information for interpolations, so you can use that as part of the API surface.
 
 For example:
 
@@ -242,7 +242,7 @@ The crucial thing is that `render_value(...)` sees the real object before string
 
 ## marimo-specific assembly strategy
 
-marimo supports interpolating Python values and marimo elements into markdown, and also supports `Html` / `as_html()`. 
+marimo supports interpolating Python values and marimo elements into markdown, and also supports `Html` / `as_html()`.
 
 So your assembler should likely do one of these:
 
@@ -262,7 +262,7 @@ Then only move to a more complex HTML-first assembler if needed.
 
 This helper library should probably target:
 
-- Python 3.14+ for the t-string API, since `string.templatelib` and t-strings were added in Python 3.14. 
+- Python 3.14+ for the t-string API, since `string.templatelib` and t-strings were added in Python 3.14.
 - optionally a fallback API for older Python:
   - `gm.md_fmt("State: {psi}", psi=psi)`
 
@@ -328,6 +328,6 @@ That is small, understandable, and extensible.
 
 ## Bottom line
 
-Yes, this is a good use case for a separate marimo helper library. T-strings help because they let your helper see structured interpolations before they become plain text, which is exactly what f-strings prevent. The right shape is a tiny rendering library with a `md(t"...")` entry point, a rendering protocol, a few explicit wrappers, and optional GA-specific adapters. 
+Yes, this is a good use case for a separate marimo helper library. T-strings help because they let your helper see structured interpolations before they become plain text, which is exactly what f-strings prevent. The right shape is a tiny rendering library with a `md(t"...")` entry point, a rendering protocol, a few explicit wrappers, and optional GA-specific adapters.
 
 I can turn this into a concrete package skeleton with code for `api.py`, `renderer.py`, and a first-pass `gm.md()` implementation.

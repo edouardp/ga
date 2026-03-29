@@ -242,7 +242,7 @@ Then:
 
 ```
 for i, ai in enumerate(a.data):
-    if ai == 0: 
+    if ai == 0:
         continue
     for j, bj in enumerate(b.data):
         if bj == 0:

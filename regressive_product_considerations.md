@@ -871,11 +871,11 @@ Yes. If your goal is “expose all sensible choices by full name, but pick one d
 The literature really supports **three serious families** of “meet / regressive product” constructions:
 
 1. **Metric-dual regressive product**
-    Define meet as the dual of wedge using a pseudoscalar inverse, e.g. $A \vee B = ((A I^{-1}) \wedge (B I^{-1})) I$. This is the classic GA presentation, but it depends on the pseudoscalar inverse, so it is not the robust default for degenerate algebras like PGA. 
+    Define meet as the dual of wedge using a pseudoscalar inverse, e.g. $A \vee B = ((A I^{-1}) \wedge (B I^{-1})) I$. This is the classic GA presentation, but it depends on the pseudoscalar inverse, so it is not the robust default for degenerate algebras like PGA.
 2. **Complement-based regressive product**
-    Define meet via a basis-complement or Poincaré-dual style map, then wedge in the complementary algebra and map back. This is the safe choice in projective/degenerate settings and is exactly the direction stressed in modern PGA-oriented work, where metric-based dualization is treated as the problematic dependency. 
+    Define meet via a basis-complement or Poincaré-dual style map, then wedge in the complementary algebra and map back. This is the safe choice in projective/degenerate settings and is exactly the direction stressed in modern PGA-oriented work, where metric-based dualization is treated as the problematic dependency.
 3. **Shuffle / Grassmann–Cayley meet**
-    Historically, the meet also appears as the **shuffle product** in Grassmann–Cayley algebra. Conceptually this is the same “intersection-side” algebra, but it is a distinct named construction in the literature and worth exposing by name if you want a complete API vocabulary. 
+    Historically, the meet also appears as the **shuffle product** in Grassmann–Cayley algebra. Conceptually this is the same “intersection-side” algebra, but it is a distinct named construction in the literature and worth exposing by name if you want a complete API vocabulary.
 
 So the set I would expose is:
 
@@ -888,7 +888,7 @@ And I would make:
 
 - **default `regressive_product` = `complement_regressive_product`**
 
-That is the best default because it is the one that still works cleanly when the metric is degenerate, which is the main failure mode for the classical pseudoscalar-inverse definition. Gunn explicitly discusses the long tradition of computing the regressive product through the metric and why that is the wrong dependency for projective settings, and Dorst’s more recent work also emphasizes keeping dual-space machinery explicit rather than relying on a basis/sign-fragile pseudoscalar dualization. 
+That is the best default because it is the one that still works cleanly when the metric is degenerate, which is the main failure mode for the classical pseudoscalar-inverse definition. Gunn explicitly discusses the long tradition of computing the regressive product through the metric and why that is the wrong dependency for projective settings, and Dorst’s more recent work also emphasizes keeping dual-space machinery explicit rather than relying on a basis/sign-fragile pseudoscalar dualization.
 
 A good API split would be:
 
@@ -906,7 +906,7 @@ alg.meet(a, b)        # alias of regressive_product
 alg.join(a, b)        # alias of wedge
 ```
 
-What I would **not** do is make contraction-based formulas first-class “products.” They do appear in derivations and special-case formulas, but they are better treated as implementation strategies or identities, not as separate public products. The main genuine public variants are the metric-dual one, the complement-based one, and the historical shuffle-meet viewpoint. 
+What I would **not** do is make contraction-based formulas first-class “products.” They do appear in derivations and special-case formulas, but they are better treated as implementation strategies or identities, not as separate public products. The main genuine public variants are the metric-dual one, the complement-based one, and the historical shuffle-meet viewpoint.
 
 My concrete recommendation:
 

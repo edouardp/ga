@@ -1,5 +1,5 @@
 > [!IMPORTANT]
-> In terms of design, should there be two commutor() methods? (Or a commutor(..., half=True)) 
+> In terms of design, should there be two commutor() methods? (Or a commutor(..., half=True))
 
 Yes — I would have **two named functions**, not a boolean flag.
 

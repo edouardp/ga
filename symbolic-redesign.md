@@ -22,21 +22,21 @@ The API should let a developer independently control:
 
 1. **Identity / display**
 
-   
+
 
    - named
    - anonymous
 
-   
+
 
 2. **Evaluation / representation**
 
-   
+
 
    - lazy
    - eager
 
-   
+
 
 
 
@@ -587,7 +587,7 @@ should return the eager/concrete value.
 
 
 
-## **Name propagation through** 
+## **Name propagation through**
 
 ## **.eval()**
 
@@ -1026,7 +1026,7 @@ This gives the developer the most useful shorthand behavior.
 
 
 
-## **Calling** 
+## **Calling**
 
 ## **.name()**
 
@@ -1058,7 +1058,7 @@ x = (e1 + e2)        # eager unnamed
 y = x.name("y")      # named lazy
 ```
 
-## **Calling** 
+## **Calling**
 
 ## **.name()**
 
@@ -1084,7 +1084,7 @@ Result:
 
 
 
-## **Calling** 
+## **Calling**
 
 ## **.anon()**
 
@@ -1100,7 +1100,7 @@ No-op.
 
 
 
-## **Calling** 
+## **Calling**
 
 ## **.eager()**
 
@@ -1116,7 +1116,7 @@ No-op in semantics.
 
 
 
-## **Calling** 
+## **Calling**
 
 ## **.lazy()**
 
@@ -1192,6 +1192,3 @@ And the important special case is covered cleanly:
 
 - basis blades are **named + eager**
 - user-defined shorthand objects are often **named + lazy**\
-
-
-

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.4 (2026-03-29)
+
+### Added
+
+- `pseudoscalar(lazy=True)` flag for lazy pseudoscalar in symbolic workflows
+- Ruff, shellcheck, bandit, rumdl, pip-audit, pyrefly linting toolchain
+- Pre-commit hooks for automated quality gates
+- Low-dimensional algebra tests (Cl(0), Cl(1), Cl(2), degenerate)
+- Docstrings on all 1259 test methods
+- Examples reorganised into subfolders: basics, algebra, physics, quantum, pga, spacetime
+
+### Fixed
+
+- `rotor()` now rejects pure scalars — must have a grade-2 component
+- README: corrected `|` operator docs, commutator/anticommutator definitions,
+  install instructions, test paths, repr docs
+
 ## 0.3.3 (2026-03-28)
 
 ### Fixed
