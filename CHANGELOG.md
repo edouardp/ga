@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.10 (2026-03-29)
+
+### Added
+
+- `display(compact=True)` — uses `=` instead of `\quad = \quad` for tighter layout.
+
+### Fixed
+
+- LaTeX accents now use `\widetilde` / `\overline` for multi-character names
+  (e.g. `SR`) and `\tilde` / `\bar` for single glyphs (including LaTeX commands
+  like `\theta`).
+
 ## 0.3.9 (2026-03-29)
 
 ### Added
