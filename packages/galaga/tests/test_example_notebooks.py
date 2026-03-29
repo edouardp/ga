@@ -52,6 +52,7 @@ NOTEBOOKS = [
     "algebra/exp_log_rotors.py",
     "algebra/sandwich_products.py",
     "algebra/meets_joins_pga.py",
+    "algebra/rotations_from_bivectors.py",
 ]
 
 

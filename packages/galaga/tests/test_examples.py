@@ -39,3 +39,30 @@ def test_polarisation_notebook_avoids_mathtext_in_matplotlib_plot_labels():
 
     assert "label=r'$\\frac{1}{4}\\sin^2(2\\theta)$'" not in source
     assert "label=r'$\\cos^{2N}(90°/N)$'" not in source
+
+
+def test_rotations_from_bivectors_notebook_uses_principle_driven_sections():
+    """Verify the notebook keeps the teaching structure and includes a failure-mode control."""
+    source = (ROOT / "examples" / "algebra" / "rotations_from_bivectors.py").read_text()
+
+    assert "# Rotations from Bivectors" in source
+    assert "## Domain Grounding" in source
+    assert "## GA Formulation" in source
+    assert "## Minimal Math" in source
+    assert "## Code Layer" in source
+    assert "## Validation" in source
+    assert 'options=["unit bivector", "raw wedge"]' in source
+    assert 'label="generator"' in source
+
+
+def test_rotations_from_bivectors_notebook_uses_gm_md_only_for_interpolated_markdown():
+    """Static explanatory sections should use marimo markdown rather than gm.md()."""
+    source = (ROOT / "examples" / "algebra" / "rotations_from_bivectors.py").read_text()
+
+    assert source.count("gm.md(t\"\"\"") == 2
+    assert 'mo.md(r"""' in source
+    assert "# Rotations from Bivectors" in source
+    assert "## Domain Grounding" in source
+    assert "## GA Formulation" in source
+    assert "## Minimal Math" in source
+    assert "## Domain Check" in source

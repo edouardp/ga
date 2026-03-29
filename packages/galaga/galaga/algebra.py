@@ -301,11 +301,14 @@ class Algebra:
             vecs.append(mv)
         return tuple(vecs)
 
-    def pseudoscalar(self) -> Multivector:
-        """Return the unit pseudoscalar I (𝑰) (named + eager)."""
+    def pseudoscalar(self, lazy: bool = False) -> Multivector:
+        """Return the unit pseudoscalar I (𝑰)."""
         data = np.zeros(self._dim)
         data[self._dim - 1] = 1.0
-        return Multivector(self, data)
+        mv = Multivector(self, data)
+        if lazy:
+            mv._is_lazy = True
+        return mv
 
     @property
     def I(self) -> Multivector:
